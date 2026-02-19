@@ -10,8 +10,8 @@ class TripleTriadGame {
         this.draggedCardIndex = null;
         this.hoveredCard = null;
         this.hoverTimeout = null;
-        this.hoverReturnDelay = 500;
-        this.autoReplayDelay = 2000;
+        this.hoverReturnDelay = 500; // 0.5 seconds
+        this.autoReplayDelay = 2000; // 2 seconds for auto-replay
         this.autoReplayTimeout = null;
         
         this.cardDatabase = [
@@ -66,6 +66,9 @@ class TripleTriadGame {
         this.opponentHand = shuffledCards.slice(5, 10).map(card => ({ ...card, owner: 'opponent' }));
     }
     
+    bindEvents() {
+        // Remove old click-based events since we're using drag and drop
+    }
     
     handleDragStart(e, card) {
         if (this.gameOver || this.currentPlayer !== 'player') {
@@ -154,6 +157,7 @@ class TripleTriadGame {
             return;
         }
         
+        // Only switch turns if current player was 'player'
         if (this.currentPlayer === 'player') {
             this.currentPlayer = 'opponent';
             this.showMessage('Opponent is thinking...');
@@ -378,13 +382,24 @@ class TripleTriadGame {
         document.getElementById('playerScore').textContent = playerCards;
         document.getElementById('opponentScore').textContent = opponentCards;
     }
+    
+    updateTurnIndicator() {
+        // Removed - using message instead
+    }
+    
+    showMessage(message) {
+        // Message element removed - do nothing
+    }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
     const game = new TripleTriadGame();
+    // Initial message removed - no message element
+    
+    // Play background music
     const bgMusic = document.getElementById('bgMusic');
     if (bgMusic) {
-        bgMusic.volume = 0.3;
+        bgMusic.volume = 0.3; // Set volume to 30%
         bgMusic.play().catch(e => console.log('Audio play failed:', e));
     }
 });
