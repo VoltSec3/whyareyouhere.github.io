@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shitty Triad</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background-image: url('images/background.png');
+            background-size: cover;
+            background-position: center;
+            font-family: 'Georgia', 'Times New Roman', serif;
+            color: white;
+            overflow: hidden;
+        }
+        
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            height: 100vh;
+            justify-content: center;
+            position: relative;
+            width: 100%;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .game-layout {
+            display: flex;
+            align-items: center;
+            gap: 40px;
+        }
+        
+        .left-deck, .right-deck {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            position: relative;
+        }
+        
+        .game-board {
+            display: grid;
+            grid-template-columns: repeat(3, 140px);
+            grid-template-rows: repeat(3, 180px);
+            gap: 3px;
+            background-image: url('images/deck.png');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            padding: 12px;
+            border: none;
+            border-radius: 0;
+            box-shadow: none;
+        }
+        
+        .board-slot {
+            background: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            position: relative;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+        }
+        
+        .board-slot:hover {
+            border-color: #fff;
+            background: radial-gradient(circle, #3a3a3a, #2a2a2a);
+            box-shadow: inset 0 0 15px rgba(255, 255, 255, 0.2);
+            transform: scale(1.02);
+        }
+        
+        .board-slot.drag-over {
+            border-color: #fff;
+            background: radial-gradient(circle, #3a3a3a, #2a2a2a);
+            box-shadow: inset 0 0 20px rgba(255, 255, 255, 0.3);
+        }
+        
+        .card {
+            width: 120px;
+            height: 160px;
+            background: linear-gradient(135deg, #f4e4c1, #e8d4a1);
+            border: 3px solid #8b7355;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px;
+            color: #2c1810;
+            font-weight: bold;
+            position: relative;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.8);
+            cursor: grab;
+            user-select: none;
+        }
+        
+        .card.dragging {
+            opacity: 0.5;
+            cursor: grabbing;
+        }
+        
+        .card.player {
+            background: linear-gradient(135deg, #4a7c59, #2d5a3d);
+            border-color: #1a3d1a;
+            color: #e8f5e8;
+        }
+        
+        .card.opponent {
+            background: linear-gradient(135deg, #8b2635, #5a1a2d);
+            border-color: #3d0a1a;
+            color: #ffe8e8;
+        }
+        
+        .card-name {
+            font-size: 14px;
+            text-align: center;
+            margin-top: 8px;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+        }
+        
+        .card-ranks {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        
+        .rank {
+            width: 20px;
+            height: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: #fff;
+            border: 1px solid #fff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: bold;
+        }
+        
+        .card-stats {
+            display: grid;
+            grid-template-areas: 
+                ". top ."
+                "left center right"
+                ". bottom .";
+            width: 90px;
+            height: 90px;
+            position: relative;
+            margin-top: 10px;
+        }
+        
+        .stat {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            font-weight: bold;
+            background: rgba(0, 0, 0, 0.8);
+            color: #ffd700;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            border: 2px solid #ffd700;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+        }
+        
+        .stat.top { grid-area: top; }
+        .stat.bottom { grid-area: bottom; }
+        .stat.left { grid-area: left; }
+        .stat.right { grid-area: right; }
+        
+        .hands {
+            display: flex;
+            gap: 30px;
+            width: 100%;
+            justify-content: space-between;
+            max-width: 800px;
+        }
+        
+        .hand {
+            display: flex;
+            flex-direction: column;
+            gap: -40px;
+            padding: 8px;
+            background: none;
+            border: none;
+            border-radius: 0;
+            min-height: 600px;
+            width: 150px;
+            box-shadow: none;
+            position: relative;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .hand-card {
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .hand-card:hover {
+            transform: translateX(30px) scale(1.05);
+            filter: brightness(1.2);
+            z-index: 10;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.9);
+        }
+        
+        .hand-card.expanded {
+            transform: translateX(30px) scale(1.05);
+            filter: brightness(1.2);
+            z-index: 10;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.9);
+        }
+        
+        #opponentHand .hand-card:hover {
+            transform: translateX(-30px) scale(1.05);
+        }
+        
+        #opponentHand .hand-card.expanded {
+            transform: translateX(-30px) scale(1.05);
+        }
+        
+        .game-info {
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(30, 30, 30, 0.9));
+            padding: 15px 30px;
+            border-radius: 10px;
+            text-align: center;
+            border: 2px solid #444;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
+        }
+        
+        .turn-indicator {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #ffd700;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+        }
+        
+        .score-board {
+            margin: 10px 0;
+        }
+        
+        .score-section {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 30px;
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.8), rgba(20, 20, 20, 0.8));
+            padding: 15px 30px;
+            border-radius: 8px;
+            border: 2px solid #444;
+        }
+        
+        .player-score, .opponent-score {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .score-label {
+            font-size: 12px;
+            color: #fff;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+        }
+        
+        .score-value {
+            font-size: 28px;
+            font-weight: bold;
+            color: #fff;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+            background: linear-gradient(135deg, #444, #222);
+            padding: 5px 15px;
+            border-radius: 6px;
+            border: 2px solid #fff;
+            min-width: 50px;
+            text-align: center;
+        }
+        
+        .deck-score {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            margin-top: 10px;
+        }
+        
+        .deck-score .score-value {
+            font-size: 36px;
+            font-weight: bold;
+            font-style: italic;
+            color: #fff;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+            text-align: center;
+        }
+        
+        .vs-separator {
+            font-size: 20px;
+            font-weight: bold;
+            color: #fff;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+            background: linear-gradient(135deg, #8b2635, #5a1a2d);
+            padding: 10px 15px;
+            border-radius: 50%;
+            border: 2px solid #fff;
+        }
+        
+        .message {
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(40, 40, 40, 0.9));
+            color: #fff;
+            padding: 8px 20px;
+            border-radius: 6px;
+            margin-top: 8px;
+            text-align: center;
+            font-weight: bold;
+            border: 1px solid #fff;
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8);
+        }
+        
+        .hand-label {
+            position: absolute;
+            top: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: #fff;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            border: 1px solid #444;
+        }
+        
+        .game-layout {
+            display: flex;
+            gap: 30px;
+            width: 100%;
+            justify-content: space-between;
+            max-width: 800px;
+        }
+        
+        .left-deck, .right-deck {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="game-layout">
+            <div class="left-deck">
+                <div class="hand" id="playerHand">
+                    <!-- Player cards will be generated by JavaScript -->
+                </div>
+                <div class="game-score">
+                    <div class="score-value" id="playerScore">0</div>
+                </div>
+            </div>
+            
+            <div class="game-board" id="gameBoard">
+                <!-- Board slots will be generated by JavaScript -->
+            </div>
+            
+            <div class="right-deck">
+                <div class="hand" id="opponentHand">
+                    <!-- Opponent cards will be generated by JavaScript -->
+                </div>
+                <div class="game-score">
+                    <div class="score-value" id="opponentScore">0</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/game.js"></script>
+    <audio id="bgMusic" loop>
+        <source src="images/bg.ogg" type="audio/ogg">
+    </audio>
+</body>
+</html>
