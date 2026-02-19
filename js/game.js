@@ -334,10 +334,11 @@ class TripleTriadGame {
         }
         
         cardDiv.innerHTML = `
-            <div class="card-ranks">
-                <div class="rank">${card.top}/${card.bottom}</div>
-                <div class="rank">${card.left}</div>
-                <div class="rank">${card.right}</div>
+            <div class="card-stats">
+                <div class="stat top">${card.top}</div>
+                <div class="stat left">${card.left}</div>
+                <div class="stat right">${card.right}</div>
+                <div class="stat bottom">${card.bottom}</div>
             </div>
             <div class="card-name">${card.name}</div>
         `;
