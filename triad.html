@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shitty Triad</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            padding: 20px;
+            background-image: url('images/background.png');
+            background-size: cover;
+            background-position: center;
+            font-family: 'Georgia', 'Times New Roman', serif;
+            color: white;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* Landing view */
+        #landing {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            gap: 24px;
+        }
+        #landing h1 {
+            font-size: 2.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            margin: 0;
+        }
+        .landing-buttons {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .landing-btn {
+            padding: 16px 32px;
+            font-size: 1.2rem;
+            font-family: inherit;
+            border: 2px solid #8b7355;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            color: white;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+        }
+        .landing-btn.singleplayer {
+            background: linear-gradient(135deg, #4a7c59, #2d5a3d);
+        }
+        .landing-btn.singleplayer:hover {
+            filter: brightness(1.15);
+            transform: scale(1.02);
+        }
+        .landing-btn.multiplayer {
+            background: linear-gradient(135deg, #5a4a8b, #3d2d6a);
+        }
+        .landing-btn.multiplayer:hover {
+            filter: brightness(1.15);
+            transform: scale(1.02);
+        }
+
+        /* Multiplayer lobby (hidden by default) */
+        #multiplayer-lobby {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        #multiplayer-lobby.visible {
+            display: flex;
+        }
+        .lobby-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .back-btn {
+            padding: 10px 20px;
+            font-family: inherit;
+            font-size: 1rem;
+            color: white;
+            background: rgba(0,0,0,0.6);
+            border: 2px solid #666;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        .back-btn:hover {
+            background: rgba(40,40,40,0.8);
+        }
+        .lobby-controls {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            max-width: 500px;
+            width: 100%;
+        }
+        .lobby-controls input[type="text"] {
+            flex: 1;
+            min-width: 160px;
+            padding: 10px 14px;
+            font-size: 1rem;
+            font-family: inherit;
+            border: 2px solid #666;
+            border-radius: 6px;
+            background: rgba(0,0,0,0.5);
+            color: white;
+        }
+        .lobby-controls input::placeholder {
+            color: rgba(255,255,255,0.6);
+        }
+        .lobby-controls select {
+            padding: 10px 14px;
+            font-size: 1rem;
+            font-family: inherit;
+            border: 2px solid #666;
+            border-radius: 6px;
+            background: rgba(0,0,0,0.6);
+            color: white;
+            min-width: 200px;
+            cursor: pointer;
+        }
+        .create-room-btn {
+            padding: 10px 24px;
+            font-family: inherit;
+            font-size: 1rem;
+            font-weight: bold;
+            color: white;
+            background: linear-gradient(135deg, #4a7c59, #2d5a3d);
+            border: 2px solid #2a4a32;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        .create-room-btn:hover {
+            filter: brightness(1.1);
+        }
+        .rooms-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            max-width: 420px;
+            width: 100%;
+            max-height: 320px;
+            overflow-y: auto;
+            background: rgba(0,0,0,0.5);
+            border: 2px solid #444;
+            border-radius: 8px;
+        }
+        .rooms-list li {
+            padding: 12px 16px;
+            border-bottom: 1px solid #333;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+        .rooms-list li:last-child { border-bottom: none; }
+        .rooms-list li:hover {
+            background: rgba(255,255,255,0.08);
+        }
+        .room-name { font-weight: bold; }
+        .room-meta { font-size: 0.85rem; color: rgba(255,255,255,0.8); }
+        .room-join-btn {
+            padding: 6px 14px;
+            font-family: inherit;
+            font-size: 0.9rem;
+            color: white;
+            background: #4a7c59;
+            border: 1px solid #2d5a3d;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .room-join-btn:hover { filter: brightness(1.15); }
+        .room-full-badge {
+          font-size: 0.85rem;
+          color: rgba(255,255,255,0.85);
+          background: #555;
+          padding: 4px 10px;
+          border-radius: 6px;
+        }
+        .room-actions { display: flex; align-items: center; gap: 6px; }
+        .room-delete-btn {
+            padding: 4px 10px;
+            font-size: 1rem;
+            color: #fff;
+            background: #8b2635;
+            border: 1px solid #5a1a2d;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .room-delete-btn:hover { filter: brightness(1.2); }
+        .room-locked { opacity: 0.9; }
+        .empty-rooms { padding: 24px; text-align: center; color: rgba(255,255,255,0.7); }
+
+        /* Create room modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.75);
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .modal-overlay.visible {
+            display: flex;
+        }
+        .modal {
+            background: linear-gradient(135deg, rgba(30,30,30,0.98), rgba(20,20,20,0.98));
+            border: 2px solid #555;
+            border-radius: 12px;
+            padding: 28px;
+            max-width: 380px;
+            width: 90%;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+        }
+        .modal h2 { margin: 0 0 20px 0; font-size: 1.4rem; }
+        .modal label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 0.95rem;
+        }
+        .modal input[type="text"],
+        .modal input[type="password"] {
+            width: 100%;
+            padding: 10px 12px;
+            margin-bottom: 16px;
+            font-family: inherit;
+            font-size: 1rem;
+            border: 2px solid #555;
+            border-radius: 6px;
+            background: rgba(0,0,0,0.4);
+            color: white;
+        }
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+        .modal-actions button {
+            flex: 1;
+            padding: 10px 16px;
+            font-family: inherit;
+            font-size: 1rem;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        .modal-cancel {
+            background: #444;
+            color: white;
+            border: 2px solid #555;
+        }
+        .modal-create {
+            background: linear-gradient(135deg, #4a7c59, #2d5a3d);
+            color: white;
+            border: 2px solid #2a4a32;
+        }
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+        .toggle-row input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+        .password-field { display: none; }
+        .password-field.visible { display: block; }
+    </style>
+</head>
+<body>
+    <div id="landing">
+        <h1>Shitty Triad</h1>
+        <div class="landing-buttons">
+            <a href="singleplayer.html" class="landing-btn singleplayer">Singleplayer</a>
+            <button type="button" class="landing-btn multiplayer" id="btnMultiplayer">Multiplayer</button>
+        </div>
+    </div>
+
+    <div id="multiplayer-lobby">
+        <div class="lobby-header">
+            <button type="button" class="back-btn" id="btnBack">← Back</button>
+            <h2 style="margin:0;">Multiplayer Lobby</h2>
+        </div>
+        <div class="lobby-controls">
+            <input type="text" id="roomSearch" placeholder="Search room names..." />
+            <select id="roomDropdown" title="Select a room">
+                <option value="">-- Rooms --</option>
+            </select>
+            <button type="button" class="create-room-btn" id="btnCreateRoom">Create room</button>
+        </div>
+        <ul class="rooms-list" id="roomsList">
+            <li class="empty-rooms">Loading rooms…</li>
+        </ul>
+    </div>
+
+    <div class="modal-overlay" id="createRoomModal">
+        <div class="modal">
+            <h2>Create room</h2>
+            <label for="roomName">Room name</label>
+            <input type="text" id="roomName" placeholder="My room" maxlength="32" />
+            <div class="toggle-row">
+                <input type="checkbox" id="roomPasswordLock" />
+                <label for="roomPasswordLock">Password protected</label>
+            </div>
+            <div class="password-field" id="passwordField">
+                <label for="roomPassword">Password</label>
+                <input type="password" id="roomPassword" placeholder="Enter password" />
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="modal-cancel" id="btnModalCancel">Cancel</button>
+                <button type="button" class="modal-create" id="btnModalCreate">Create</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="js/firebase-config.js"></script>
+    <script src="js/multiplayer.js"></script>
+</body>
+</html>
