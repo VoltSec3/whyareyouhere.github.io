@@ -1,0 +1,1078 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Somnia</title>
+<link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0e0c14;
+    --surface: #16121f;
+    --surface2: #1e1829;
+    --border: rgba(148, 130, 210, 0.15);
+    --border-hover: rgba(148, 130, 210, 0.35);
+    --purple: #9b87d4;
+    --purple-dim: #6b57a8;
+    --purple-bright: #c4b4f0;
+    --purple-faint: rgba(155, 135, 212, 0.08);
+    --pink-bright: #f0c4d8;
+    --text: #e8e0f4;
+    --text-muted: #8b7fb0;
+    --text-dim: #5a5075;
+    --text-title: #c4b4f0;
+    --green: #7fc9a0;
+    --font-serif: 'Libre Baskerville', Georgia, serif;
+    --font-mono: 'DM Mono', monospace;
+  }
+
+  body { background: var(--bg); color: var(--text); font-family: var(--font-serif); min-height: 100vh; display: flex; flex-direction: column; }
+
+  /* scrapped landing page */
+  .landing {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 48px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    background: var(--bg);
+    animation: fadeInUp 0.8s ease;
+  }
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .landing-bg-img {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 560px; max-width: 80%;
+    opacity: 0.22;
+    filter: saturate(0) sepia(1) hue-rotate(220deg) saturate(3) brightness(0.65);
+    pointer-events: none;
+    mix-blend-mode: screen;
+  }
+  .landing-content {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+  }
+  .landing-title {
+    font-size: 88px;
+    font-weight: 400;
+    font-style: italic;
+    color: var(--purple-bright);
+    letter-spacing: 0.06em;
+    line-height: 1;
+    margin-bottom: 48px;
+    text-shadow: 0 0 80px rgba(155,135,212,0.2);
+    animation: titleGlow 3s ease-in-out infinite alternate;
+  }
+  @keyframes titleGlow {
+    from { text-shadow: 0 0 80px rgba(155,135,212,0.2); }
+    to { text-shadow: 0 0 100px rgba(155,135,212,0.4), 0 0 120px rgba(155,135,212,0.2); }
+  }
+  .landing-flavor {
+    max-width: 400px;
+    border-left: 2px solid var(--border-hover);
+    padding-left: 20px;
+    text-align: left;
+    margin-bottom: 52px;
+  }
+  .landing-flavor-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.25em;
+    color: var(--purple);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .landing-flavor-text {
+    font-size: 14px;
+    line-height: 1.8;
+    color: var(--text-muted);
+    font-style: italic;
+  }
+  .landing-flavor-text strong { font-style: normal; color: var(--text); font-weight: 700; }
+  .landing-flavor-text em { color: var(--purple-bright); font-style: italic; }
+  .landing-enter {
+    background: var(--purple-faint);
+    border: 1px solid var(--border-hover);
+    color: var(--purple-bright);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.15em;
+    padding: 13px 40px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+  }
+  .landing-enter:hover { background: rgba(155,135,212,0.15); border-color: var(--purple); }
+  .landing-privacy {
+    margin-top: 28px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 0.08em;
+  }
+  .landing-privacy-dot { width: 5px; height: 5px; background: var(--green); border-radius: 50%; opacity: 0.7; }
+
+  /* app shell */
+  .header { display: flex; align-items: center; justify-content: space-between; padding: 12px 32px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--bg); z-index: 100; }
+  .header-center { display: flex; align-items: center; gap: 24px; }
+  .header-stat { font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); letter-spacing: 0.08em; display: flex; align-items: center; gap: 4px; padding: 4px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
+  .header-stat-value { color: var(--purple); font-weight: 400; }
+  .logo { font-size: 20px; letter-spacing: 0.12em; color: var(--purple-bright); font-weight: 400; font-style: italic; cursor: pointer; transition: opacity 0.15s; line-height: 1; }
+  .logo:hover { opacity: 0.7; }
+  .logo-sub { font-size: 10px; letter-spacing: 0.3em; color: var(--text-dim); font-style: normal; font-family: var(--font-mono); margin-top: 3px; display: block; }
+  .header-right { display: flex; align-items: center; gap: 12px; }
+  .privacy-badge { display: flex; align-items: center; gap: 6px; font-family: var(--font-mono); font-size: 11px; color: var(--green); background: rgba(127,201,160,0.08); border: 1px solid rgba(127,201,160,0.2); padding: 5px 12px; border-radius: 20px; letter-spacing: 0.05em; }
+  .privacy-badge::before { content: ''; width: 6px; height: 6px; background: var(--green); border-radius: 50%; display: inline-block; }
+  .music-toggle { width: 32px; height: 32px; border: 1px solid var(--border); color: var(--text-dim); background: transparent; cursor: pointer; border-radius: 4px; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+  .music-toggle:hover { border-color: var(--border-hover); color: var(--text-muted); }
+  .music-toggle.playing { border-color: var(--purple-dim); color: var(--purple-bright); background: var(--purple-faint); }
+  .music-toggle img { width: 20px; height: 20px; filter: var(--moon-filter); transition: all 0.2s; }
+  .music-toggle.playing img { filter: var(--moon-filter-glow); }
+  .layout { display: flex; flex: 1; height: calc(100vh - 61px); }
+
+  /* sidebar shit */
+  .sidebar { width: 268px; min-width: 268px; border-right: 1px solid var(--border); overflow-y: auto; display: flex; flex-direction: column; }
+  .sidebar-top { padding: 16px 20px; border-bottom: 1px solid var(--border); }
+  .nav-tabs { display: flex; gap: 2px; margin-bottom: 1px; border-bottom: 1px solid var(--border); position: relative; }
+  .nav-tab { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.08em; padding: 8px 12px; border: none; background: none; color: var(--text-dim); cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); position: relative; }
+  .nav-tab:hover { color: var(--text-muted); transform: translateY(-1px); }
+  .nav-tab.active { color: var(--purple-bright); border-bottom-color: var(--purple); }
+  .nav-tab.active::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--purple);
+    animation: slideIn 0.3s ease;
+  }
+  @keyframes slideIn {
+    from { transform: scaleX(0); }
+    to { transform: scaleX(1); }
+  }
+  .sidebar-section { padding: 0 20px; margin-bottom: 20px; }
+  .sidebar-label { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.25em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 10px; }
+  .btn-new-sidebar { display: block; width: 100%; background: var(--purple-faint); border: 1px solid var(--border-hover); color: var(--purple-bright); font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.1em; padding: 12px 16px; border-radius: 4px; cursor: pointer; transition: background 0.15s, border-color 0.15s; text-align: center; }
+  .btn-new-sidebar:hover { background: rgba(155,135,212,0.15); border-color: var(--purple); }
+  .search-input { width: 100%; background: var(--surface); border: 1px solid var(--border); color: var(--text); font-family: var(--font-mono); font-size: 12px; padding: 8px 12px; border-radius: 4px; outline: none; transition: border-color 0.15s; }
+  .search-input:focus { border-color: var(--purple-dim); }
+  .search-input::placeholder { color: var(--text-dim); }
+  .sort-row { display: flex; gap: 5px; justify-content: center; }
+  .sort-btn { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.04em; padding: 4px 10px; border-radius: 4px; cursor: pointer; border: 1px solid var(--border); color: var(--text-dim); background: transparent; transition: all 0.15s; }
+  .sort-btn:hover { border-color: var(--border-hover); color: var(--text-muted); }
+  .sort-btn.active { border-color: var(--purple-dim); color: var(--purple-bright); background: var(--purple-faint); }
+  .tag-filters { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
+  .tag-pill { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.04em; padding: 4px 6px; border-radius: 4px; cursor: pointer; border: 1px solid var(--border); color: var(--text-dim); background: transparent; transition: all 0.15s; text-align: center; }
+  .tag-pill:hover { border-color: var(--border-hover); color: var(--text-muted); }
+  .tag-pill.active { border-color: var(--purple-dim); color: var(--purple-bright); background: var(--purple-faint); }
+  .dream-count { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-dim); padding: 0 20px 10px; }
+  .dream-list { overflow-y: auto; flex: 1; }
+  .dream-item { position: relative; padding: 14px 20px; cursor: pointer; border-left: 2px solid transparent; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); border-bottom: 1px solid var(--border); }
+  .dream-item:hover { background: var(--surface); transform: translateX(4px); }
+  .dream-item.active { border-left-color: var(--purple); background: var(--surface); }
+  .dream-item-inner { padding-right: 26px; }
+  .dream-item-date { font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); letter-spacing: 0.08em; margin-bottom: 4px; }
+  .dream-item-title { font-size: 13px; color: var(--text-title); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 4px; }
+  .dream-item-preview { font-size: 12px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-style: italic; }
+  .dream-item-tags { display: flex; gap: 4px; margin-top: 6px; flex-wrap: wrap; }
+  .mini-tag { font-family: var(--font-mono); font-size: 9px; color: var(--purple-dim); background: var(--purple-faint); border-radius: 2px; padding: 1px 5px; }
+  .dream-item-close { position: absolute; right: 9px; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; border-radius: 50%; border: 1px solid rgba(107,87,168,0.45); background: rgba(107,87,168,0.12); color: rgba(196,180,240,0.55); font-size: 11px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s, background 0.15s, border-color 0.15s, color 0.15s; font-family: var(--font-mono); font-weight: 300; }
+  .dream-item:hover .dream-item-close { opacity: 1; }
+  .dream-item-close:hover { background: rgba(107,87,168,0.22); border-color: rgba(155,135,212,0.6); color: var(--purple-bright); }
+  .empty-list { padding: 40px 20px; text-align: center; color: var(--text-dim); font-style: italic; font-size: 13px; }
+
+  /* main */
+  .main { flex: 1; overflow-y: auto; display: flex; flex-direction: column; position: relative; }
+  .main-content {
+    animation: fadeInContent 0.4s ease;
+  }
+  @keyframes fadeInContent {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* grid */
+  .grid-canvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
+
+  /* viewer */
+  .viewer { flex: 1; padding: 40px 48px; max-width: 760px; width: 100%; margin: 0 auto; position: relative; z-index: 1; }
+  .viewer-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; }
+  .meta-date { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.12em; color: var(--text-dim); }
+  .btn-edit { background: none; border: 1px solid var(--border-hover); color: var(--purple-bright); padding: 7px 18px; font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.08em; cursor: pointer; border-radius: 4px; transition: all 0.15s; }
+  .btn-edit:hover { background: var(--purple-faint); border-color: var(--purple); }
+  .view-star-systems { display: flex; gap: 36px; margin-bottom: 24px; }
+  .view-star-system { display: flex; flex-direction: column; gap: 5px; }
+  .view-star-label { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--text-dim); }
+  .view-stars { display: flex; gap: 4px; }
+  .vstar { font-size: 15px; color: var(--purple-bright); opacity: 0.18; }
+  .vstar.on { opacity: 1; }
+  /* gradient for lucidity */
+  .vstar.level-1 { color: var(--purple); }
+  .vstar.level-2 { color: var(--purple-bright); }
+  .vstar.level-3 { color: #b19fff; }
+  .vstar.level-4 { color: #c4b4f0; }
+  .vstar.level-5 { color: #e8e0f4; }
+
+  .vstar-q { font-size: 15px; color: var(--pink-bright); opacity: 0.18; }
+  .vstar-q.on { opacity: 1; }
+  /* gradient for quality */
+  .vstar-q.level-1 { color: #f0c4d8; }
+  .vstar-q.level-2 { color: #ffb3ba; }
+  .vstar-q.level-3 { color: #ff9999; }
+  .vstar-q.level-4 { color: #ff7f7f; }
+  .vstar-q.level-5 { color: #ff4d4d; }
+  .view-star-hint { font-family: var(--font-mono); font-size: 9px; color: var(--text-dim); }
+  .view-title { font-size: 28px; line-height: 1.85; color: var(--text-title); white-space: pre-wrap; min-height: 80px; }
+  .view-title.untitled { color: var(--text-dim); font-style: italic; font-weight: 400; }
+  .view-body { font-family: var(--font-serif); font-size: 16px; line-height: 1.85; color: var(--text-muted); font-style: italic; white-space: pre-wrap; min-height: 80px; }
+  .view-body.empty { color: var(--text-dim); }
+  .view-tags-row { margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--border); display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .view-tags-label { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.2em; color: var(--text-dim); text-transform: uppercase; }
+  .view-tag { font-family: var(--font-mono); font-size: 11px; color: var(--purple-dim); background: var(--purple-faint); border-radius: 2px; padding: 1px 5px; }
+  .view-footer { margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--border); }
+  .btn-delete { background: none; border: 1px solid var(--border); color: var(--text-muted); padding: 9px 18px; font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.08em; cursor: pointer; border-radius: 4px; transition: all 0.15s; }
+  .btn-delete:hover { border-color: var(--border-hover); color: var(--text); }
+
+  /* editor */
+  .editor { flex: 1; padding: 40px 48px; max-width: 760px; width: 100%; margin: 0 auto; position: relative; z-index: 1; }
+  .editor-new { animation: fadeInContent 0.4s ease; }
+  @keyframes fadeInContent {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .editor-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; }
+  .btn-cancel-edit { background: none; border: 1px solid var(--border); color: var(--text-muted); padding: 7px 16px; font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.08em; cursor: pointer; border-radius: 4px; transition: all 0.15s; }
+  .btn-cancel-edit:hover { border-color: var(--border-hover); color: var(--text); }
+  .star-systems { display: flex; gap: 36px; margin-bottom: 24px; align-items: flex-start; }
+  .star-system { display: flex; flex-direction: column; gap: 5px; }
+  .star-system-label { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--text-dim); }
+  .stars-row { display: flex; gap: 4px; }
+  .star-system-hint { font-family: var(--font-mono); font-size: 9px; color: var(--text-dim); letter-spacing: 0.05em; }
+  .star-lucid { font-size: 16px; cursor: pointer; opacity: 0.18; transition: all 0.2s ease; color: var(--purple-dim); user-select: none; }
+  .star-lucid.filled { opacity: 1; transform: scale(1); }
+  .star-lucid.filled.level-1 { color: var(--purple); }
+  .star-lucid.filled.level-2 { color: var(--purple-bright); }
+  .star-lucid.filled.level-3 { color: #b19fff; }
+  .star-lucid.filled.level-4 { color: #c4b4f0; }
+  .star-lucid.filled.level-5 { color: #e8e0f4; }
+  .star-lucid:hover { transform: scale(1.1); opacity: 0.8; }
+  .star-quality { font-size: 16px; cursor: pointer; opacity: 0.18; transition: all 0.2s ease; color: #d4a0a0; user-select: none; }
+  .star-quality.filled { opacity: 1; transform: scale(1); }
+  .star-quality.filled.level-0 { color: #f0c4d8; }
+  .star-quality.filled.level-1 { color: #ffb3ba; }
+  .star-quality.filled.level-2 { color: #ff9999; }
+  .star-quality.filled.level-3 { color: #ff7f7f; }
+  .star-quality.filled.level-4 { color: #ff6666; }
+  .star-quality.filled.level-5 { color: #ff4d4d; }
+  .star-quality:hover { transform: scale(1.1); opacity: 0.8; }
+  .title-input { width: 100%; background: none; border: none; font-family: var(--font-serif); font-size: 28px; font-weight: 700; color: var(--text-title); outline: none; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 16px; line-height: 1.3; }
+  .title-input::placeholder { color: var(--text-dim); }
+  .body-input { width: 100%; background: none; border: none; font-family: var(--font-serif); font-size: 16px; line-height: 1.85; color: var(--text-muted); outline: none; resize: none; min-height: 320px; font-style: italic; }
+  .body-input::placeholder { color: var(--text-dim); font-style: italic; }
+  .tags-row { margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--border); display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .tags-label { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.2em; color: var(--text-dim); text-transform: uppercase; }
+  .tag-editable { font-family: var(--font-mono); font-size: 11px; color: var(--purple-dim); background: var(--purple-faint); border-radius: 2px; padding: 1px 5px; transition: all 0.2s ease; cursor: pointer; }
+  .tag-editable:hover { background: rgba(155,135,212,0.3); color: var(--purple); transform: translateY(-1px); }
+  .tag-input { background: none; border: none; font-family: var(--font-mono); font-size: 11px; color: var(--text); outline: none; width: 90px; padding: 3px 0; }
+  .tag-input::placeholder { color: var(--text-dim); }
+  .editor-footer { margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--border); display: flex; align-items: center; gap: 12px; }
+  .btn-save { background: var(--purple); color: #0e0c14; border: none; padding: 10px 28px; font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.1em; cursor: pointer; border-radius: 4px; transition: background 0.15s; }
+  .btn-save:hover { background: var(--purple-bright); }
+  .save-status { font-family: var(--font-mono); font-size: 11px; color: var(--green); opacity: 0; transition: opacity 0.3s; margin-left: auto; }
+  .save-status.show { opacity: 1; }
+
+  /* statistic bar */
+  .stats-bar { padding: 10px 32px; border-top: 1px solid var(--border); display: flex; gap: 28px; background: var(--bg); }
+  .stat { font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); letter-spacing: 0.1em; }
+  .stat span { color: var(--purple); }
+
+  /* analyzer */
+  .analyzer { flex: 1; padding: 40px 48px; max-width: 900px; width: 100%; margin: 0 auto; position: relative; z-index: 1; }
+  .analyzer-header { margin-bottom: 32px; }
+  .analyzer-title { font-size: 24px; font-weight: 700; color: var(--text-title); margin-bottom: 8px; }
+  .analyzer-subtitle { font-size: 14px; color: var(--text-muted); font-style: italic; }
+  .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 32px; }
+  .chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 20px; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+  .chart-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(155,135,212,0.1); border-color: var(--border-hover); }
+  .chart-title { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 16px; }
+  .chart-container { height: 200px; position: relative; }
+  .bar-chart { display: flex; align-items: flex-end; height: 160px; gap: 8px; padding: 0 4px; }
+  .bar { flex: 1; background: var(--purple-faint); border: 1px solid var(--border); border-radius: 2px 2px 0 0; position: relative; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; }
+  .bar:hover { background: var(--purple); border-color: var(--purple-bright); transform: scaleY(1.05); transform-origin: bottom; }
+  .bar-label { font-family: var(--font-mono); font-size: 9px; color: var(--text-dim); position: absolute; bottom: -20px; left: 50%; transform: translateX(-50%); white-space: nowrap; }
+  .bar-value { font-family: var(--font-mono); font-size: 10px; color: var(--purple-bright); position: absolute; top: -18px; left: 50%; transform: translateX(-50%); opacity: 0; transition: opacity 0.2s; }
+  .bar:hover .bar-value { opacity: 1; }
+  .tag-cloud { display: flex; flex-wrap: wrap; gap: 8px; min-height: 160px; align-items: center; justify-content: center; }
+  .tag-cloud-item { font-family: var(--font-mono); padding: 4px 8px; border-radius: 4px; cursor: pointer; transition: all 0.2s; border: 1px solid var(--border); }
+  .tag-cloud-item:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.2); }
+  .full-width-chart { grid-column: 1 / -1; }
+  .timeline-chart { height: 160px; position: relative; overflow: hidden; }
+  .timeline-line { position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: var(--border); }
+  .timeline-point { position: absolute; width: 8px; height: 8px; border-radius: 50%; background: var(--purple-faint); border: 1px solid var(--border); cursor: pointer; transition: all 0.2s; top: 50%; transform: translate(-50%, -50%); }
+  .timeline-point:hover { background: var(--purple); border-color: var(--purple-bright); width: 12px; height: 12px; }
+  .timeline-tooltip { position: absolute; background: var(--surface2); border: 1px solid var(--border-hover); border-radius: 4px; padding: 6px 8px; font-family: var(--font-mono); font-size: 9px; color: var(--text); white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity 0.2s; z-index: 10; bottom: 100%; margin-bottom: 4px; left: 50%; transform: translateX(-50%); }
+  .timeline-point:hover .timeline-tooltip { opacity: 1; }
+  .stats-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin-top: 24px; }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 16px; text-align: center; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+  .stat-card:hover { transform: translateY(-4px); box-shadow: 0 12px 32px rgba(155,135,212,0.15); border-color: var(--purple-dim); }
+  .stat-value { font-size: 24px; font-weight: 700; color: var(--purple-bright); margin-bottom: 4px; transition: all 0.3s ease; }
+  .stat-card:hover .stat-value { transform: scale(1.05); color: var(--purple); }
+  .stat-label { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.08em; color: var(--text-dim); text-transform: uppercase; }
+
+  /* modals */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(14,12,20,0.82); display: flex; align-items: center; justify-content: center; z-index: 999; animation: fadeIn 0.15s ease; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  .modal { background: var(--surface2); border: 1px solid var(--border-hover); border-radius: 6px; padding: 32px 36px; max-width: 340px; width: 90%; animation: slideUp 0.18s ease; }
+  @keyframes slideUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+  .modal-title { font-family: var(--font-serif); font-size: 17px; font-weight: 700; color: var(--text); margin-bottom: 10px; }
+  .modal-body { font-family: var(--font-serif); font-size: 14px; color: var(--text-muted); line-height: 1.65; font-style: italic; margin-bottom: 28px; }
+  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+  .btn-modal-cancel { background: none; border: 1px solid var(--border); color: var(--text-muted); padding: 8px 18px; font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.08em; cursor: pointer; border-radius: 4px; transition: all 0.15s; }
+  .btn-modal-cancel:hover { border-color: var(--border-hover); color: var(--text); }
+  .btn-modal-confirm { background: var(--purple-dim); color: var(--purple-bright); border: none; padding: 8px 18px; font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.08em; cursor: pointer; border-radius: 4px; transition: background 0.15s, color 0.15s; }
+  .btn-modal-confirm:hover { background: var(--purple); color: #0e0c14; }
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+(function() {
+
+const STORAGE_KEY = 'somnia_dreams_v1';
+function loadDreams() { try { const r = localStorage.getItem(STORAGE_KEY); return r ? JSON.parse(r) : []; } catch(e) { return []; } }
+function saveDreams(d) { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(d)); } catch(e) {} }
+function formatDate(iso) { return new Date(iso).toLocaleDateString('en-US', { weekday:'short', year:'numeric', month:'short', day:'numeric' }); }
+function formatTime(iso) { return new Date(iso).toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit' }); }
+function newDream() { return { id: Date.now().toString(), title:'', body:'', tags:[], lucidity:0, quality:-1, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }; }
+
+const ALL_TAGS = ['flying','water','chase','lucid','recurring','people','places','surreal','peaceful','dark'];
+const QUALITY_LABELS = ['bad dream','ordinary','pleasant','vivid','blissful'];
+const SORT_OPTIONS = [{key:'date',label:'Date'},{key:'lucidity',label:'Lucidity'},{key:'quality',label:'Quality'}];
+
+const FLAVOR = [
+  { title: 'Somnia', body: 'The latin root <em>somnus</em> which means <strong>sleep</strong>. The root is used in medical disorders like <em>insomnia</em>, <em>somniphobia</em> or <em>somnambulism</em> (sleepwalking).' },
+  { title: '…?', body: '<em>The mind wanders far when the body is still.</em>' },
+  { title: 'hello!', body: 'welcome to somnia, a dream journal for the <strong>lucid</strong> and the <strong>curious.</strong> i wish you <strong>luck</strong> on your path, <ins>whatever it may be...</ins>' }
+];
+
+let state = {
+  dreams: loadDreams(),
+  page: 'home', // 'home' 'view' 'edit' 'new' 'analyzer'
+  currentId: null,
+  editing: null,
+  flavor: Math.floor(Math.random() * FLAVOR.length),
+  search: '', filterTag: '',
+  sortBy: 'date', sortDir: 'desc',
+  saveStatus: false,
+  confirmDeleteId: null,
+  musicPlaying: false,
+  audioElement: null
+};
+
+function sortedDreams(list) {
+  return [...list].sort((a,b) => {
+    let va, vb;
+    if (state.sortBy==='date') { va=new Date(a.updatedAt).getTime(); vb=new Date(b.updatedAt).getTime(); }
+    else if (state.sortBy==='lucidity') { va=a.lucidity||0; vb=b.lucidity||0; }
+    else { va=a.quality<0?-1:a.quality; vb=b.quality<0?-1:b.quality; }
+    return state.sortDir==='desc'?vb-va:va-vb;
+  });
+}
+function filteredDreams() {
+  let list = [...state.dreams];
+  if (state.search.trim()) { const q=state.search.toLowerCase(); list=list.filter(d=>d.title.toLowerCase().includes(q)||d.body.toLowerCase().includes(q)||d.tags.some(t=>t.toLowerCase().includes(q))); }
+  if (state.filterTag) list=list.filter(d=>d.tags.includes(state.filterTag));
+  return sortedDreams(list);
+}
+function allUsedTags() { const s=new Set(); state.dreams.forEach(d=>d.tags.forEach(t=>s.add(t))); return Array.from(s); }
+function esc(s) { if(!s)return''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// grid shit
+let gridRAF = null;
+let gridCanvas = null;
+let gridCtx = null;
+let gridW = 0, gridH = 0;
+let gridT = 0;
+let gridOffX = 0, gridOffY = 0, gridTargetOX = 0, gridTargetOY = 0;
+let gridResizeObs = null;
+
+function gridDraw() {
+  if (!gridCanvas || !gridCtx) return;
+  gridRAF = requestAnimationFrame(gridDraw);
+  gridT += 0.003;
+
+  gridOffX += (gridTargetOX - gridOffX) * 0.05;
+  gridOffY += (gridTargetOY - gridOffY) * 0.05;
+
+  gridCtx.clearRect(0, 0, gridW, gridH);
+
+  const CELL = 52;
+  const driftX = (gridT * 10) % CELL;
+  const driftY = (gridT * 7) % CELL;
+  const baseX = -CELL + gridOffX * 0.5 - driftX;
+  const baseY = -CELL + gridOffY * 0.5 - driftY;
+  const cols = Math.ceil(gridW / CELL) + 3;
+  const rows = Math.ceil(gridH / CELL) + 3;
+
+  gridCtx.strokeStyle = 'rgba(155, 135, 212, 0.16)';
+  gridCtx.lineWidth = 0.5;
+  gridCtx.beginPath();
+  for (let c = 0; c <= cols; c++) {
+    const x = Math.round(baseX + c * CELL) + 0.5;
+    gridCtx.moveTo(x, 0); gridCtx.lineTo(x, gridH);
+  }
+  for (let r = 0; r <= rows; r++) {
+    const y = Math.round(baseY + r * CELL) + 0.5;
+    gridCtx.moveTo(0, y); gridCtx.lineTo(gridW, y);
+  }
+  gridCtx.stroke();
+}
+
+function startGrid() {
+  const canvas = document.getElementById('grid-canvas');
+  if (!canvas) return;
+  if (gridRAF) cancelAnimationFrame(gridRAF);
+
+  gridCanvas = canvas;
+  gridCtx = canvas.getContext('2d');
+
+  function sizeCanvas() {
+    const parent = canvas.parentElement;
+    if (!parent) return;
+    gridW = canvas.width = parent.clientWidth;
+    gridH = canvas.height = parent.clientHeight;
+  }
+  sizeCanvas();
+
+  if (gridResizeObs) gridResizeObs.disconnect();
+  gridResizeObs = new ResizeObserver(sizeCanvas);
+  gridResizeObs.observe(canvas.parentElement);
+
+  // mouse reaction
+  const mainEl = canvas.parentElement;
+  mainEl.addEventListener('mousemove', onGridMouse);
+
+  gridDraw();
+}
+
+function onGridMouse(e) {
+  const r = e.currentTarget.getBoundingClientRect();
+  gridTargetOX = ((e.clientX - r.left) / r.width - 0.5) * 24;
+  gridTargetOY = ((e.clientY - r.top) / r.height - 0.5) * 16;
+}
+
+function stopGrid() {
+  if (gridRAF) { cancelAnimationFrame(gridRAF); gridRAF = null; }
+  if (gridResizeObs) { gridResizeObs.disconnect(); gridResizeObs = null; }
+  gridCanvas = null; gridCtx = null;
+}
+
+// renderer
+function render() {
+  const app = document.getElementById('app');
+  const dreams = filteredDreams();
+  const usedTags = allUsedTags();
+
+  let mainContent = '';
+  if (state.page === 'home') mainContent = renderHomeMain();
+  else if (state.page === 'view') mainContent = renderViewer(state.editing);
+  else if (state.page === 'analyzer') mainContent = renderAnalyzer();
+  else mainContent = renderEditor(state.editing);
+
+  app.innerHTML = `
+    <header class="header">
+      <div class="logo" onclick="actions.goHome()">Somnia<span class="logo-sub">dream journal</span></div>
+      <div class="header-center">
+        <div class="header-stat">Total: <span class="header-stat-value">${state.dreams.length}</span></div>
+        <div class="header-stat">Lucid: <span class="header-stat-value">${state.dreams.filter(d=>d.tags.includes('lucid')).length}</span></div>
+        <div class="header-stat">This month: <span class="header-stat-value">${state.dreams.filter(d=>{const m=new Date(),c=new Date(d.createdAt);return c.getFullYear()===m.getFullYear()&&c.getMonth()===m.getMonth();}).length}</span></div>
+      </div>
+      <div class="header-right">
+        <button class="music-toggle" id="music-toggle" onclick="actions.toggleMusic()" title="Toggle music">
+          <img src="images/hp.png" alt="Music" />
+        </button>
+        <div class="privacy-badge">private and secure</div>
+      </div>
+    </header>
+
+    <div class="layout">
+      <aside class="sidebar">
+        <div class="nav-tabs">
+          <button class="nav-tab ${state.page!=='analyzer'?'active':''}" onclick="actions.goHome()">Dreams</button>
+          <button class="nav-tab ${state.page==='analyzer'?'active':''}" onclick="actions.goAnalyzer()">Analytics</button>
+        </div>
+        <div class="sidebar-top">
+          <button class="btn-new-sidebar" onclick="actions.newEntry()">+ Record a Dream</button>
+        </div>
+
+        <div class="sidebar-section" style="margin-top:16px;">
+          <div class="sidebar-label">Search</div>
+          <input class="search-input" type="text" placeholder="Search dreams..." value="${esc(state.search)}" oninput="actions.setSearch(this.value)" />
+        </div>
+
+        <div class="sidebar-section" style="margin-bottom:16px;">
+          <div class="sort-row">
+            ${SORT_OPTIONS.map(o=>`<button class="sort-btn ${state.sortBy===o.key?'active':''}" onclick="actions.setSort('${o.key}')">${o.label}</button>`).join('')}
+          </div>
+        </div>
+
+        ${usedTags.length?`<div class="sidebar-section"><div class="sidebar-label">Tags</div><div class="tag-filters"><button class="tag-pill ${!state.filterTag?'active':''}" onclick="actions.setTag('')">all</button>${usedTags.map(t=>`<button class="tag-pill ${state.filterTag===t?'active':''}" onclick="actions.setTag('${esc(t)}')">${esc(t)}</button>`).join('')}</div></div>`:''}
+
+        <div class="dream-count">${dreams.length} ${dreams.length===1?'dream':'dreams'}</div>
+
+        <div class="dream-list">
+          ${dreams.length===0
+            ?`<div class="empty-list">${state.search||state.filterTag?'No matches found.':'No dreams recorded yet.'}</div>`
+            :dreams.map(d=>`
+              <div class="dream-item ${state.currentId===d.id&&state.page!=='home'?'active':''}" onclick="actions.select('${d.id}')">
+                <div class="dream-item-inner">
+                  <div class="dream-item-date">${formatDate(d.updatedAt)}</div>
+                  <div class="dream-item-title">${esc(d.title)||'<em style="color:var(--text-dim)">Untitled</em>'}</div>
+                  ${d.body?`<div class="dream-item-preview">${esc(d.body.slice(0,80))}...</div>`:''}
+                  ${d.tags.length?`<div class="dream-item-tags">${d.tags.map(t=>`<span class="mini-tag">${esc(t)}</span>`).join('')}</div>`:''}
+                </div>
+                <button class="dream-item-close" onclick="event.stopPropagation();actions.confirmDelete('${d.id}')" title="Delete">x</button>
+              </div>`).join('')}
+        </div>
+      </aside>
+
+      <main class="main" id="main-panel">
+        <canvas class="grid-canvas" id="grid-canvas"></canvas>
+        <div class="main-content">
+          ${mainContent}
+        </div>
+      </main>
+    </div>
+
+    <div class="stats-bar" style="display: none;">
+      <div class="stat">Total: <span>${state.dreams.length}</span></div>
+      <div class="stat">Lucid: <span>${state.dreams.filter(d=>d.tags.includes('lucid')).length}</span></div>
+      <div class="stat">This month: <span>${state.dreams.filter(d=>{const m=new Date(),c=new Date(d.createdAt);return c.getFullYear()===m.getFullYear()&&c.getMonth()===m.getMonth();}).length}</span></div>
+      <div class="stat" style="margin-left:auto;">local only, never leaves your device</div>
+    </div>
+
+    ${state.confirmDeleteId?renderModal():''}
+  `;
+
+  requestAnimationFrame(() => startGrid());
+
+  if ((state.page==='edit'||state.page==='new') && state.editing) {
+    const ta = document.getElementById('dream-body');
+    if (ta) { ta.style.height='auto'; ta.style.height=ta.scrollHeight+'px'; }
+    if (state.saveStatus) { const el=document.getElementById('save-status'); if(el)el.classList.add('show'); }
+    
+    // star displays
+    setTimeout(() => {
+      updateStarDisplay('lucidity', state.editing.lucidity);
+      updateStarDisplay('quality', state.editing.quality);
+    }, 10);
+  }
+}
+
+
+function renderHomeMain() {
+  const f = FLAVOR[state.flavor];
+  return `
+    <div style="position:relative;z-index:1;flex:1;display:flex;align-items:center;justify-content:center;padding:60px 48px;min-height:100%;overflow:hidden;">
+      <img src="./images/somniatextbg.webp" alt="" draggable="false" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:480px;max-width:80%;opacity:0.22;filter:saturate(0) sepia(1) hue-rotate(220deg) saturate(3) brightness(0.65);pointer-events:none;mix-blend-mode:screen;" />
+      <div style="position:relative;z-index:2;text-align:center;max-width:420px;">
+        <div style="font-family:var(--font-serif);font-size:64px;font-weight:400;font-style:italic;color:var(--purple-bright);letter-spacing:0.06em;margin-bottom:40px;line-height:1;text-shadow:0 0 60px rgba(155,135,212,0.2);">Somnia</div>
+        <div style="border-left:2px solid var(--border-hover);padding-left:20px;text-align:left;">
+          <div style="font-family:var(--font-mono);font-size:10px;letter-spacing:0.25em;color:var(--purple);text-transform:uppercase;margin-bottom:10px;">${esc(f.title)}</div>
+          <div style="font-size:13px;line-height:1.8;color:var(--text-muted);font-style:italic;">${f.body}</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderViewer(d) {
+  if (!d) return '';
+  const lucHint=d.lucidity===0?'unrated':`${d.lucidity}/5`;
+  const qHint=d.quality<0?'unrated':QUALITY_LABELS[Math.min(d.quality - 1, 4)];
+  return `
+    <div class="viewer">
+      <div class="viewer-top">
+        <div class="meta-date">${formatDate(d.createdAt)} &middot; ${formatTime(d.createdAt)}</div>
+        <button class="btn-edit" onclick="actions.startEdit()">Edit Dream</button>
+      </div>
+      <div class="view-star-systems">
+        <div class="view-star-system">
+          <div class="view-star-label">Lucidity</div>
+          <div class="view-stars">${[1,2,3,4,5].map(i=>`<span class="vstar level-${i} ${d.lucidity>=i?'on':''}">&#9733;</span>`).join('')}</div>
+          <div class="view-star-hint">${lucHint}</div>
+        </div>
+        <div class="view-star-system">
+          <div class="view-star-label">Dream quality</div>
+          <div class="view-stars">${[1,2,3,4,5].map(i=>`<span class="vstar-q level-${i} ${d.quality>=i?'on':''}">&#9733;</span>`).join('')}</div>
+          <div class="view-star-hint">${qHint}</div>
+        </div>
+      </div>
+      <div class="view-title ${!d.title?'untitled':''}">${d.title?esc(d.title):'Untitled'}</div>
+      <div style="height:1px;background:var(--border);margin:20px 0;"></div>
+      <div class="view-body ${!d.body?'empty':''}">${d.body?esc(d.body):'No description recorded.'}</div>
+      ${d.tags.length?`<div class="view-tags-row"><span class="view-tags-label">Tags</span>${d.tags.map(t=>`<span class="view-tag">${esc(t)}</span>`).join('')}</div>`:''}
+      <div class="view-footer">
+        <button class="btn-delete" onclick="actions.confirmDelete('${d.id}')">Delete</button>
+      </div>
+    </div>
+  `;
+}
+// this is shit code
+function renderEditor(d) {
+  if (!d) return '';
+  const isNew=state.page==='new';
+  const lucHint=d.lucidity===0?'unrated':`${d.lucidity}/5`;
+  const qHint=d.quality<0?'unrated':QUALITY_LABELS[Math.min(d.quality - 1, 4)];
+  return `
+    <div class="editor${isNew ? ' editor-new' : ''}">
+      <div class="editor-top">
+        <div class="meta-date">${isNew?'New entry':formatDate(d.createdAt)+' &middot; '+formatTime(d.createdAt)}</div>
+        ${!isNew?`<button class="btn-cancel-edit" onclick="actions.cancelEdit()">Cancel</button>`:''}
+      </div>
+      <div class="star-systems">
+        <div class="star-system">
+          <div class="star-system-label">Lucidity</div>
+          <div class="stars-row" id="lucidity-stars">${[1,2,3,4,5].map(i=>`<span class="star-lucid" data-rating="${i}" onclick="actions.setLucidity(${i})">&#9733;</span>`).join('')}</div>
+          <div class="star-system-hint" id="lucidity-hint">${lucHint}</div>
+        </div>
+        <div class="star-system">
+          <div class="star-system-label">Dream quality</div>
+          <div class="stars-row" id="quality-stars">${[1,2,3,4,5].map(i=>`<span class="star-quality" data-rating="${i}" onclick="actions.setQuality(${i})">&#9733;</span>`).join('')}</div>
+          <div class="star-system-hint" id="quality-hint">${qHint}</div>
+        </div>
+      </div>
+      <input class="title-input" type="text" placeholder="Give this dream a name..." value="${esc(d.title)}" oninput="actions.setTitle(this.value)" />
+      <textarea id="dream-body" class="body-input" placeholder="Describe everything you remember... the light, the feeling, the atmosphere..." oninput="actions.setBody(this.value);this.style.height='auto';this.style.height=this.scrollHeight+'px'">${esc(d.body)}</textarea>
+      <div class="tags-row">
+        <span class="tags-label">Tags</span>
+        ${d.tags.map(t=>`<span class="tag-editable" onclick="actions.removeTag('${esc(t)}')" title="Click to remove" style="cursor:pointer;">${esc(t)}</span>`).join('')}
+        <input class="tag-input" type="text" placeholder="+ add tag" id="tag-input" onkeydown="if(event.key==='Enter'||event.key===','){event.preventDefault();actions.addTag(this.value);this.value='';}"/>
+      </div>
+      <div style="margin-top:12px;display:flex;flex-wrap:wrap;gap:6px;">
+        ${ALL_TAGS.filter(t=>!d.tags.includes(t)).map(t=>`<button class="tag-pill" onclick="actions.quickTag('${t}')">${t}</button>`).join('')}
+      </div>
+      <div class="editor-footer">
+        <button class="btn-save" onclick="actions.save()">Save Dream</button>
+        <span id="save-status" class="save-status">Saved &#10003;</span>
+      </div>
+    </div>
+  `;
+}
+
+// helper funcs for analyzer
+function getMostCommonDay(dreams) {
+  if (dreams.length === 0) return 'None';
+  const dayCounts = {};
+  dreams.forEach(d => {
+    const day = new Date(d.createdAt).toLocaleDateString('en-US', { weekday: 'long' });
+    dayCounts[day] = (dayCounts[day] || 0) + 1;
+  });
+  const mostCommon = Object.entries(dayCounts).sort((a,b) => b[1] - a[1])[0];
+  return mostCommon ? mostCommon[0] : 'None';
+}
+
+function getAverageDreamLength(dreams) {
+  if (dreams.length === 0) return 0;
+  const totalWords = dreams.reduce((sum, d) => {
+    return sum + (d.body || '').split(/\s+/).filter(word => word.length > 0).length;
+  }, 0);
+  return Math.round(totalWords / dreams.length);
+}
+
+function getCurrentStreak(dreams) {
+  if (dreams.length === 0) return 0;
+  const sortedDates = dreams.map(d => new Date(d.createdAt).toDateString()).sort();
+  let streak = 0;
+  const today = new Date().toDateString();
+  
+  for (let i = sortedDates.length - 1; i >= 0; i--) {
+    const currentDate = new Date(sortedDates[i]);
+    const nextDate = i < sortedDates.length - 1 ? new Date(sortedDates[i + 1]) : new Date(today);
+    const diffDays = Math.floor((nextDate - currentDate) / (1000 * 60 * 60 * 24));
+    
+    if (diffDays <= 1) {
+      streak++;
+    } else {
+      break;
+    }
+  }
+  
+  return streak;
+}
+
+function getPeakDreamTime(dreams) {
+  if (dreams.length === 0) return 'None';
+  const hourCounts = {};
+  dreams.forEach(d => {
+    const hour = new Date(d.createdAt).getHours();
+    hourCounts[hour] = (hourCounts[hour] || 0) + 1;
+  });
+  const peakHour = Object.entries(hourCounts).sort((a,b) => b[1] - a[1])[0];
+  if (!peakHour) return 'None';
+  
+  const hour = parseInt(peakHour[0]);
+  const period = hour >= 12 ? 'PM' : 'AM';
+  const displayHour = hour === 0 ? 12 : (hour > 12 ? hour - 12 : hour);
+  return `${displayHour}${period}`;
+}
+
+function renderAnalyzer() {
+  const dreams = state.dreams;
+  if (dreams.length === 0) {
+    return `
+      <div class="analyzer">
+        <div class="analyzer-header">
+          <div class="analyzer-title">Dream Analytics</div>
+          <div class="analyzer-subtitle">No dreams recorded yet. Start journaling to see your patterns.</div>
+        </div>
+      </div>
+    `;
+  }
+
+  // calc stats
+  const lucidityData = [0,0,0,0,0];
+  const qualityData = [0,0,0,0,0];
+  const tagCounts = {};
+  const monthlyData = {};
+  
+  dreams.forEach(d => {
+    if (d.lucidity > 0 && d.lucidity <= 5) lucidityData[d.lucidity-1]++;
+    if (d.quality >= 0 && d.quality <= 5) qualityData[d.quality]++;
+    d.tags.forEach(tag => {
+      tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+    });
+    
+    const month = new Date(d.createdAt).toISOString().slice(0,7);
+    monthlyData[month] = (monthlyData[month] || 0) + 1;
+  });
+  
+  const topTags = Object.entries(tagCounts)
+    .sort((a,b) => b[1] - a[1])
+    .slice(0, 15);
+  
+  const recentMonths = Object.entries(monthlyData)
+    .sort((a,b) => a[0].localeCompare(b[0]))
+    .slice(-6);
+  
+  const avgLucidity = dreams.filter(d => d.lucidity > 0).reduce((sum, d) => sum + d.lucidity, 0) / dreams.filter(d => d.lucidity > 0).length || 0;
+  const avgQuality = dreams.filter(d => d.quality >= 0).reduce((sum, d) => sum + d.quality, 0) / dreams.filter(d => d.quality >= 0).length || 0;
+  
+  return `
+    <div class="analyzer">
+      <div class="analyzer-header">
+        <div class="analyzer-title">Dream Analytics</div>
+        <div class="analyzer-subtitle">See your data, understand your dreams.</div>
+      </div>
+      
+      <div class="charts-grid">
+        <div class="chart-card">
+          <div class="chart-title">Lucidity Distribution</div>
+          <div class="chart-container">
+            <div class="bar-chart">
+              ${lucidityData.map((count, i) => {
+                const height = dreams.length ? (count / dreams.length) * 100 : 0;
+                return `
+                  <div class="bar" style="height: ${height}%">
+                    <div class="bar-value">${count}</div>
+                    <div class="bar-label">${i+1}</div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        </div>
+        
+        <div class="chart-card">
+          <div class="chart-title">Quality Distribution</div>
+          <div class="chart-container">
+            <div class="bar-chart">
+              ${qualityData.map((count, i) => {
+                const height = dreams.length ? (count / dreams.length) * 100 : 0;
+                return `
+                  <div class="bar" style="height: ${height}%">
+                    <div class="bar-value">${count}</div>
+                    <div class="bar-label">${QUALITY_LABELS[i]}</div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="stats-summary">
+        <div class="stat-card">
+          <div class="stat-value">${dreams.length}</div>
+          <div class="stat-label">Total Dreams</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">${avgLucidity.toFixed(1)}</div>
+          <div class="stat-label">Avg Lucidity</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">${avgQuality.toFixed(1)}</div>
+          <div class="stat-label">Avg Quality</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">${Object.keys(tagCounts).length}</div>
+          <div class="stat-label">Unique Tags</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">${dreams.filter(d => d.tags.includes('lucid')).length}</div>
+          <div class="stat-label">Lucid Dreams</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderModal() {
+  const d=state.dreams.find(x=>x.id===state.confirmDeleteId);
+  const label=d&&d.title?`&ldquo;${esc(d.title)}&rdquo;`:'this dream';
+  return `
+    <div class="modal-overlay" onclick="actions.cancelDelete()">
+      <div class="modal" onclick="event.stopPropagation()">
+        <div class="modal-title">Delete dream?</div>
+        <div class="modal-body">You are about to delete ${label}. This cannot be undone. The memory will be gone.</div>
+        <div class="modal-actions">
+          <button class="btn-modal-cancel" onclick="actions.cancelDelete()">Keep it</button>
+          <button class="btn-modal-confirm" onclick="actions.executeDelete()">Delete</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// tag anim helpers
+function addTagWithAnimation(tag) {
+  if (!state.editing) return;
+  
+  const tagsRow = document.querySelector('.tags-row');
+  if (!tagsRow) return;
+  
+  const tagsLabel = tagsRow.querySelector('.tags-label');
+  const tagInput = tagsRow.querySelector('.tag-input');
+  
+  // tag elem for fading in
+  const tagElement = document.createElement('span');
+  tagElement.className = 'tag-editable';
+  tagElement.setAttribute('onclick', `actions.removeTag('${esc(tag)}')`);
+  tagElement.setAttribute('title', 'Click to remove');
+  tagElement.style.cursor = 'pointer';
+  tagElement.style.opacity = '0';
+  tagElement.textContent = tag;
+  
+  if (tagInput) {
+    tagsRow.insertBefore(tagElement, tagInput);
+  } else {
+    tagsRow.appendChild(tagElement);
+  }
+
+  setTimeout(() => {
+    tagElement.style.transition = 'opacity 0.3s ease, transform 0.2s ease';
+    tagElement.style.opacity = '1';
+    tagElement.style.transform = 'translateY(-1px)';
+  }, 10);
+  
+  updateQuickTagButtons();
+}
+
+function removeTagWithAnimation(tag) {
+  if (!state.editing) return;
+  const tagElements = document.querySelectorAll('.tag-editable');
+  tagElements.forEach(el => {
+    if (el.textContent === tag) {
+      el.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
+      el.style.opacity = '0';
+      el.style.transform = 'translateY(2px)';
+      
+      setTimeout(() => {
+        el.remove();
+        updateQuickTagButtons();
+      }, 200);
+    }
+  });
+}
+
+function updateQuickTagButtons() {
+  if (!state.editing) return;
+  
+  const quickTagsContainer = document.querySelector('.editor-footer').previousElementSibling;
+  if (quickTagsContainer && quickTagsContainer.style.marginTop === '12px') {
+    quickTagsContainer.innerHTML = ALL_TAGS.filter(t=>!state.editing.tags.includes(t)).map(t=>`<button class="tag-pill" onclick="actions.quickTag('${t}')">${t}</button>`).join('');
+  }
+}
+
+// helper func for tag display updates // consts
+function updateTagsDisplay() {
+  if (!state.editing) return;
+  const tagsRow = document.querySelector('.tags-row');
+  if (!tagsRow) return;
+  const tagsLabel = tagsRow.querySelector('.tags-label');
+  const tagInput = tagsRow.querySelector('.tag-input');
+  const tagsHTML = state.editing.tags.map(t=>`<span class="tag-editable" onclick="actions.removeTag('${esc(t)}')" title="Click to remove" style="cursor:pointer;">${esc(t)}</span>`).join('');
+  const newHTML = tagsLabel.outerHTML + tagsHTML + (tagInput ? tagInput.outerHTML : '');
+  tagsRow.innerHTML = newHTML;
+  const quickTagsContainer = document.querySelector('.editor-footer').previousElementSibling;
+  quickTagsContainer.innerHTML = ALL_TAGS.filter(t=>!state.editing.tags.includes(t)).map(t=>`<button class="tag-pill" onclick="actions.quickTag('${t}')">${t}</button>`).join('');
+}
+
+function updateStarDisplay(type, rating) {
+  const container = document.getElementById(`${type}-stars`);
+  if (!container) return;
+  
+  // lucidity stars use the class star-lucid not star-lucidity like the id
+  const selector = type === 'lucidity' ? '.star-lucid' : '.star-quality';
+  const stars = container.querySelectorAll(selector);
+  stars.forEach((star) => {
+    const starValue = parseInt(star.dataset.rating);
+    
+    star.classList.remove('filled');
+    star.className = star.className.replace(/level-\d+/g, '');
+    
+    if (rating >= starValue) {
+      star.classList.add('filled');
+      // for both types we want the level-# class so the color gradient works
+      star.classList.add(`level-${starValue}`);
+    }
+  });
+}
+
+function updateHint(type, hint) {
+  const hintElement = document.getElementById(`${type}-hint`);
+  if (hintElement) hintElement.textContent = hint;
+}
+
+const actions = {
+  toggleMusic() {
+    if (!state.audioElement) {
+      state.audioElement = new Audio('files/music.mp3');
+      state.audioElement.loop = true;
+      state.audioElement.volume = 0.3;
+    }
+    
+    if (state.musicPlaying) {
+      state.audioElement.pause();
+      state.musicPlaying = false;
+      document.getElementById('music-toggle').classList.remove('playing');
+    } else {
+      state.audioElement.play().catch(e => console.log('Audio play failed:', e));
+      state.musicPlaying = true;
+      document.getElementById('music-toggle').classList.add('playing');
+    }
+  },
+  goAnalyzer() {
+    state.page='analyzer'; state.currentId=null; state.editing=null;
+    render();
+  },
+  goHome() {
+    state.page='home'; state.currentId=null; state.editing=null;
+    render();
+  },
+  newEntry() {
+    const d=newDream(); state.dreams.push(d);
+    state.currentId=d.id; state.editing=d; state.page='new'; state.saveStatus=false;
+    saveDreams(state.dreams); render();
+  },
+  select(id) {
+    const d=state.dreams.find(x=>x.id===id); if(!d)return;
+    state.currentId=id; state.editing=JSON.parse(JSON.stringify(d));
+    state.page='view'; state.saveStatus=false; render();
+  },
+  startEdit() { state.page='edit'; render(); },
+  cancelEdit() {
+    const saved=state.dreams.find(d=>d.id===state.currentId);
+    if(saved) state.editing=JSON.parse(JSON.stringify(saved));
+    state.page='view'; render();
+  },
+  setTitle(v) { 
+    if(state.editing)state.editing.title=v; 
+  },
+  setBody(v) { if(state.editing)state.editing.body=v; },
+  setLucidity(n) { 
+    if(!state.editing)return; 
+    state.editing.lucidity = state.editing.lucidity === n ? 0 : n;
+    updateStarDisplay('lucidity', state.editing.lucidity);
+    updateHint('lucidity', state.editing.lucidity === 0 ? 'unrated' : `${state.editing.lucidity}/5`);
+  },
+  setQuality(n) { 
+    if(!state.editing)return; 
+    state.editing.quality = state.editing.quality === n ? -1 : n;
+    updateStarDisplay('quality', state.editing.quality);
+    updateHint('quality', state.editing.quality < 0 ? 'unrated' : QUALITY_LABELS[Math.min(state.editing.quality - 1, 4)]);
+  },
+  addTag(raw) { 
+    if(!state.editing)return; 
+    const tag=raw.trim().toLowerCase().replace(/[^a-z0-9-]/g,''); 
+    if(tag&&!state.editing.tags.includes(tag)){
+      state.editing.tags.push(tag);
+      addTagWithAnimation(tag);
+    }
+  },
+  quickTag(t) { 
+    if(!state.editing||state.editing.tags.includes(t))return; 
+    state.editing.tags.push(t);
+    addTagWithAnimation(t);
+  },
+  removeTag(t) { 
+    if(!state.editing)return; 
+    state.editing.tags=state.editing.tags.filter(x=>x!==t);
+    removeTagWithAnimation(t); // tung tung tung sahurrrrrr
+  },
+  save() {
+    if(!state.editing)return;
+    const title=document.querySelector('.title-input')?.value||'';
+    const body=document.getElementById('dream-body')?.value||'';
+    state.editing.title=title; state.editing.body=body;
+    state.editing.updatedAt=new Date().toISOString();
+    const idx=state.dreams.findIndex(d=>d.id===state.editing.id);
+    if(idx>=0)state.dreams[idx]=JSON.parse(JSON.stringify(state.editing));
+    saveDreams(state.dreams); state.saveStatus=true; state.page='view'; render();
+    setTimeout(()=>{state.saveStatus=false;},2000);
+  },
+  confirmDelete(id){state.confirmDeleteId=id;render();},
+  cancelDelete(){state.confirmDeleteId=null;render();},
+  executeDelete(){
+    const id=state.confirmDeleteId;
+    state.dreams=state.dreams.filter(d=>d.id!==id);
+    if(state.currentId===id){state.currentId=null;state.editing=null;state.page='home';}
+    state.confirmDeleteId=null; saveDreams(state.dreams); render();
+  },
+  setSearch(v){state.search=v;render();},
+  setTag(t){state.filterTag=state.filterTag===t?'':t;render();},
+  setSort(key){
+    if(state.sortBy===key){state.sortDir=state.sortDir==='desc'?'asc':'desc';}
+    else{state.sortBy=key;state.sortDir='desc';}
+    render();
+  }
+};
+
+    window.actions=actions;
+    render();
+})();
+</script>
+</body>
+</html>
