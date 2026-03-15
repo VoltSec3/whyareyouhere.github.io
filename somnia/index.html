@@ -168,6 +168,10 @@
     display: flex;
     flex-direction: column;
     transition: transform 0.3s ease;
+    scrollbar-width: none; /* Firefox */
+  }
+  .sidebar::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Edge */
   }
   .sidebar-top { padding: 16px 20px; border-bottom: 1px solid var(--border); }
   .nav-tabs {
@@ -270,7 +274,8 @@
     color: var(--text-dim);
     padding: 0 20px 10px;
   }
-  .dream-list { overflow-y: auto; overflow-x: hidden; flex: 1; }
+  .dream-list { overflow-y: auto; overflow-x: hidden; flex: 1; scrollbar-width: none; }
+  .dream-list::-webkit-scrollbar { display: none; }
   .dream-item {
     position: relative;
     padding: 14px 20px;
