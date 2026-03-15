@@ -4,3 +4,6 @@ backup.html
 .DS_Store
 # ignore node modules if any
 node_modules/
+# ignore logs / info
+*.log
+updates.md
