@@ -691,7 +691,44 @@
   }
   .sidebar-overlay.visible { display: block; }
 
-  ::-webkit-scrollbar { width: 4px; }
+  /* continuation */
+  .continuation-row { margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border); display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .continuation-label { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.2em; color: var(--text-dim); text-transform: uppercase; white-space: nowrap; }
+  .continuation-select { background: var(--surface); border: 1px solid var(--border); color: var(--text-muted); font-family: var(--font-mono); font-size: 11px; padding: 6px 10px; border-radius: 4px; outline: none; cursor: pointer; flex: 1; min-width: 0; transition: border-color 0.15s; appearance: none; -webkit-appearance: none; }
+  .continuation-select:focus { border-color: var(--purple-dim); }
+  .continuation-select option { background: var(--surface2); }
+  .view-continuation { margin-top: 0; margin-bottom: 20px; display: flex; flex-direction: column; gap: 6px; }
+  .view-continuation-link { display: inline-flex; align-items: center; gap: 7px; font-family: var(--font-mono); font-size: 11px; color: var(--purple-dim); cursor: pointer; transition: color 0.15s; width: fit-content; }
+  .view-continuation-link:hover { color: var(--purple-bright); }
+  .view-continuation-link .cont-arrow { font-size: 13px; }
+  .view-continuation-title { font-style: italic; color: var(--text-muted); }
+
+  /* milestone modal */
+  .milestone-modal { text-align: center; }
+  .milestone-glyph { font-size: 40px; margin-bottom: 12px; }
+  .milestone-modal .modal-title { font-size: 20px; margin-bottom: 6px; }
+  .milestone-modal .modal-body { margin-bottom: 20px; font-size: 13px; }
+
+  /* milestone glyph on dream item */
+  .pin-marker { opacity: 0.7; font-size: 13px; margin-left: 6px; vertical-align: middle; }
+  .btn-pin {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    padding: 9px 18px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn-pin:hover { border-color: var(--border-hover); color: var(--text); }
+  .btn-pin.pinned { border-color: var(--purple-dim); color: var(--purple-bright); background: var(--purple-faint); }
+  .view-milestone { display: flex; align-items: center; justify-content: flex-start; gap: 8px; font-family: var(--font-mono); font-size: 10px; color: var(--purple-dim); letter-spacing: 0.15em; margin-bottom: 16px; }
+  .view-milestone-glyph { font-size: 20px; color: var(--purple-bright); }
+
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 
@@ -768,17 +805,25 @@
 <script>
 (function() {
 
-const STORAGE_KEY = 'somnia';
+const STORAGE_KEY = 'somnia_dreams_v1';
 function loadDreams() { try { const r = localStorage.getItem(STORAGE_KEY); return r ? JSON.parse(r) : []; } catch(e) { return []; } }
 function saveDreams(d) { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(d)); } catch(e) {} }
 function formatDate(iso) { return new Date(iso).toLocaleDateString('en-US', { weekday:'short', year:'numeric', month:'short', day:'numeric' }); }
 function formatTime(iso) { return new Date(iso).toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit' }); }
-function newDream() { return { id: Date.now().toString(), title:'', body:'', tags:[], lucidity:0, quality:-1, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }; }
+function newDream() { return { id: Date.now().toString(), title:'', body:'', tags:[], lucidity:0, quality:-1, continuationOf: null, pinned: false, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }; }
 
 const ALL_TAGS = ['flying','water','chase','lucid','recurring','people','places','surreal','peaceful','dark'];
-// quality is stored as 1-5, index 0 = unused placeholder so indices line up (quality 1 = QUALITY_LABELS[1])
 const QUALITY_LABELS = ['', 'bad dream', 'ordinary', 'pleasant', 'vivid', 'blissful'];
 const SORT_OPTIONS = [{key:'date',label:'Date'},{key:'lucidity',label:'Lucidity'},{key:'quality',label:'Quality'}];
+const MILESTONES = [
+  { count: 1,   glyph: '✦', title: 'First dream recorded', body: 'The journey begins. Every great dreamer starts with a single entry.' },
+  { count: 10,  glyph: '◈', title: 'Ten dreams', body: 'A week of nights, give or take. Patterns are starting to form.' },
+  { count: 25,  glyph: '◉', title: 'Twenty-five dreams', body: 'You\'re building a real archive of your inner world.' },
+  { count: 50,  glyph: '⬡', title: 'Fifty dreams', body: 'Half a hundred. Your subconscious has a lot to say.' },
+  { count: 100, glyph: '✸', title: 'One hundred dreams', body: 'A century of dreams. This is something rare.' },
+  { count: 250, glyph: '❋', title: 'Two hundred and fifty dreams', body: 'A dedicated dreamer. The archive grows deep.' },
+  { count: 500, glyph: '✺', title: 'Five hundred dreams', body: 'Extraordinary. Your dream journal is a life\'s work.' },
+];
 
 const FLAVOR = [
   { title: 'Somnia', body: 'The latin root <em>somnus</em> which means <strong>sleep</strong>. The root is used in medical disorders like <em>insomnia</em>, <em>somniphobia</em> or <em>somnambulism</em> (sleepwalking).' },
@@ -797,13 +842,23 @@ let state = {
   sortBy: 'date', sortDir: 'desc',
   saveStatus: false,
   confirmDeleteId: null,
+  milestone: null,
   musicPlaying: false,
   audioElement: null,
   sidebarOpen: false
 };
 
+// returns the milestone object if this dream's chronological position matches a milestone count
+function getMilestoneForDream(dreamId) {
+  const byAge = [...state.dreams].sort((a,b) => new Date(a.createdAt) - new Date(b.createdAt));
+  const pos = byAge.findIndex(d => d.id === dreamId) + 1; // 1-indexed
+  return MILESTONES.find(m => m.count === pos) || null;
+}
+
 function sortedDreams(list) {
   return [...list].sort((a,b) => {
+    if (a.pinned && !b.pinned) return -1;
+    if (!a.pinned && b.pinned) return 1;
     let va, vb;
     if (state.sortBy==='date') { va=new Date(a.updatedAt).getTime(); vb=new Date(b.updatedAt).getTime(); }
     else if (state.sortBy==='lucidity') { va=a.lucidity||0; vb=b.lucidity||0; }
@@ -980,7 +1035,7 @@ function render() {
       </div>
     </nav>
 
-    ${state.confirmDeleteId?renderModal():''}
+    ${(state.confirmDeleteId||state.milestone)?renderModal():''}
   `;
 
   requestAnimationFrame(() => {
@@ -1026,10 +1081,13 @@ function renderViewer(d) {
   if (!d) return '';
   const lucHint = d.lucidity === 0 ? 'unrated' : `${d.lucidity}/5`;
   const qHint = d.quality < 1 ? 'unrated' : QUALITY_LABELS[d.quality] || 'unrated';
+  // find parent (dream this continues) and child (dream that continues this)
+  const parent = d.continuationOf ? state.dreams.find(x => x.id === d.continuationOf) : null;
+  const child = state.dreams.find(x => x.continuationOf === d.id);
   return `
     <div class="viewer">
       <div class="viewer-top">
-        <div class="meta-date">${formatDate(d.createdAt)} · ${formatTime(d.createdAt)}</div>
+        <div class="meta-date">${formatDate(d.createdAt)} · ${formatTime(d.createdAt)}${d.pinned?' 🖈':''}</div>
         <button class="btn-edit" onclick="actions.startEdit()">Edit Dream</button>
       </div>
       <div class="view-star-systems">
@@ -1044,12 +1102,18 @@ function renderViewer(d) {
           <div class="view-star-hint">${qHint}</div>
         </div>
       </div>
+      ${(m=>m?`<div class="view-milestone"><span class="view-milestone-glyph">${m.glyph}</span>${m.title}</div>`:''  )(getMilestoneForDream(d.id))}
+      ${(parent||child) ? `<div class="view-continuation">
+        ${parent ? `<div class="view-continuation-link" onclick="actions.select('${parent.id}')"><span class="cont-arrow">↩</span><span>continued from</span><span class="view-continuation-title">${esc(parent.title||'Untitled')}</span></div>` : ''}
+        ${child  ? `<div class="view-continuation-link" onclick="actions.select('${child.id}')"><span class="cont-arrow">→</span><span>continued in</span><span class="view-continuation-title">${esc(child.title||'Untitled')}</span></div>` : ''}
+      </div>` : ''}
       <div class="view-title ${!d.title?'untitled':''}">${d.title?esc(d.title):'Untitled'}</div>
       <div style="height:1px;background:var(--border);margin:20px 0;"></div>
       <div class="view-body ${!d.body?'empty':''}">${d.body?esc(d.body):'No description recorded.'}</div>
       ${d.tags.length?`<div class="view-tags-row"><span class="view-tags-label">Tags</span>${d.tags.map(t=>`<span class="view-tag">${esc(t)}</span>`).join('')}</div>`:''}
-      <div class="view-footer">
+      <div class="view-footer" style="display:flex;align-items:center;gap:10px;">
         <button class="btn-delete" onclick="actions.confirmDelete('${d.id}')">Delete</button>
+        <button class="btn-pin${d.pinned?' pinned':''}" onclick="actions.togglePin('${d.id}')">${d.pinned?'🖈 Pinned':'🖈 Pin'}</button>
       </div>
     </div>
   `;
@@ -1087,6 +1151,13 @@ function renderEditor(d) {
       </div>
       <div style="margin-top:12px;display:flex;flex-wrap:wrap;gap:6px;">
         ${ALL_TAGS.filter(t=>!d.tags.includes(t)).map(t=>`<button class="tag-pill" onclick="actions.quickTag('${t}')">${t}</button>`).join('')}
+      </div>
+      <div class="continuation-row">
+        <span class="continuation-label">Continues</span>
+        <select class="continuation-select" onchange="actions.setContinuation(this.value)">
+          <option value="">— none —</option>
+          ${state.dreams.filter(x => x.id !== d.id).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt)).map(x=>`<option value="${x.id}" ${d.continuationOf===x.id?'selected':''}>${formatDate(x.createdAt)} — ${esc(x.title||'Untitled')}</option>`).join('')}
+        </select>
       </div>
       <div class="editor-footer">
         <button class="btn-save" onclick="actions.save()">Save Dream</button>
@@ -1187,6 +1258,21 @@ function renderAnalyzer() {
 }
 
 function renderModal() {
+  if (state.milestone) {
+    const m = state.milestone;
+    return `
+      <div class="modal-overlay" onclick="actions.dismissMilestone()">
+        <div class="modal milestone-modal" onclick="event.stopPropagation()">
+          <div class="milestone-glyph">${m.glyph}</div>
+          <div class="modal-title">${m.title}</div>
+          <div class="modal-body">${m.body}</div>
+          <div class="modal-actions" style="justify-content:center;">
+            <button class="btn-modal-confirm" onclick="actions.dismissMilestone()">Continue</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
   const d = state.dreams.find(x=>x.id===state.confirmDeleteId);
   const label = d && d.title ? `"${esc(d.title)}"` : 'this dream';
   return `
@@ -1252,8 +1338,8 @@ function renderDreamListHTML(dreams) {
         :dreams.map(d=>`
           <div class="dream-item ${state.currentId===d.id&&state.page!=='home'?'active':''}" onclick="actions.select('${d.id}')">
             <div class="dream-item-inner">
-              <div class="dream-item-date">${formatDate(d.updatedAt)}</div>
-              <div class="dream-item-title">${esc(d.title)||'<em style="color:var(--text-dim)">Untitled</em>'}</div>
+              <div class="dream-item-date">${formatDate(d.updatedAt)}${d.pinned?` <span class="pin-marker">🖈</span>`:''}</div>
+              <div class="dream-item-title">${(m=>m?`<span class="milestone-marker" title="${m.title}">${m.glyph} </span>`:''  )(getMilestoneForDream(d.id))}${esc(d.title)||'<em style="color:var(--text-dim)">Untitled</em>'}</div>
               ${d.body?`<div class="dream-item-preview">${esc(d.body.slice(0,80))}...</div>`:''}
               ${d.tags.length?`<div class="dream-item-tags">${d.tags.map(t=>`<span class="mini-tag">${esc(t)}</span>`).join('')}</div>`:''}
             </div>
@@ -1274,8 +1360,8 @@ function patchDreamList() {
     : dreams.map(d=>`
         <div class="dream-item ${state.currentId===d.id&&state.page!=='home'?'active':''}" onclick="actions.select('${d.id}')">
           <div class="dream-item-inner">
-            <div class="dream-item-date">${formatDate(d.updatedAt)}</div>
-            <div class="dream-item-title">${esc(d.title)||'<em style="color:var(--text-dim)">Untitled</em>'}</div>
+            <div class="dream-item-date">${formatDate(d.updatedAt)}${d.pinned?` <span class="pin-marker">🖈</span>`:''}</div>
+            <div class="dream-item-title">${(m=>m?`<span class="milestone-marker" title="${m.title}">${m.glyph}</span>`:''  )(getMilestoneForDream(d.id))}${esc(d.title)||'<em style="color:var(--text-dim)">Untitled</em>'}</div>
             ${d.body?`<div class="dream-item-preview">${esc(d.body.slice(0,80))}...</div>`:''}
             ${d.tags.length?`<div class="dream-item-tags">${d.tags.map(t=>`<span class="mini-tag">${esc(t)}</span>`).join('')}</div>`:''}
           </div>
@@ -1458,6 +1544,15 @@ const actions = {
     state.page='view'; render();
   },
   setTitle(v) { if(state.editing) state.editing.title=v; },
+  setContinuation(id) { if(state.editing) state.editing.continuationOf = id || null; },
+  togglePin(id) {
+    const d = state.dreams.find(x => x.id === id);
+    if (!d) return;
+    d.pinned = !d.pinned;
+    if (state.editing && state.editing.id === id) state.editing.pinned = d.pinned;
+    saveDreams(state.dreams); render();
+  },
+  dismissMilestone() { state.milestone = null; render(); },
   setBody(v) { if(state.editing) state.editing.body=v; },
   setLucidity(n) {
     if (!state.editing) return;
@@ -1506,8 +1601,11 @@ const actions = {
       state.dreams[idx]=JSON.parse(JSON.stringify(state.editing));
     } else {
       state.dreams.push(JSON.parse(JSON.stringify(state.editing)));
+      const milestone = MILESTONES.find(m => m.count === state.dreams.length);
+      if (milestone) state.milestone = milestone;
     }
-    saveDreams(state.dreams); state.saveStatus=true; state.page='view'; render();
+    saveDreams(state.dreams); state.saveStatus=true; state.page='view';
+    render();
     setTimeout(()=>{state.saveStatus=false;},2000);
   },
   confirmDelete(id) { state.confirmDeleteId=id; render(); },
