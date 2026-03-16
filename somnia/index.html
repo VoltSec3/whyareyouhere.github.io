@@ -2461,7 +2461,7 @@ function buildLucidityTrendSVG(trendDreams, avgLucidity) {
   // dots
   const dots = pts.map(([x,y], i) => {
     const d = trendDreams[i];
-    const title = `${d.title||'Untitled'} — ${d.lucidity}/5`;
+    const title = `${d.title||'Untitled'} - ${d.lucidity}/5`;
     return `<circle class="trend-dot" cx="${x}" cy="${y}" r="3" onclick="actions.select('${d.id}')"><title>${esc(title)}</title></circle>`;
   }).join('');
 
