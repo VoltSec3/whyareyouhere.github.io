@@ -287,7 +287,6 @@
   .dream-item.active { border-left-color: var(--purple); background: var(--surface); }
   .dream-item-inner { padding-right: 26px; }
 
-  /* ── FIX 3: Relative timestamp — in-place crossfade, no box, no layout shift ── */
   .dream-item-date {
     font-family: var(--font-mono);
     font-size: 10px;
@@ -341,8 +340,6 @@
   .dream-item-close:hover { background: rgba(107,87,168,0.22); border-color: rgba(155,135,212,0.6); color: var(--purple-bright); }
   .empty-list { padding: 40px 20px; text-align: center; color: var(--text-dim); font-style: italic; font-size: 13px; }
 
-  /* ── FIX 2: gradient border via inline CSS var set in JS ── */
-
   /* main */
   .main {
     flex: 1;
@@ -376,7 +373,6 @@
     height: 1.3em;
     min-width: 160px;
   }
-  /* ── FIX 3: Viewer/editor date — in-place crossfade ── */
   .meta-date .rel-time,
   .meta-date .abs-time {
     position: absolute;
@@ -517,7 +513,6 @@
     line-height: 1.3;
   }
   .title-input::placeholder { color: var(--text-dim); }
-  /* ── FIX 4: Body input wrapper for char count ── */
   .body-input-wrap {
     position: relative;
     margin-bottom: 0;
@@ -621,26 +616,20 @@
   }
   .sleep-notes-input {
     width: 100%;
-    background: rgba(155,135,212,0.04);
-    border: 1px solid var(--border);
+    background: none;
+    border: none;
     color: var(--text-muted);
-    font-family: var(--font-mono);
-    font-size: 12px;
-    line-height: 1.7;
-    padding: 12px 14px;
-    border-radius: 4px;
+    font-family: var(--font-serif);
+    font-size: 16px;
+    line-height: 1.85;
+    padding: 0;
     outline: none;
     resize: none;
     min-height: 80px;
-    transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
-    letter-spacing: 0.02em;
+    font-style: italic;
+    display: block;
   }
-  .sleep-notes-input:focus {
-    border-color: rgba(155,135,212,0.3);
-    background: rgba(155,135,212,0.06);
-    box-shadow: 0 0 0 3px rgba(155,135,212,0.06);
-  }
-  .sleep-notes-input::placeholder { color: var(--text-dim); }
+  .sleep-notes-input::placeholder { color: var(--text-dim); font-style: italic; }
   /* view mode sleep notes */
   .view-sleep-notes {
     margin-top: 28px;
@@ -1037,7 +1026,6 @@
   }
   .onboarding-spotlight-text strong { color: var(--purple-bright); font-weight: 400; }
 
-  /* Placeholder dream editor inside onboarding */
   .ob-dream-editor {
     display: flex;
     flex-direction: column;
@@ -1081,7 +1069,6 @@
   }
   .ob-textarea:focus { border-color: var(--purple-dim); box-shadow: 0 0 0 3px rgba(155,135,212,0.1); }
   .ob-textarea::placeholder { color: var(--text-dim); }
-  /* ── FIX 4: char count pinned inside textarea bottom-left ── */
   .ob-chars {
     font-family: var(--font-mono);
     font-size: 9px;
@@ -1095,7 +1082,6 @@
   }
   .ob-chars.has-content { color: var(--purple-dim); }
 
-  /* ── FIX 1: Tags step — tags wrap properly, button sits below ── */
   .ob-tag-row {
     display: flex;
     gap: 6px;
@@ -1115,7 +1101,6 @@
   }
   .ob-quick-tag.selected { border-color: var(--purple-dim); color: var(--purple-bright); background: var(--purple-faint); }
 
-  /* The actions row sits BELOW all content with consistent bottom margin */
   .onboarding-actions {
     display: flex;
     align-items: center;
@@ -1131,7 +1116,6 @@
   .ob-field-label { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 6px; }
   .ob-field { display: flex; flex-direction: column; gap: 4px; }
 
-  /* "Delete it" step */
   .ob-delete-demo {
     background: var(--surface);
     border: 1px solid var(--border);
@@ -1221,7 +1205,6 @@
   .ob-next:active { transform: scale(0.97); }
   .ob-next:disabled { opacity: 0.4; cursor: not-allowed; }
 
-  /* Step transition animation */
   .onboarding-body.step-exit {
     animation: stepExit 0.2s ease forwards;
   }
@@ -1232,7 +1215,7 @@
   @keyframes stepEnter { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
 
   /* ================================================================
-     UNSAVED CHANGES — NAV CONFIRM MODAL
+     UNSAVED CHANGES NAV CONFIRM MODAL
   ================================================================ */
   .nav-confirm-modal {
     max-width: 400px;
@@ -1248,20 +1231,6 @@
     color: var(--purple-dim);
     letter-spacing: 0.05em;
   }
-  .btn-modal-save {
-    background: rgba(155,135,212,0.15);
-    color: var(--purple-bright);
-    border: 1px solid rgba(155,135,212,0.3);
-    padding: 10px 18px;
-    font-family: var(--font-mono);
-    font-size: 11px;
-    letter-spacing: 0.08em;
-    cursor: pointer;
-    border-radius: 6px;
-    transition: all 0.15s;
-    -webkit-tap-highlight-color: transparent;
-  }
-  .btn-modal-save:hover { background: rgba(155,135,212,0.25); border-color: var(--purple); }
 
   /* ================================================================
      SHARE CARD MODAL
@@ -1315,7 +1284,6 @@
   }
   .share-close-btn:hover { border-color: var(--border-hover); color: var(--text); }
 
-  /* The card itself */
   .share-card {
     width: 100%;
     aspect-ratio: 16/9;
@@ -1401,8 +1369,6 @@
     align-items: center;
     justify-content: space-between;
   }
-
-  /* ── FIX 5: Share card star labels — label to the RIGHT of stars ── */
   .share-card-star-group {
     display: flex;
     flex-direction: column;
@@ -1425,7 +1391,6 @@
     gap: 2px;
     font-size: 10px;
   }
-
   .share-card-tags {
     display: flex;
     gap: 5px;
@@ -1480,7 +1445,6 @@
   .btn-copy-card:hover { background: var(--purple-bright); }
   .btn-copy-card.copied { background: var(--green); color: #0e0c14; }
 
-  /* Style options for share card */
   .share-style-row {
     display: flex;
     gap: 6px;
@@ -1503,7 +1467,6 @@
   .share-style-btn.active { border-color: var(--purple-dim); color: var(--purple-bright); background: var(--purple-faint); }
   .share-style-btn:hover { border-color: var(--border-hover); color: var(--text-muted); }
 
-  /* Card style variants */
   .share-card.style-cosmic .share-card-grid {
     background-image:
       radial-gradient(circle at 20% 80%, rgba(155,135,212,0.05) 0%, transparent 60%),
@@ -1581,54 +1544,6 @@
     .viewer { padding: 20px 16px 100px; }
     .editor { padding: 20px 16px 100px; }
   }
-
-  /* Draft restore banner */
-  .draft-banner {
-    background: rgba(155,135,212,0.08);
-    border: 1px solid rgba(155,135,212,0.2);
-    border-radius: 6px;
-    padding: 10px 16px;
-    margin-bottom: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    flex-wrap: wrap;
-  }
-  .draft-banner-text {
-    font-family: var(--font-mono);
-    font-size: 10px;
-    color: var(--purple-dim);
-    letter-spacing: 0.05em;
-  }
-  .draft-banner-text strong { color: var(--purple-bright); }
-  .draft-banner-actions { display: flex; gap: 6px; }
-  .btn-draft-restore {
-    background: var(--purple-faint);
-    border: 1px solid var(--border-hover);
-    color: var(--purple-bright);
-    padding: 5px 12px;
-    font-family: var(--font-mono);
-    font-size: 10px;
-    letter-spacing: 0.06em;
-    cursor: pointer;
-    border-radius: 3px;
-    transition: all 0.15s;
-  }
-  .btn-draft-restore:hover { background: rgba(155,135,212,0.15); }
-  .btn-draft-discard {
-    background: none;
-    border: 1px solid var(--border);
-    color: var(--text-dim);
-    padding: 5px 12px;
-    font-family: var(--font-mono);
-    font-size: 10px;
-    letter-spacing: 0.06em;
-    cursor: pointer;
-    border-radius: 3px;
-    transition: all 0.15s;
-  }
-  .btn-draft-discard:hover { border-color: var(--border-hover); color: var(--text-muted); }
 </style>
 </head>
 <body>
@@ -1639,20 +1554,15 @@
 
 const STORAGE_KEY = 'somnia_dreams_v1';
 const ONBOARDING_KEY = 'somnia_onboarding_done';
-const DRAFT_KEY = 'somnia_draft_v1';
 
 function loadDreams() { try { const r = localStorage.getItem(STORAGE_KEY); return r ? JSON.parse(r) : []; } catch(e) { return []; } }
 function saveDreams(d) { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(d)); } catch(e) {} }
-function loadDraft() { try { const r = localStorage.getItem(DRAFT_KEY); return r ? JSON.parse(r) : null; } catch(e) { return null; } }
-function saveDraft(d) { try { if (d) localStorage.setItem(DRAFT_KEY, JSON.stringify(d)); else localStorage.removeItem(DRAFT_KEY); } catch(e) {} }
-function clearDraft() { try { localStorage.removeItem(DRAFT_KEY); } catch(e) {} }
 function onboardingDone() { try { return !!localStorage.getItem(ONBOARDING_KEY); } catch(e) { return false; } }
 function markOnboardingDone() { try { localStorage.setItem(ONBOARDING_KEY, '1'); } catch(e) {} }
 
 function formatDate(iso) { return new Date(iso).toLocaleDateString('en-US', { weekday:'short', year:'numeric', month:'short', day:'numeric' }); }
 function formatTime(iso) { return new Date(iso).toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit' }); }
 
-/* ── FIX 3: Relative time helper ── */
 function relativeTime(iso) {
   const now = Date.now();
   const then = new Date(iso).getTime();
@@ -1772,7 +1682,6 @@ function obRender() {
     });
     const ta = el.querySelector('#ob-body-ta'); if (ta) ta.addEventListener('input', e => {
       ob.body = e.target.value;
-      /* ── FIX 4: update char count in onboarding ── */
       const cc = el.querySelector('#ob-char-count');
       if (cc) {
         const len = e.target.value.length;
@@ -1863,7 +1772,6 @@ function renderObStepContent(step) {
     `;
   }
   if (step.type === 'tags') {
-    /* ── FIX 1: tags wrap in their own container, button is outside ── */
     return `
       <div class="ob-tag-row">
         ${ALL_TAGS.map(t=>`<button class="ob-quick-tag${ob.tags.includes(t)?' selected':''}" data-tag="${t}">${t}</button>`).join('')}
@@ -1937,31 +1845,8 @@ let state = {
   sidebarOpen: false,
   navConfirm: null,
   shareModalDreamId: null,
-  shareStyle: 'grid',
-  hasDraft: !!loadDraft(),
-  showDraftBanner: !!loadDraft()
+  shareStyle: 'grid'
 };
-
-/* ================================================================
-   DRAFT AUTO-SAVE
-================================================================ */
-let draftSaveTimer = null;
-function scheduleDraftSave() {
-  clearTimeout(draftSaveTimer);
-  draftSaveTimer = setTimeout(() => {
-    if ((state.page === 'edit' || state.page === 'new') && state.editing) {
-      const titleEl = document.querySelector('.title-input');
-      const bodyEl = document.getElementById('dream-body');
-      const notesEl = document.querySelector('.sleep-notes-input');
-      const draft = JSON.parse(JSON.stringify(state.editing));
-      if (titleEl) draft.title = titleEl.value;
-      if (bodyEl) draft.body = bodyEl.value;
-      if (notesEl) draft.sleepNotes = notesEl.value;
-      draft._isNew = state.page === 'new';
-      saveDraft(draft);
-    }
-  }, 800);
-}
 
 function getMilestoneForDream(dreamId) {
   const byAge = [...state.dreams].sort((a,b) => new Date(a.createdAt) - new Date(b.createdAt));
@@ -1998,15 +1883,6 @@ function isEditingWithContent() {
   const title = document.querySelector('.title-input')?.value || state.editing.title || '';
   const body = document.getElementById('dream-body')?.value || state.editing.body || '';
   return !!(title.trim() || body.trim() || state.editing.tags.length > 0 || state.editing.lucidity > 0 || state.editing.quality >= 1);
-}
-
-function guardedNav(label, fn) {
-  if (isEditingWithContent()) {
-    state.navConfirm = { label, action: fn };
-    render();
-  } else {
-    fn();
-  }
 }
 
 /* ================================================================
@@ -2088,7 +1964,7 @@ function render() {
     <header class="header">
       <div style="display:flex;align-items:center;gap:12px;">
         ${showBack ? `<button class="btn-back" onclick="actions.goBack()">← Back</button>` : ''}
-        <div class="logo" onclick="actions.guardedGoHome()">Somnia<span class="logo-sub">dream journal</span></div>
+        <div class="logo" onclick="actions.goHome()">Somnia<span class="logo-sub">dream journal</span></div>
       </div>
       <div class="header-center">
         <div class="header-stat">Total: <span class="header-stat-value">${state.dreams.length}</span></div>
@@ -2107,11 +1983,11 @@ function render() {
       <div class="sidebar-overlay${state.sidebarOpen?' visible':''}" onclick="actions.closeSidebar()"></div>
       <aside class="sidebar" id="sidebar">
         <div class="nav-tabs">
-          <button class="nav-tab ${state.page!=='analyzer'?'active':''}" onclick="actions.guardedGoHome()">Dreams</button>
-          <button class="nav-tab ${state.page==='analyzer'?'active':''}" onclick="actions.guardedGoAnalyzer()">Analytics</button>
+          <button class="nav-tab ${state.page!=='analyzer'?'active':''}" onclick="actions.goHome()">Dreams</button>
+          <button class="nav-tab ${state.page==='analyzer'?'active':''}" onclick="actions.goAnalyzer()">Analytics</button>
         </div>
         <div class="sidebar-top">
-          <button class="btn-new-sidebar" onclick="actions.guardedNewEntry()">+ Record a Dream</button>
+          <button class="btn-new-sidebar" onclick="actions.newEntry()">+ Record a Dream</button>
         </div>
 
         <div class="sidebar-section" style="margin-top:16px;">
@@ -2144,8 +2020,8 @@ function render() {
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
           Dreams
         </button>
-        <button class="mobile-new-btn" onclick="actions.guardedNewEntry()" title="New dream">+</button>
-        <button class="mobile-nav-btn ${analyticsTabActive?'active':''}" onclick="actions.guardedGoAnalyzer()">
+        <button class="mobile-new-btn" onclick="actions.newEntry()" title="New dream">+</button>
+        <button class="mobile-nav-btn ${analyticsTabActive?'active':''}" onclick="actions.goAnalyzer()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3 18l4-8 4 6 4-4 4 6"/></svg>
           Analytics
         </button>
@@ -2178,12 +2054,10 @@ function render() {
     if (state.saveStatus) { const el=document.getElementById('save-status'); if(el)el.classList.add('show'); }
     updateStarDisplay('lucidity', state.editing.lucidity);
     updateStarDisplay('quality', state.editing.quality);
-    /* ── FIX 4: update char count on render ── */
     updateCharCount();
   }
 }
 
-/* ── FIX 4: char count updater ── */
 function updateCharCount() {
   const ta = document.getElementById('dream-body');
   const cc = document.getElementById('body-char-count');
@@ -2198,30 +2072,15 @@ function updateCharCount() {
 ================================================================ */
 function renderHomeMain() {
   const f = FLAVOR[state.flavor];
-  const draft = loadDraft();
   return `
     <div class="home-inner" style="position:relative;z-index:1;flex:1;display:flex;align-items:center;justify-content:center;padding:60px 48px;min-height:100%;overflow:hidden;">
       <img src="somniatextbg.webp" alt="" draggable="false" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:480px;max-width:80%;opacity:0.22;filter:saturate(0) sepia(1) hue-rotate(220deg) saturate(3) brightness(0.65);pointer-events:none;mix-blend-mode:screen;" />
       <div style="position:relative;z-index:2;text-align:center;max-width:420px;">
-        ${draft && state.showDraftBanner ? renderDraftBanner(draft) : ''}
         <div class="home-title" style="font-family:var(--font-serif);font-size:64px;font-weight:400;font-style:italic;color:var(--purple-bright);letter-spacing:0.06em;margin-bottom:40px;line-height:1;text-shadow:0 0 60px rgba(155,135,212,0.2);">Somnia</div>
         <div style="border-left:2px solid var(--border-hover);padding-left:20px;text-align:left;">
           <div style="font-family:var(--font-mono);font-size:10px;letter-spacing:0.25em;color:var(--purple);text-transform:uppercase;margin-bottom:10px;">${esc(f.title)}</div>
           <div style="font-size:13px;line-height:1.8;color:var(--text-muted);font-style:italic;">${f.body}</div>
         </div>
-      </div>
-    </div>
-  `;
-}
-
-function renderDraftBanner(draft) {
-  const label = draft.title ? `"${esc(draft.title.slice(0,32))}${draft.title.length>32?'…':''}"` : 'an untitled dream';
-  return `
-    <div class="draft-banner" style="margin-bottom:28px;">
-      <div class="draft-banner-text">You have an unsaved draft: <strong>${label}</strong></div>
-      <div class="draft-banner-actions">
-        <button class="btn-draft-restore" onclick="actions.restoreDraft()">Continue editing</button>
-        <button class="btn-draft-discard" onclick="actions.discardDraft()">Discard</button>
       </div>
     </div>
   `;
@@ -2236,7 +2095,6 @@ function renderViewer(d) {
   const qHint = d.quality < 1 ? 'unrated' : QUALITY_LABELS[d.quality] || 'unrated';
   const parent = d.continuationOf ? state.dreams.find(x => x.id === d.continuationOf) : null;
   const child = state.dreams.find(x => x.continuationOf === d.id);
-  /* ── FIX 3: relative date in viewer ── */
   const relDate = relativeTime(d.createdAt);
   const absDate = formatDate(d.createdAt) + ' · ' + formatTime(d.createdAt);
   return `
@@ -2369,7 +2227,6 @@ function renderAnalyzer() {
   const avgQuality = ratedQualityDreams.length ? (ratedQualityDreams.reduce((s,d) => s + d.quality, 0) / ratedQualityDreams.length) : 0;
   const maxLuc = Math.max(...lucidityData, 1), maxQual = Math.max(...qualityData, 1);
 
-  // Lucidity trend — chronological, only rated entries, max 40 shown
   const trendDreams = [...dreams]
     .sort((a,b) => new Date(a.createdAt) - new Date(b.createdAt))
     .filter(d => d.lucidity > 0)
@@ -2410,13 +2267,10 @@ function buildLucidityTrendSVG(trendDreams, avgLucidity) {
   const chartH = H - padT - padB;
 
   const n = trendDreams.length;
-  // x positions evenly spaced
   const xs = trendDreams.map((_, i) => padL + (i / (n - 1)) * chartW);
-  // y: lucidity 1–5, invert so 5 is top
   const yScale = v => padT + chartH - ((v - 1) / 4) * chartH;
   const ys = trendDreams.map(d => yScale(d.lucidity));
 
-  // Smooth bezier path using cardinal spline
   function smoothPath(pts) {
     if (pts.length < 2) return '';
     let d = `M ${pts[0][0]},${pts[0][1]}`;
@@ -2437,35 +2291,28 @@ function buildLucidityTrendSVG(trendDreams, avgLucidity) {
 
   const pts = xs.map((x, i) => [x, ys[i]]);
   const linePath = smoothPath(pts);
-  // Area path: line + close down to baseline
   const baseY = padT + chartH;
   const areaPath = linePath + ` L ${xs[n-1]},${baseY} L ${xs[0]},${baseY} Z`;
-
-  // avg line y
   const avgY = yScale(avgLucidity);
 
-  // y-axis tick labels (1–5)
   const yTicks = [1,2,3,4,5].map(v => {
     const ty = yScale(v);
     return `<text class="trend-label" x="${padL - 6}" y="${ty + 3}" text-anchor="end">${v}</text>
     <line x1="${padL}" y1="${ty}" x2="${padL + chartW}" y2="${ty}" class="trend-zero" />`;
   }).join('');
 
-  // x-axis: show first, middle, last dates
   const xLabels = [0, Math.floor((n-1)/2), n-1].map(i => {
     const d = trendDreams[i];
     const label = new Date(d.createdAt).toLocaleDateString('en-US', { month:'short', day:'numeric' });
     return `<text class="trend-label" x="${xs[i]}" y="${H - 4}" text-anchor="middle">${label}</text>`;
   }).join('');
 
-  // dots
   const dots = pts.map(([x,y], i) => {
     const d = trendDreams[i];
     const title = `${d.title||'Untitled'} - ${d.lucidity}/5`;
     return `<circle class="trend-dot" cx="${x}" cy="${y}" r="3" onclick="actions.select('${d.id}')"><title>${esc(title)}</title></circle>`;
   }).join('');
 
-  // moving average overlay (window=5)
   const maWindow = Math.min(5, Math.floor(n / 2));
   const maPts = trendDreams.map((_, i) => {
     const start = Math.max(0, i - Math.floor(maWindow/2));
@@ -2501,27 +2348,24 @@ function buildLucidityTrendSVG(trendDreams, avgLucidity) {
 ================================================================ */
 function renderModals() {
   let html = '';
-  if (state.milestone) html += renderMilestoneModal();
+  if (state.navConfirm) html += renderNavConfirmModal();
+  else if (state.milestone) html += renderMilestoneModal();
   else if (state.confirmDeleteId) html += renderDeleteModal();
   return html;
 }
 
 function renderNavConfirmModal() {
-  const nc = state.navConfirm;
   const titleEl = document.querySelector('.title-input');
   const draftTitle = (titleEl ? titleEl.value : state.editing?.title) || 'Untitled dream';
   return `
     <div class="modal-overlay" onclick="">
       <div class="modal nav-confirm-modal" onclick="event.stopPropagation()">
         <div class="modal-title">Unsaved changes</div>
-        <div class="modal-body">You're currently editing a dream. What would you like to do with your work?</div>
+        <div class="modal-body">You're currently editing a dream. Discard changes and continue, or go back to keep editing?</div>
         <div class="nav-confirm-detail">Draft: ${esc(draftTitle.slice(0,48))}${draftTitle.length>48?'…':''}</div>
-        <div class="modal-actions" style="justify-content:space-between;flex-wrap:wrap;gap:8px;">
-          <button class="btn-modal-cancel" onclick="actions.navConfirmDiscard()">Discard</button>
-          <div style="display:flex;gap:8px;">
-            <button class="btn-modal-save" onclick="actions.navConfirmSaveDraft()">Save as draft</button>
-            <button class="btn-modal-confirm" onclick="actions.navConfirmSave()">Save &amp; go</button>
-          </div>
+        <div class="modal-actions">
+          <button class="btn-modal-cancel" onclick="actions.navConfirmDiscard()">Discard &amp; go</button>
+          <button class="btn-modal-confirm" onclick="actions.navConfirmCancel()">Keep editing</button>
         </div>
       </div>
     </div>
@@ -2578,7 +2422,6 @@ function renderShareModal() {
 }
 
 function buildShareModalHTML(d, style) {
-  /* ── FIX 5: Star rows with LUCIDITY / QUALITY labels ── */
   const lucStars = [1,2,3,4,5].map(i => `<span style="color:${d.lucidity>=i?'#c4b4f0':'rgba(196,180,240,0.15)'}">★</span>`).join('');
   const qStars = [1,2,3,4,5].map(i => `<span style="color:${d.quality>=i?'#ffb3ba':'rgba(255,179,186,0.15)'}">★</span>`).join('');
   const tagsHtml = d.tags.slice(0,4).map(t=>`<span class="share-card-tag">${esc(t)}</span>`).join('');
@@ -2745,7 +2588,6 @@ function updateStarDisplay(type, rating) {
 }
 function updateHint(type, hint) { const el = document.getElementById(`${type}-hint`); if (el) el.textContent = hint; }
 
-// Expose updateCharCount globally for the inline oninput handler
 window.updateCharCount = updateCharCount;
 
 /* ================================================================
@@ -2820,91 +2662,42 @@ const actions = {
     setTimeout(() => { state.sidebarOpen = false; render(); }, 280);
   },
 
-  guardedGoHome() { actions.goHome(); },
-  guardedGoAnalyzer() { actions.goAnalyzer(); },
-  guardedNewEntry() { actions.newEntry(); },
-
   goAnalyzer() {
-    if (state.page==='new') actions._discardIfEmpty();
-    state.page='analyzer'; state.currentId=null; state.editing=null;
-    state.sidebarOpen=false; clearDraft(); render();
+    if (isEditingWithContent()) { state.navConfirm = { action: () => actions.goAnalyzer() }; render(); return; }
+    state.page='analyzer'; state.currentId=null; state.editing=null; state.sidebarOpen=false; render();
   },
   goHome() {
-    if (state.page==='new') actions._discardIfEmpty();
-    state.page='home'; state.currentId=null; state.editing=null;
-    state.sidebarOpen=false; clearDraft(); render();
+    if (isEditingWithContent()) { state.navConfirm = { action: () => actions.goHome() }; render(); return; }
+    state.page='home'; state.currentId=null; state.editing=null; state.sidebarOpen=false; render();
   },
   goBack() {
     if (state.page==='edit') { actions.cancelEdit(); return; }
-    if (state.page==='new') { actions._discardIfEmpty(); }
+    if (state.page==='new' && !isEditingWithContent()) { actions._discardNew(); }
+    else if (state.page==='new') { state.navConfirm = { action: () => { actions._discardNew(); actions.goHome(); } }; render(); return; }
     actions.goHome();
   },
 
   navConfirmDiscard() {
     const fn = state.navConfirm?.action;
     state.navConfirm = null;
-    clearDraft();
-    if (state.editing) { state.dreams = state.dreams.filter(x => x.id !== state.editing.id); saveDreams(state.dreams); }
-    state.editing = null;
-    if (fn) fn();
-    else render();
-  },
-  navConfirmSaveDraft() {
-    const titleEl = document.querySelector('.title-input');
-    const bodyEl = document.getElementById('dream-body');
-    if (state.editing) {
-      const draft = JSON.parse(JSON.stringify(state.editing));
-      if (titleEl) draft.title = titleEl.value;
-      if (bodyEl) draft.body = bodyEl.value;
-      draft._isNew = state.page === 'new';
-      saveDraft(draft);
-      if (state.page === 'new') { state.dreams = state.dreams.filter(x => x.id !== draft.id); saveDreams(state.dreams); }
-    }
-    const fn = state.navConfirm?.action;
-    state.navConfirm = null;
-    state.editing = null;
-    state.showDraftBanner = true;
-    if (fn) fn();
-    else render();
-  },
-  navConfirmSave() {
-    const titleEl = document.querySelector('.title-input');
-    const bodyEl = document.getElementById('dream-body');
-    if (state.editing) {
-      if (titleEl) state.editing.title = titleEl.value;
-      if (bodyEl) state.editing.body = bodyEl.value;
-      state.editing.updatedAt = new Date().toISOString();
-      if (!state.editing.title.trim() && !state.editing.body.trim()) {
-        state.dreams = state.dreams.filter(x => x.id !== state.editing.id);
-      } else {
-        const idx = state.dreams.findIndex(d => d.id === state.editing.id);
-        if (idx >= 0) state.dreams[idx] = JSON.parse(JSON.stringify(state.editing));
-        else state.dreams.push(JSON.parse(JSON.stringify(state.editing)));
-      }
+    if (state.editing && state.page === 'new') {
+      state.dreams = state.dreams.filter(x => x.id !== state.editing.id);
       saveDreams(state.dreams);
     }
-    clearDraft();
-    const fn = state.navConfirm?.action;
-    state.navConfirm = null;
     state.editing = null;
     if (fn) fn();
     else render();
   },
-
-  restoreDraft() {
-    const draft = loadDraft();
-    if (!draft) return;
-    state.editing = draft;
-    state.page = draft._isNew ? 'new' : 'edit';
-    state.currentId = draft.id;
-    state.showDraftBanner = false;
-    clearDraft();
+  navConfirmCancel() {
+    state.navConfirm = null;
     render();
   },
-  discardDraft() {
-    clearDraft();
-    state.showDraftBanner = false;
-    render();
+
+  _discardNew() {
+    if (!state.editing) return;
+    state.dreams = state.dreams.filter(x => x.id !== state.editing.id);
+    saveDreams(state.dreams);
+    state.editing = null;
   },
 
   openShare(id) { state.shareModalDreamId = id; renderShareModal(); },
@@ -2922,8 +2715,6 @@ const actions = {
     }
   },
   copyShareCard() {
-    const cardEl = document.getElementById('share-card-el');
-    if (!cardEl) return;
     const btn = document.getElementById('copy-card-btn');
     if (btn) {
       const d = state.dreams.find(x => x.id === state.shareModalDreamId);
@@ -2946,33 +2737,27 @@ const actions = {
     const body = document.getElementById('dream-body')?.value || d.body || '';
     return title.trim() || body.trim() || d.tags.length > 0 || d.lucidity > 0 || d.quality >= 1;
   },
-  _discardIfEmpty() {
-    if (!state.editing) return;
-    if (!actions._dreamHasContent(state.editing)) {
-      state.dreams = state.dreams.filter(x => x.id !== state.editing.id);
-      saveDreams(state.dreams);
-    }
-  },
   newEntry() {
+    if (isEditingWithContent()) { state.navConfirm = { action: () => actions.newEntry() }; render(); return; }
     const d = newDream();
-    state.currentId=d.id; state.editing=d; state.page='new'; state.saveStatus=false;
-    state.sidebarOpen=false; render();
+    state.currentId=d.id; state.editing=d; state.page='new'; state.saveStatus=false; state.sidebarOpen=false; render();
   },
   select(id) {
-    if (state.page==='new') actions._discardIfEmpty();
+    if (isEditingWithContent()) { state.navConfirm = { action: () => actions.select(id) }; render(); return; }
+    if (state.page==='new' && state.editing) { actions._discardNew(); }
     const d = state.dreams.find(x=>x.id===id); if(!d)return;
     state.currentId=id; state.editing=JSON.parse(JSON.stringify(d));
-    state.page='view'; state.saveStatus=false; state.sidebarOpen=false; clearDraft(); render();
+    state.page='view'; state.saveStatus=false; state.sidebarOpen=false; render();
   },
   startEdit() { state.page='edit'; render(); },
   cancelEdit() {
     const saved = state.dreams.find(d=>d.id===state.currentId);
     if (saved) state.editing=JSON.parse(JSON.stringify(saved));
-    clearDraft(); state.page='view'; render();
+    state.page='view'; render();
   },
-  setTitle(v) { if(state.editing) { state.editing.title=v; scheduleDraftSave(); } },
-  setBody(v) { if(state.editing) { state.editing.body=v; scheduleDraftSave(); } },
-  setSleepNotes(v) { if(state.editing) { state.editing.sleepNotes=v; scheduleDraftSave(); } },
+  setTitle(v) { if(state.editing) state.editing.title=v; },
+  setBody(v) { if(state.editing) state.editing.body=v; },
+  setSleepNotes(v) { if(state.editing) state.editing.sleepNotes=v; },
   setContinuation(id) { if(state.editing) state.editing.continuationOf = id || null; },
   togglePin(id) {
     const d = state.dreams.find(x => x.id === id);
@@ -2987,28 +2772,26 @@ const actions = {
     state.editing.lucidity = state.editing.lucidity === n ? 0 : n;
     updateStarDisplay('lucidity', state.editing.lucidity);
     updateHint('lucidity', state.editing.lucidity === 0 ? 'unrated' : `${state.editing.lucidity}/5`);
-    scheduleDraftSave();
   },
   setQuality(n) {
     if (!state.editing) return;
     state.editing.quality = state.editing.quality === n ? -1 : n;
     updateStarDisplay('quality', state.editing.quality);
     updateHint('quality', state.editing.quality < 1 ? 'unrated' : QUALITY_LABELS[state.editing.quality] || 'unrated');
-    scheduleDraftSave();
   },
   addTag(raw) {
     if (!state.editing) return;
     const tag = raw.trim().toLowerCase().replace(/[^a-z0-9-]/g,'');
-    if (tag && !state.editing.tags.includes(tag)) { state.editing.tags.push(tag); addTagWithAnimation(tag); scheduleDraftSave(); }
+    if (tag && !state.editing.tags.includes(tag)) { state.editing.tags.push(tag); addTagWithAnimation(tag); }
   },
   quickTag(t) {
     if (!state.editing || state.editing.tags.includes(t)) return;
-    state.editing.tags.push(t); addTagWithAnimation(t); scheduleDraftSave();
+    state.editing.tags.push(t); addTagWithAnimation(t);
   },
   removeTag(t) {
     if (!state.editing) return;
     state.editing.tags = state.editing.tags.filter(x=>x!==t);
-    removeTagWithAnimation(t); scheduleDraftSave();
+    removeTagWithAnimation(t);
   },
   save() {
     if (!state.editing) return;
@@ -3019,7 +2802,7 @@ const actions = {
     if (!title.trim() && !body.trim() && !state.editing.tags.length && !state.editing.lucidity && state.editing.quality < 1) {
       state.dreams = state.dreams.filter(x => x.id !== state.editing.id);
       state.currentId=null; state.editing=null; state.page='home';
-      saveDreams(state.dreams); clearDraft(); render(); return;
+      saveDreams(state.dreams); render(); return;
     }
     state.editing.updatedAt=new Date().toISOString();
     const idx = state.dreams.findIndex(d=>d.id===state.editing.id);
@@ -3030,7 +2813,7 @@ const actions = {
       const milestone = MILESTONES.find(m => m.count === state.dreams.length);
       if (milestone) state.milestone = milestone;
     }
-    saveDreams(state.dreams); clearDraft(); state.saveStatus=true; state.page='view';
+    saveDreams(state.dreams); state.saveStatus=true; state.page='view';
     render();
     setTimeout(()=>{state.saveStatus=false;},2000);
   },
