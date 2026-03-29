@@ -5,11 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Buffed Demon List</title>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
-
-<!-- Firebase compat (no ES module issues) -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -28,7 +25,6 @@
 
 body { background: var(--bg); color: var(--text); font-family: 'Rajdhani', sans-serif; min-height: 100vh; overflow-x: hidden; }
 
-/* ── NAV ── */
 nav {
   background: var(--nav);
   border-bottom: 2px solid var(--accent);
@@ -38,15 +34,13 @@ nav {
   box-shadow: 0 2px 16px rgba(192,57,43,0.35);
 }
 .nav-logo { font-size: 1.4rem; font-weight: 700; color: var(--text); letter-spacing: 2px; cursor: default; }
-.nav-logo span { color: var(--accent); }
 .nav-links { display: flex; list-style: none; }
-.nav-links a { color: var(--muted); text-decoration: none; font-size: 0.85rem; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; padding: 0 0.9rem; height: 48px; display: flex; align-items: center; border-bottom: 2px solid transparent; transition: all 0.2s; margin-bottom: -2px; }
+.nav-links a { color: var(--muted); text-decoration: none; font-size: 0.85rem; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; padding: 0 0.9rem; height: 48px; display: flex; align-items: center; border-bottom: 2px solid transparent; transition: all 0.2s; margin-bottom: -2px; cursor: pointer; }
 .nav-links a:hover { color: var(--text); }
 .nav-links a.active { color: var(--text); border-bottom-color: var(--accent); }
 .nav-right { margin-left: auto; display: flex; align-items: center; gap: 0.5rem; }
 .nav-version { font-size: 0.65rem; color: var(--dim); letter-spacing: 1px; font-family: 'Share Tech Mono', monospace; }
 
-/* ── BUTTONS ── */
 .btn { padding: 0.35rem 1rem; border-radius: 2px; font-family: 'Rajdhani', sans-serif; font-weight: 700; font-size: 0.8rem; letter-spacing: 1px; text-transform: uppercase; cursor: pointer; transition: all 0.18s; border: 1px solid transparent; }
 .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
 .btn-primary:hover { background: var(--accent2); border-color: var(--accent2); }
@@ -56,10 +50,9 @@ nav {
 .btn-ghost { background: transparent; border: none; color: var(--muted); font-family: 'Rajdhani',sans-serif; font-weight: 600; font-size: 0.8rem; letter-spacing: 1px; text-transform: uppercase; cursor: pointer; padding: 0.35rem 0.7rem; }
 .btn-ghost:hover { color: var(--text); }
 
-/* ── LAYOUT ── */
-.app { display: flex; min-height: calc(100vh - 48px); }
+.page { display: none; }
+.page.active { display: flex; min-height: calc(100vh - 48px); }
 
-/* ── SIDEBAR ── */
 .sidebar { width: 260px; min-width: 260px; background: var(--surface); border-right: 1px solid var(--border); overflow-y: auto; height: calc(100vh - 48px); position: sticky; top: 48px; }
 .sidebar::-webkit-scrollbar { width: 4px; }
 .sidebar::-webkit-scrollbar-thumb { background: var(--border); }
@@ -72,37 +65,29 @@ nav {
 .s-name { font-size: 0.85rem; font-weight: 600; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sidebar-item.active .s-name { color: var(--text); }
 
-/* ── MAIN ── */
 .main { flex: 1; padding: 2rem 2.5rem; min-width: 0; }
 
-/* level title */
 .lv-title { font-size: 2.5rem; font-weight: 700; color: var(--text); letter-spacing: 1px; margin-bottom: 0.6rem; line-height: 1.1; }
-
-/* meta */
 .meta-row { display: flex; gap: 2rem; margin-bottom: 1.2rem; }
 .meta-item { display: flex; flex-direction: column; gap: 0.1rem; }
 .meta-lbl { font-size: 0.65rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--dim); }
 .meta-val { font-size: 0.88rem; font-weight: 600; color: var(--muted); }
 
-/* tabs */
 .vtabs { display: flex; border-bottom: 1px solid var(--border); margin-bottom: 0; }
 .vtab { background: none; border: none; border-bottom: 2px solid transparent; margin-bottom: -1px; padding: 0.45rem 1rem; font-family: 'Rajdhani',sans-serif; font-weight: 600; font-size: 0.82rem; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); cursor: pointer; transition: all 0.18s; }
 .vtab.active { color: var(--text); border-bottom-color: var(--accent); }
 
-/* video */
 .video-box { width: 100%; max-width: 560px; aspect-ratio: 16/9; background: #000; border: 1px solid var(--border); overflow: hidden; }
 .video-box iframe { width: 100%; height: 100%; border: none; }
 .video-none { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: var(--dim); font-size: 0.75rem; letter-spacing: 1px; background: #0e0808; }
 
-/* stats bar */
-.stats-bar { display: flex; gap: 0; margin: 1rem 0; max-width: 560px; border: 1px solid var(--border); }
+.stats-bar { display: flex; margin: 1rem 0; max-width: 560px; border: 1px solid var(--border); }
 .stat-cell { flex: 1; padding: 0.75rem 1rem; border-right: 1px solid var(--border); display: flex; flex-direction: column; gap: 0.15rem; }
 .stat-cell:last-child { border-right: none; }
 .stat-lbl { font-size: 0.6rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--dim); }
 .stat-val { font-family: 'Share Tech Mono', monospace; font-size: 0.9rem; color: var(--muted); }
 .stat-val.gold { color: var(--gold); }
 
-/* records */
 .rec-section { max-width: 560px; margin-top: 1.2rem; }
 .rec-hdr { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); padding-bottom: 0.4rem; margin-bottom: 0.5rem; }
 .rec-hdr-lbl { font-size: 0.75rem; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--dim); }
@@ -117,7 +102,6 @@ nav {
 .rec-del:hover { color: var(--accent); }
 .rec-empty { font-size: 0.78rem; color: var(--dim); padding: 0.5rem 0; }
 
-/* empty / loading */
 .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 60vh; gap: 1rem; text-align: center; }
 .empty-big { font-size: 4rem; font-weight: 700; color: #2a1010; letter-spacing: 4px; }
 .empty-state p { font-size: 0.85rem; color: var(--dim); max-width: 260px; line-height: 1.7; }
@@ -125,7 +109,6 @@ nav {
 .spin { width: 16px; height: 16px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* ── OVERLAYS ── */
 .ov { display: none; position: fixed; inset: 0; background: rgba(5,2,2,0.85); z-index: 200; align-items: center; justify-content: center; padding: 1rem; }
 .ov.open { display: flex; }
 .panel { background: var(--surface); border: 1px solid var(--border); border-top: 2px solid var(--accent); border-radius: 2px; width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto; animation: pIn 0.22s ease; }
@@ -140,19 +123,13 @@ nav {
 .pmsg.err { color: #f87171; }
 .pmsg.on { display: block; }
 
-/* tabs inside overlay */
 .otabs { display: flex; gap: 0.35rem; margin-bottom: 1rem; }
 .otab { padding: 0.28rem 0.8rem; border: 1px solid var(--border); background: none; color: var(--muted); font-family: 'Rajdhani',sans-serif; font-weight: 700; font-size: 0.75rem; letter-spacing: 1px; text-transform: uppercase; cursor: pointer; border-radius: 2px; transition: all 0.15s; }
 .otab.active { background: var(--accent); border-color: var(--accent); color: #fff; }
 
-/* forms */
 .fg { margin-bottom: 0.85rem; }
 .fg label { display: block; font-size: 0.62rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--dim); margin-bottom: 0.3rem; }
-.fg input, .fg textarea, .fg select {
-  width: 100%; background: #0e0808; border: 1px solid var(--border);
-  color: var(--text); padding: 0.48rem 0.7rem; font-family: 'Rajdhani',sans-serif;
-  font-size: 0.88rem; border-radius: 2px; outline: none; transition: border-color 0.18s;
-}
+.fg input, .fg textarea, .fg select { width: 100%; background: #0e0808; border: 1px solid var(--border); color: var(--text); padding: 0.48rem 0.7rem; font-family: 'Rajdhani',sans-serif; font-size: 0.88rem; border-radius: 2px; outline: none; transition: border-color 0.18s; }
 .fg input:focus, .fg textarea:focus, .fg select:focus { border-color: var(--accent); }
 .fg input::placeholder, .fg textarea::placeholder { color: var(--dim); }
 .fg textarea { resize: vertical; min-height: 70px; }
@@ -163,7 +140,6 @@ nav {
 .pts-prev span { font-size: 0.62rem; color: var(--dim); letter-spacing: 2px; text-transform: uppercase; }
 .pts-prev .pts { color: var(--gold); font-family: 'Share Tech Mono',monospace; font-size: 0.9rem; }
 
-/* manage table */
 .mtbl { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
 .mtbl th { text-align: left; padding: 0.4rem 0.6rem; font-size: 0.6rem; letter-spacing: 2px; text-transform: uppercase; color: var(--dim); border-bottom: 1px solid var(--border); font-weight: 700; }
 .mtbl td { padding: 0.5rem 0.6rem; border-bottom: 1px solid #1a0e0e; vertical-align: middle; }
@@ -176,7 +152,6 @@ nav {
 .ibtn:hover { border-color: var(--accent); color: var(--accent); }
 .ibtn.del:hover { border-color: #7f1d1d; color: #f87171; }
 
-/* pending card */
 .pcard { background: #0e0808; border: 1px solid var(--border); border-radius: 2px; padding: 0.85rem 1rem; margin-bottom: 0.6rem; }
 .pcard-type { font-size: 0.6rem; letter-spacing: 2px; text-transform: uppercase; color: var(--accent); margin-bottom: 0.4rem; }
 .pcard-title { font-size: 0.95rem; font-weight: 700; color: var(--text); margin-bottom: 0.3rem; }
@@ -184,13 +159,41 @@ nav {
 .pcard a { color: var(--accent); text-decoration: none; font-size: 0.72rem; }
 .pcard-actions { display: flex; gap: 0.4rem; margin-top: 0.5rem; }
 
-/* pending dot */
 .pdot { display: inline-block; width: 6px; height: 6px; background: var(--gold); border-radius: 50%; margin-left: 4px; vertical-align: middle; animation: pulse 1.4s ease infinite; }
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
 
-/* toast */
 .toast { position: fixed; bottom: 1.5rem; right: 1.5rem; background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); padding: 0.65rem 1rem; font-size: 0.78rem; font-weight: 600; letter-spacing: 0.5px; z-index: 999; opacity: 0; transform: translateY(6px); transition: all 0.25s; pointer-events: none; max-width: 260px; color: var(--muted); border-radius: 2px; }
 .toast.on { opacity: 1; transform: translateY(0); }
+
+/* LEADERBOARD */
+.lb-wrap { display: flex; min-height: calc(100vh - 48px); width: 100%; }
+
+.lb-sidebar { width: 320px; min-width: 320px; background: var(--surface); border-right: 1px solid var(--border); overflow-y: auto; height: calc(100vh - 48px); position: sticky; top: 48px; }
+.lb-sidebar::-webkit-scrollbar { width: 4px; }
+.lb-sidebar::-webkit-scrollbar-thumb { background: var(--border); }
+
+.lb-row { display: flex; align-items: center; gap: 0; padding: 0.5rem 1rem; border-bottom: 1px solid #1a0e0e; cursor: pointer; transition: background 0.12s; border-left: 3px solid transparent; }
+.lb-row:hover { background: #220f0f; }
+.lb-row.active { background: #280f0f; border-left-color: var(--accent); }
+.lb-pos { font-family: 'Share Tech Mono', monospace; font-size: 0.78rem; color: var(--dim); min-width: 32px; }
+.lb-row.active .lb-pos { color: var(--accent); }
+.lb-pts { font-family: 'Share Tech Mono', monospace; font-size: 0.78rem; color: var(--gold); min-width: 80px; }
+.lb-player { font-size: 0.88rem; font-weight: 600; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lb-row.active .lb-player { color: var(--text); }
+
+.lb-main { flex: 1; padding: 2rem 2.5rem; min-width: 0; overflow-y: auto; }
+
+.lb-hero-rank { font-size: 2.8rem; font-weight: 700; color: var(--text); margin-bottom: 0.2rem; line-height: 1; }
+.lb-hero-rank span { color: var(--accent); }
+.lb-hero-pts { font-family: 'Share Tech Mono', monospace; font-size: 1.1rem; color: var(--gold); margin-bottom: 1.5rem; }
+
+.lb-section-title { font-size: 1.4rem; font-weight: 700; color: var(--text); margin: 1.4rem 0 0.7rem; }
+.lb-level-row { display: flex; align-items: center; padding: 0.45rem 0; border-bottom: 1px solid #1a0e0e; cursor: pointer; transition: background 0.1s; border-radius: 2px; }
+.lb-level-row:hover { background: #220f0f; padding-left: 0.4rem; }
+.lb-level-pos { font-family: 'Share Tech Mono', monospace; font-size: 0.75rem; color: var(--dim); min-width: 40px; }
+.lb-level-name { font-size: 0.9rem; font-weight: 600; color: var(--text); flex: 1; }
+.lb-level-pts { font-family: 'Share Tech Mono', monospace; font-size: 0.82rem; color: var(--accent2); }
+.lb-empty { color: var(--dim); font-size: 0.82rem; padding: 0.5rem 0; }
 
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-thumb { background: var(--border); }
@@ -198,20 +201,18 @@ nav {
 </head>
 <body>
 
-<!-- ── NAV ── -->
 <nav>
   <div class="nav-logo">BDL <span class="nav-version">v1.0.0</span></div>
   <ul class="nav-links">
-    <li><a href="#" class="active">List</a></li>
-    <li><a href="#">Leaderboard</a></li>
+    <li><a id="navList" class="active" onclick="showPage('list')">List</a></li>
+    <li><a id="navLb" onclick="showPage('leaderboard')">Leaderboard</a></li>
   </ul>
   <div class="nav-right" id="navRight">
-    <button class="btn btn-outline btn-sm" onclick="openOv('subOv')">Submit Record</button>
+    <button class="btn btn-outline btn-sm" onclick="openOverlay('subOv')">Submit Record</button>
   </div>
 </nav>
 
-<!-- ── APP ── -->
-<div class="app">
+<div class="page active" id="pageList">
   <aside class="sidebar"><ul class="sidebar-list" id="sidebarList"></ul></aside>
   <main class="main" id="mainArea">
     <div class="loading" id="loadEl"><div class="spin"></div>Loading...</div>
@@ -223,20 +224,26 @@ nav {
   </main>
 </div>
 
-<!-- ════════════════════════════════
-     ADMIN PANEL
-════════════════════════════════ -->
+<div class="page" id="pageLeaderboard">
+  <div class="lb-wrap">
+    <aside class="lb-sidebar">
+      <ul id="lbSidebarList" style="list-style:none"></ul>
+    </aside>
+    <div class="lb-main" id="lbMain">
+      <div class="loading"><div class="spin"></div>Loading...</div>
+    </div>
+  </div>
+</div>
+
 <div class="ov" id="adminOv">
   <div class="panel" style="max-width:600px">
-    <div class="ph"><h2>Admin Panel</h2><button class="xbtn" onclick="closeOv('adminOv')">✕</button></div>
+    <div class="ph"><h2>Admin Panel</h2><button class="xbtn" onclick="closeOverlay('adminOv')">✕</button></div>
     <div class="pb">
       <div class="otabs">
-        <button class="otab active" onclick="aTab('add')">+ New Level</button>
-        <button class="otab" onclick="aTab('manage')">Manage</button>
-        <button class="otab" onclick="aTab('pending')" id="pendingTab">Pending</button>
+        <button class="otab active" onclick="adminTab('add')">+ New Level</button>
+        <button class="otab" onclick="adminTab('manage')">Manage</button>
+        <button class="otab" onclick="adminTab('pending')" id="pendingTab">Pending</button>
       </div>
-
-      <!-- ADD -->
       <div id="aAdd">
         <div class="fg"><label>Level Name</label><input id="fn" placeholder="e.g. Buffed Bloodbath"></div>
         <div class="frow">
@@ -248,43 +255,33 @@ nav {
         <div class="fg"><label>Password</label><input id="fpw" placeholder="e.g. Free to Copy"></div>
         <div class="fg"><label>Verification Video (YouTube)</label><input id="fvv" placeholder="https://youtu.be/..."></div>
         <div class="fg"><label>Showcase Video (optional)</label><input id="fsv" placeholder="https://youtu.be/..."></div>
-        <div class="fg">
-          <label>Min % to Qualify for Records</label>
-          <input id="fmq" type="number" placeholder="55" min="1" max="100">
-        </div>
+        <div class="fg"><label>Min % to Qualify for Records</label><input id="fmq" type="number" placeholder="55" min="1" max="100"></div>
         <div class="fg">
           <label>Position in List</label>
-          <input id="fpos" type="number" placeholder="Leave blank = append" min="1" oninput="updPts()">
+          <input id="fpos" type="number" placeholder="Leave blank = append" min="1" oninput="updatePointsPreview()">
           <div class="fhint">Leave blank to append. Other levels shift down.</div>
         </div>
         <div class="pts-prev"><span>Completion Points</span><span class="pts" id="ptsPreview">—</span></div>
       </div>
-
-      <!-- MANAGE -->
       <div id="aManage" style="display:none">
         <table class="mtbl"><thead><tr><th>#</th><th>Name</th><th>ID</th><th>Pts</th><th></th></tr></thead><tbody id="mBody"></tbody></table>
         <div id="mEmpty" style="display:none;text-align:center;padding:1.5rem;color:var(--dim);font-size:0.78rem">No levels yet.</div>
       </div>
-
-      <!-- PENDING -->
       <div id="aPending" style="display:none">
         <div id="pendingList"><div style="color:var(--dim);font-size:0.78rem;padding:0.5rem 0">Loading...</div></div>
       </div>
     </div>
     <div class="pf" id="adminFt">
       <span class="pmsg" id="aMsg"></span>
-      <button class="btn btn-ghost" onclick="closeOv('adminOv')">Cancel</button>
-      <button class="btn btn-primary" onclick="doAddLevel()">Add Level</button>
+      <button class="btn btn-ghost" onclick="closeOverlay('adminOv')">Cancel</button>
+      <button class="btn btn-primary" onclick="addLevel()">Add Level</button>
     </div>
   </div>
 </div>
 
-<!-- ════════════════════════════════
-     ADD RECORD (admin)
-════════════════════════════════ -->
 <div class="ov" id="recOv">
   <div class="panel" style="max-width:420px">
-    <div class="ph"><h2>Add Record — <span id="recLvlName" style="color:var(--muted);font-weight:400"></span></h2><button class="xbtn" onclick="closeOv('recOv')">✕</button></div>
+    <div class="ph"><h2>Add Record — <span id="recLvlName" style="color:var(--muted);font-weight:400"></span></h2><button class="xbtn" onclick="closeOverlay('recOv')">✕</button></div>
     <div class="pb">
       <div class="fg"><label>Player Nickname</label><input id="rNick" placeholder="e.g. PlayerXYZ"></div>
       <div class="fg"><label>Completion %</label><input id="rPct" type="number" placeholder="100" min="1" max="100"></div>
@@ -292,25 +289,20 @@ nav {
     </div>
     <div class="pf">
       <span class="pmsg" id="rMsg"></span>
-      <button class="btn btn-ghost" onclick="closeOv('recOv')">Cancel</button>
-      <button class="btn btn-primary" onclick="doAddRecord()">Add Record</button>
+      <button class="btn btn-ghost" onclick="closeOverlay('recOv')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveRecord()">Add Record</button>
     </div>
   </div>
 </div>
 
-<!-- ════════════════════════════════
-     PUBLIC SUBMIT
-════════════════════════════════ -->
 <div class="ov" id="subOv">
   <div class="panel" style="max-width:580px">
-    <div class="ph"><h2>Submit to BDL</h2><button class="xbtn" onclick="closeOv('subOv')">✕</button></div>
+    <div class="ph"><h2>Submit to BDL</h2><button class="xbtn" onclick="closeOverlay('subOv')">✕</button></div>
     <div class="pb">
       <div class="otabs">
-        <button class="otab active" onclick="sTab('rec')">Record</button>
-        <button class="otab" onclick="sTab('verif')">Verification</button>
+        <button class="otab active" onclick="submitTab('rec')">Record</button>
+        <button class="otab" onclick="submitTab('verif')">Verification</button>
       </div>
-
-      <!-- RECORD -->
       <div id="sRec">
         <p style="font-size:0.78rem;color:var(--muted);margin-bottom:1rem;line-height:1.7">Completed a level on the list? Submit your record for admin review.</p>
         <div class="fg"><label>Level</label><select id="sLevel"><option value="">— Select a level —</option></select></div>
@@ -319,8 +311,6 @@ nav {
         <div class="fg"><label>Video Proof (YouTube)</label><input id="sVid" placeholder="https://youtu.be/..."></div>
         <div class="fg"><label>Extra Info (optional)</label><textarea id="sExtra" placeholder="Device used, anything relevant..."></textarea></div>
       </div>
-
-      <!-- VERIF -->
       <div id="sVerif" style="display:none">
         <p style="font-size:0.78rem;color:var(--muted);margin-bottom:1rem;line-height:1.7">Think a level should be on the BDL? Submit your verification.</p>
         <div class="fg"><label>Level Name</label><input id="vName" placeholder="e.g. Buffed Bloodbath"></div>
@@ -337,73 +327,48 @@ nav {
     </div>
     <div class="pf">
       <span class="pmsg" id="sMsg"></span>
-      <button class="btn btn-ghost" onclick="closeOv('subOv')">Cancel</button>
-      <button class="btn btn-primary" onclick="doSubmit()">Send to Admins</button>
+      <button class="btn btn-ghost" onclick="closeOverlay('subOv')">Cancel</button>
+      <button class="btn btn-primary" onclick="sendSubmission()">Send to Admins</button>
     </div>
   </div>
 </div>
 
 <div class="toast" id="toast"></div>
 
-<!-- ════════════════════════════════
-     FIREBASE CONFIG — replace these values
-════════════════════════════════ -->
 <script>
 const FB_CONFIG = {
-    apiKey: "AIzaSyD-SIg70e0MDgDBqLSZv_uG6lpO682K7ds",
-    authDomain: "bdl-list.firebaseapp.com",
-    databaseURL: "https://bdl-list-default-rtdb.firebaseio.com",
-    projectId: "bdl-list",
-    storageBucket: "bdl-list.firebasestorage.app",
-    messagingSenderId: "744133456079",
-    appId: "1:744133456079:web:53f7efc59b8b039fff47ba"
+  apiKey: "AIzaSyD-SIg70e0MDgDBqLSZv_uG6lpO682K7ds",
+  authDomain: "bdl-list.firebaseapp.com",
+  databaseURL: "https://bdl-list-default-rtdb.firebaseio.com",
+  projectId: "bdl-list",
+  storageBucket: "bdl-list.firebasestorage.app",
+  messagingSenderId: "744133456079",
+  appId: "1:744133456079:web:53f7efc59b8b039fff47ba"
 };
 
 const WEBHOOK = "https://discord.com/api/webhooks/1487541929351581846/7f2IOONC8OZNtjF9q1t1Y8PhRtUWT-_jyKD2XWzYNDXa0hyPHwNL5Py5iIMNnQfw0ceY";
 
-// ────────────────────────────────
-// INIT FIREBASE
-// ────────────────────────────────
 firebase.initializeApp(FB_CONFIG);
 const DB = firebase.database();
 
-function dbRef(path) { return DB.ref(path); }
-async function dbGet(path) { return (await dbRef(path).get()).val(); }
-async function dbSet(path, val) { return dbRef(path).set(val); }
-async function dbPush(path, val) { return dbRef(path).push(val); }
-async function dbRemove(path) { return dbRef(path).remove(); }
-async function dbUpdate(obj) { return DB.ref('/').update(obj); }
+function dbPath(path)          { return DB.ref(path); }
+async function dbGet(path)     { return (await dbPath(path).get()).val(); }
+async function dbPush(path, v) { return dbPath(path).push(v); }
+async function dbRemove(path)  { return dbPath(path).remove(); }
+async function dbUpdate(obj)   { return DB.ref('/').update(obj); }
 
 let isAdmin = false;
+let levels  = [];
+let records = {};
+let currentLevelKey  = null;
+let currentLevelIdx  = -1;
+let addRecordTarget  = null;
+let currentSubmitTab = 'rec';
+let currentAdminTab  = 'add';
+let currentLbPlayer  = null;
 
-function checkAuth() {
-  const KEY = 'bdl_uid';
-  let id = localStorage.getItem(KEY);
-  if (!id) {
-    const c = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    id = Array.from({length:30},()=>c[Math.floor(Math.random()*c.length)]).join('');
-    localStorage.setItem(KEY, id);
-  }
-  isAdmin = (id === '67istufflikeohiomangos');
-  buildNav();
-}
-
-function buildNav() {
-  const nav = document.getElementById('navRight');
-  if (isAdmin) {
-    nav.innerHTML = `
-      <span style="font-size:0.65rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--gold)">Admin</span>
-      <button class="btn btn-outline btn-sm" onclick="openOv('subOv')">Submit Record</button>
-      <button class="btn btn-primary btn-sm" onclick="openAdmin()">Admin Panel</button>
-    `;
-  }
-}
-
-// ────────────────────────────────
-// CONSTANTS
-// ────────────────────────────────
 const LOG_BASE = Math.log(200 / 42.909) / Math.log(100);
-function calcPts(rank) {
+function calcPoints(rank) {
   if (rank < 1) rank = 1;
   return Math.round(200 * Math.pow(1 / rank, LOG_BASE) * 1000) / 1000;
 }
@@ -418,75 +383,81 @@ function ytLink(url) {
   const m = url.match(/(?:youtu\.be\/|v=|embed\/)([A-Za-z0-9_-]{11})/);
   return m ? `https://youtu.be/${m[1]}` : url;
 }
-
 function esc(s) {
   if (!s && s !== 0) return '';
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-// ────────────────────────────────
-// STATE
-// ────────────────────────────────
-let levels  = [];
-let records = {};
-let curKey  = null;
-let curIdx  = -1;
-let recTargetKey = null;
-let curSubTab = 'rec';
-let curAdminTab = 'add';
+function checkAuth() {
+  const KEY = 'bdl_uid';
+  let id = localStorage.getItem(KEY);
+  if (!id) {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    id = Array.from({length:30}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+    localStorage.setItem(KEY, id);
+  }
+  isAdmin = (id === '67istufflikeohiomangos');
+  updateNavRight();
+}
 
-// ────────────────────────────────
-// LOAD
-// ────────────────────────────────
+function updateNavRight() {
+  const nav = document.getElementById('navRight');
+  if (isAdmin) {
+    nav.innerHTML = `
+      <span style="font-size:0.65rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--gold)">Admin</span>
+      <button class="btn btn-outline btn-sm" onclick="openOverlay('subOv')">Submit Record</button>
+      <button class="btn btn-primary btn-sm" onclick="openAdminPanel()">Admin Panel</button>
+    `;
+  }
+}
+
 async function loadAll() {
   const [lvData, recData] = await Promise.all([dbGet('levels'), dbGet('records')]);
-
   levels = lvData
-    ? Object.entries(lvData).map(([k,v]) => ({...v, _key: k})).sort((a,b) => (a.pos||9999)-(b.pos||9999))
+    ? Object.entries(lvData).map(([k,v]) => ({...v, _key:k})).sort((a,b) => (a.pos||9999)-(b.pos||9999))
     : [];
-
   records = recData || {};
-
   document.getElementById('loadEl').style.display = 'none';
   renderSidebar();
-
   if (!levels.length) {
     document.getElementById('emptyEl').style.display = 'flex';
   } else {
     showLevel(0);
   }
   populateLevelSelect();
+  buildLeaderboard();
 }
 
-// ────────────────────────────────
-// SIDEBAR
-// ────────────────────────────────
+function showPage(page) {
+  document.getElementById('pageList').classList.toggle('active', page === 'list');
+  document.getElementById('pageLeaderboard').classList.toggle('active', page === 'leaderboard');
+  document.getElementById('navList').classList.toggle('active', page === 'list');
+  document.getElementById('navLb').classList.toggle('active', page === 'leaderboard');
+}
+
 function renderSidebar() {
   const ul = document.getElementById('sidebarList');
   ul.innerHTML = '';
   levels.forEach((lvl, i) => {
     const li = document.createElement('li');
-    li.className = 'sidebar-item' + (lvl._key === curKey ? ' active' : '');
+    li.className = 'sidebar-item' + (lvl._key === currentLevelKey ? ' active' : '');
     li.onclick = () => showLevel(i);
     li.innerHTML = `<span class="s-rank">#${i+1}</span><span class="s-name">${esc(lvl.name)}</span>`;
     ul.appendChild(li);
   });
 }
 
-// ────────────────────────────────
-// SHOW LEVEL
-// ────────────────────────────────
 function showLevel(idx) {
   if (idx < 0 || idx >= levels.length) return;
-  curIdx = idx;
+  currentLevelIdx = idx;
   const lvl = levels[idx];
-  curKey = lvl._key;
+  currentLevelKey = lvl._key;
   renderSidebar();
 
-  const pts   = calcPts(idx + 1);
-  const vEmb  = ytEmbed(lvl.verif);
-  const sEmb  = ytEmbed(lvl.showcase);
-  const recs  = records[lvl._key]
+  const pts    = calcPoints(idx + 1);
+  const vEmbed = ytEmbed(lvl.verif);
+  const sEmbed = ytEmbed(lvl.showcase);
+  const recs   = records[lvl._key]
     ? Object.entries(records[lvl._key]).map(([k,v]) => ({...v, _key:k})).sort((a,b) => b.pct - a.pct)
     : [];
   const minPct = lvl.minPct || 55;
@@ -495,19 +466,19 @@ function showLevel(idx) {
   const det = document.getElementById('detail');
   det.style.display = 'block';
 
-  function render(tab) {
-    const embedUrl = tab === 'v' ? vEmb : sEmb;
+  function renderVideoTab(tab) {
+    const embedUrl = tab === 'v' ? vEmbed : sEmbed;
     const vidHtml  = embedUrl
       ? `<iframe src="${embedUrl}" allowfullscreen loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"></iframe>`
       : `<div class="video-none">No video set for this tab</div>`;
 
-    const recHtml = recs.length
+    const recRows = recs.length
       ? recs.map(r => `
           <div class="rec-row">
             <span class="rec-pct ${r.pct==100?'full':''}">${r.pct}%</span>
             <span class="rec-name">${esc(r.nickname)}</span>
             ${r.video ? `<a class="rec-vid" href="${esc(ytLink(r.video))}" target="_blank" rel="noopener">▶ video</a>` : ''}
-            ${isAdmin ? `<button class="rec-del" onclick="delRecord('${esc(lvl._key)}','${esc(r._key)}')">✕</button>` : ''}
+            ${isAdmin ? `<button class="rec-del" onclick="deleteRecord('${esc(lvl._key)}','${esc(r._key)}')">✕</button>` : ''}
           </div>`).join('')
       : `<div class="rec-empty">No records yet.</div>`;
 
@@ -531,62 +502,56 @@ function showLevel(idx) {
       <div class="rec-section">
         <div class="rec-hdr">
           <span class="rec-hdr-lbl">Records</span>
-          ${isAdmin ? `<button class="btn btn-primary btn-sm" onclick="openAddRec('${esc(lvl._key)}','${esc(lvl.name)}')">+ Record</button>` : ''}
+          ${isAdmin ? `<button class="btn btn-primary btn-sm" onclick="openAddRecord('${esc(lvl._key)}','${esc(lvl.name)}')">+ Record</button>` : ''}
         </div>
         <div class="rec-qualify">${minPct}% or better to qualify</div>
-        ${recHtml}
+        ${recRows}
       </div>
     `;
-    document.getElementById('tabV').onclick = () => render('v');
-    document.getElementById('tabS').onclick = () => render('s');
+    document.getElementById('tabV').onclick = () => renderVideoTab('v');
+    document.getElementById('tabS').onclick = () => renderVideoTab('s');
   }
-  render('v');
+  renderVideoTab('v');
 }
 
-// ────────────────────────────────
-// OVERLAYS
-// ────────────────────────────────
-function openOv(id) { document.getElementById(id).classList.add('open'); }
-function closeOv(id) { document.getElementById(id).classList.remove('open'); }
+function openOverlay(id)  { document.getElementById(id).classList.add('open'); }
+function closeOverlay(id) { document.getElementById(id).classList.remove('open'); }
 
-function msg(id, text, err=false) {
+function showFormMsg(id, text, isError=false) {
   const el = document.getElementById(id);
   el.textContent = text;
-  el.className = 'pmsg on' + (err ? ' err' : '');
+  el.className = 'pmsg on' + (isError ? ' err' : '');
   setTimeout(() => el.classList.remove('on'), 4000);
 }
 
-// ────────────────────────────────
-// ADMIN PANEL
-// ────────────────────────────────
-function openAdmin() {
-  aTab('add');
-  openOv('adminOv');
-  updPts();
-  checkPendingBadge();
+function openAdminPanel() {
+  adminTab('add');
+  openOverlay('adminOv');
+  updatePointsPreview();
+  updatePendingBadge();
 }
 
-function aTab(t) {
-  curAdminTab = t;
-  document.querySelectorAll('#adminOv .otab').forEach((el,i) => el.classList.toggle('active', ['add','manage','pending'][i]===t));
-  document.getElementById('aAdd').style.display     = t==='add'     ? 'block':'none';
-  document.getElementById('aManage').style.display  = t==='manage'  ? 'block':'none';
-  document.getElementById('aPending').style.display = t==='pending' ? 'block':'none';
-  document.getElementById('adminFt').style.display  = t==='add'     ? 'flex' :'none';
-  if (t==='manage') renderManage();
-  if (t==='pending') renderPending();
+function adminTab(tab) {
+  currentAdminTab = tab;
+  document.querySelectorAll('#adminOv .otab').forEach((el,i) => el.classList.toggle('active', ['add','manage','pending'][i]===tab));
+  document.getElementById('aAdd').style.display     = tab==='add'     ? 'block':'none';
+  document.getElementById('aManage').style.display  = tab==='manage'  ? 'block':'none';
+  document.getElementById('aPending').style.display = tab==='pending' ? 'block':'none';
+  document.getElementById('adminFt').style.display  = tab==='add'     ? 'flex' :'none';
+  if (tab==='manage') renderManageTable();
+  if (tab==='pending') renderPendingList();
 }
 
-function updPts() {
+function updatePointsPreview() {
   let pos = parseInt(document.getElementById('fpos')?.value);
   if (isNaN(pos) || pos < 1) pos = levels.length + 1;
   const el = document.getElementById('ptsPreview');
-  if (el) el.textContent = calcPts(pos) + ' pts';
+  if (el) el.textContent = calcPoints(pos) + ' pts';
 }
 
-async function doAddLevel() {
+async function addLevel() {
   const name = document.getElementById('fn').value.trim();
-  if (!name) { msg('aMsg','Level name is required.',true); return; }
+  if (!name) { showFormMsg('aMsg','Level name is required.',true); return; }
 
   let pos = parseInt(document.getElementById('fpos').value);
   if (isNaN(pos) || pos < 1) pos = levels.length + 1;
@@ -605,7 +570,6 @@ async function doAddLevel() {
     pos,
   };
 
-  // Shift existing levels at or after this position
   const updates = {};
   for (const l of levels) {
     const lp = l.pos || (levels.indexOf(l) + 1);
@@ -613,30 +577,23 @@ async function doAddLevel() {
   }
   if (Object.keys(updates).length) await dbUpdate(updates);
 
-  // Push new level
   const ref = await dbPush('levels', lvl);
-
-  // Rebuild
   await loadAll();
-  clearAddForm();
-  closeOv('adminOv');
-  toast(`"${name}" added at #${pos}!`);
-
+  clearAddLevelForm();
+  closeOverlay('adminOv');
+  showToast(`"${name}" added at #${pos}!`);
   const newIdx = levels.findIndex(l => l._key === ref.key);
   if (newIdx >= 0) showLevel(newIdx);
 }
 
-function clearAddForm() {
+function clearAddLevelForm() {
   ['fn','fc','fv','fp','fi','fpw','fvv','fsv','fmq','fpos'].forEach(id => {
     const el = document.getElementById(id); if (el) el.value = '';
   });
-  updPts();
+  updatePointsPreview();
 }
 
-// ────────────────────────────────
-// MANAGE TABLE
-// ────────────────────────────────
-function renderManage() {
+function renderManageTable() {
   const tbody = document.getElementById('mBody');
   const empty = document.getElementById('mEmpty');
   tbody.innerHTML = '';
@@ -648,101 +605,92 @@ function renderManage() {
       <td class="rc">#${i+1}</td>
       <td class="nc">${esc(lvl.name)}</td>
       <td style="color:var(--dim);font-size:0.7rem">${esc(lvl.levelId)||'—'}</td>
-      <td class="pc">${calcPts(i+1)}</td>
+      <td class="pc">${calcPoints(i+1)}</td>
       <td><div class="abx">
-        <button class="ibtn" title="Up"     onclick="moveL(${i},-1)">↑</button>
-        <button class="ibtn" title="Down"   onclick="moveL(${i}, 1)">↓</button>
-        <button class="ibtn del" title="Delete" onclick="delLevel(${i})">✕</button>
+        <button class="ibtn" onclick="shiftLevel(${i},-1)">↑</button>
+        <button class="ibtn" onclick="shiftLevel(${i}, 1)">↓</button>
+        <button class="ibtn del" onclick="removeLevel(${i})">✕</button>
       </div></td>`;
     tbody.appendChild(tr);
   });
 }
 
-async function moveL(idx, dir) {
+async function shiftLevel(idx, dir) {
   const n = idx + dir;
   if (n < 0 || n >= levels.length) return;
   const a = levels[idx], b = levels[n];
   const pa = a.pos||(idx+1), pb = b.pos||(n+1);
-  const updates = {};
-  updates[`levels/${a._key}/pos`] = pb;
-  updates[`levels/${b._key}/pos`] = pa;
-  await dbUpdate(updates);
+  await dbUpdate({ [`levels/${a._key}/pos`]: pb, [`levels/${b._key}/pos`]: pa });
   [levels[idx].pos, levels[n].pos] = [pb, pa];
   levels.sort((x,y) => (x.pos||9999)-(y.pos||9999));
-  renderManage();
+  renderManageTable();
   renderSidebar();
-  if (curKey === a._key) showLevel(n);
-  else if (curKey === b._key) showLevel(idx);
+  if (currentLevelKey === a._key) showLevel(n);
+  else if (currentLevelKey === b._key) showLevel(idx);
 }
 
-async function delLevel(idx) {
+async function removeLevel(idx) {
   const lvl = levels[idx];
   if (!confirm(`Delete "${lvl.name}"?`)) return;
   await dbRemove(`levels/${lvl._key}`);
   await dbRemove(`records/${lvl._key}`);
   delete records[lvl._key];
   levels.splice(idx, 1);
-  renderManage();
+  renderManageTable();
   renderSidebar();
-  toast(`"${lvl.name}" deleted.`);
-  if (curKey === lvl._key) {
+  buildLeaderboard();
+  showToast(`"${lvl.name}" deleted.`);
+  if (currentLevelKey === lvl._key) {
     if (!levels.length) {
       document.getElementById('emptyEl').style.display = 'flex';
       document.getElementById('detail').style.display  = 'none';
-      curKey = null; curIdx = -1;
+      currentLevelKey = null; currentLevelIdx = -1;
     } else {
       showLevel(Math.min(idx, levels.length - 1));
     }
   }
 }
 
-// ────────────────────────────────
-// ADD RECORD (admin)
-// ────────────────────────────────
-function openAddRec(key, name) {
-  recTargetKey = key;
+function openAddRecord(key, name) {
+  addRecordTarget = key;
   document.getElementById('recLvlName').textContent = name;
   ['rNick','rPct','rVid'].forEach(id => document.getElementById(id).value = '');
-  openOv('recOv');
+  openOverlay('recOv');
 }
 
-async function doAddRecord() {
+async function saveRecord() {
   const nick  = document.getElementById('rNick').value.trim();
   const pct   = parseInt(document.getElementById('rPct').value);
   const video = document.getElementById('rVid').value.trim();
-  if (!nick)           { msg('rMsg','Nickname required.',true); return; }
-  if (!pct||pct<1||pct>100) { msg('rMsg','% must be 1–100.',true); return; }
-
-  const rec = { nickname: nick, pct, video, addedAt: Date.now() };
-  const ref = await dbPush(`records/${recTargetKey}`, rec);
-  if (!records[recTargetKey]) records[recTargetKey] = {};
-  records[recTargetKey][ref.key] = rec;
-
-  closeOv('recOv');
-  toast(`Record for ${nick} added!`);
-  if (curKey === recTargetKey) showLevel(curIdx);
+  if (!nick)                { showFormMsg('rMsg','Nickname required.',true); return; }
+  if (!pct||pct<1||pct>100) { showFormMsg('rMsg','% must be 1–100.',true); return; }
+  const rec = { nickname:nick, pct, video, addedAt:Date.now() };
+  const ref = await dbPush(`records/${addRecordTarget}`, rec);
+  if (!records[addRecordTarget]) records[addRecordTarget] = {};
+  records[addRecordTarget][ref.key] = rec;
+  closeOverlay('recOv');
+  showToast(`Record for ${nick} added!`);
+  if (currentLevelKey === addRecordTarget) showLevel(currentLevelIdx);
+  buildLeaderboard();
 }
 
-async function delRecord(lvlKey, recKey) {
-  if (!isAdmin) return;
-  if (!confirm('Delete this record?')) return;
+async function deleteRecord(lvlKey, recKey) {
+  if (!isAdmin || !confirm('Delete this record?')) return;
   await dbRemove(`records/${lvlKey}/${recKey}`);
   if (records[lvlKey]) delete records[lvlKey][recKey];
-  showLevel(curIdx);
-  toast('Record deleted.');
+  showLevel(currentLevelIdx);
+  buildLeaderboard();
+  showToast('Record deleted.');
 }
 
-// ────────────────────────────────
-// PENDING
-// ────────────────────────────────
-async function checkPendingBadge() {
+async function updatePendingBadge() {
   const data  = await dbGet('pending');
   const count = data ? Object.keys(data).length : 0;
   const tab   = document.getElementById('pendingTab');
   if (tab) tab.innerHTML = `Pending${count > 0 ? ' <span class="pdot"></span>' : ''}`;
 }
 
-async function renderPending() {
+async function renderPendingList() {
   const container = document.getElementById('pendingList');
   const data = await dbGet('pending');
   if (!data || !Object.keys(data).length) {
@@ -758,8 +706,8 @@ async function renderPending() {
         <div class="pcard-detail">By: <b>${esc(sub.nickname)}</b>${sub.extra ? `<br>${esc(sub.extra)}` : ''}</div>
         ${sub.video ? `<a href="${esc(sub.video)}" target="_blank" rel="noopener">▶ Proof video</a>` : ''}
         <div class="pcard-actions">
-          <button class="btn btn-primary btn-sm" onclick="approvePending('${key}')">✓ Approve</button>
-          <button class="btn btn-outline btn-sm" onclick="dismissPending('${key}')">✕ Dismiss</button>
+          <button class="btn btn-primary btn-sm" onclick="approveRecord('${key}')">✓ Approve</button>
+          <button class="btn btn-outline btn-sm" onclick="rejectSubmission('${key}')">✕ Dismiss</button>
         </div>
       </div>`;
     } else {
@@ -769,45 +717,43 @@ async function renderPending() {
         <div class="pcard-detail">Creator: <b>${esc(sub.creator)||'—'}</b> · Verifier: <b>${esc(sub.verifier)}</b> · ID: <b>${esc(sub.id)||'—'}</b>${sub.notes ? `<br>${esc(sub.notes)}` : ''}</div>
         ${sub.video ? `<a href="${esc(sub.video)}" target="_blank" rel="noopener">▶ Verification video</a>` : ''}
         <div class="pcard-actions">
-          <button class="btn btn-outline btn-sm" onclick="dismissPending('${key}')">✕ Dismiss</button>
+          <button class="btn btn-outline btn-sm" onclick="rejectSubmission('${key}')">✕ Dismiss</button>
         </div>
       </div>`;
     }
   }).join('');
 }
 
-async function approvePending(key) {
+async function approveRecord(key) {
   const sub = await dbGet(`pending/${key}`);
   if (!sub || sub.type !== 'record') return;
   const lvl = levels.find(l => l.name.toLowerCase() === sub.level.toLowerCase());
-  if (!lvl) { toast('Level not found in list.', true); return; }
-  const rec = { nickname: sub.nickname, pct: parseInt(sub.pct)||100, video: sub.video||'', addedAt: Date.now() };
+  if (!lvl) { showToast('Level not found in list.', true); return; }
+  const rec = { nickname:sub.nickname, pct:parseInt(sub.pct)||100, video:sub.video||'', addedAt:Date.now() };
   const ref = await dbPush(`records/${lvl._key}`, rec);
   if (!records[lvl._key]) records[lvl._key] = {};
   records[lvl._key][ref.key] = rec;
   await dbRemove(`pending/${key}`);
-  if (curKey === lvl._key) showLevel(curIdx);
-  renderPending();
-  checkPendingBadge();
-  toast('Record approved!');
+  if (currentLevelKey === lvl._key) showLevel(currentLevelIdx);
+  renderPendingList();
+  updatePendingBadge();
+  buildLeaderboard();
+  showToast('Record approved!');
 }
 
-async function dismissPending(key) {
+async function rejectSubmission(key) {
   if (!confirm('Dismiss this submission?')) return;
   await dbRemove(`pending/${key}`);
-  renderPending();
-  checkPendingBadge();
-  toast('Dismissed.');
+  renderPendingList();
+  updatePendingBadge();
+  showToast('Dismissed.');
 }
 
-// ────────────────────────────────
-// PUBLIC SUBMIT
-// ────────────────────────────────
-function sTab(t) {
-  curSubTab = t;
-  document.querySelectorAll('#subOv .otab').forEach((el,i) => el.classList.toggle('active', ['rec','verif'][i]===t));
-  document.getElementById('sRec').style.display   = t==='rec'   ? 'block':'none';
-  document.getElementById('sVerif').style.display = t==='verif' ? 'block':'none';
+function submitTab(tab) {
+  currentSubmitTab = tab;
+  document.querySelectorAll('#subOv .otab').forEach((el,i) => el.classList.toggle('active', ['rec','verif'][i]===tab));
+  document.getElementById('sRec').style.display   = tab==='rec'   ? 'block':'none';
+  document.getElementById('sVerif').style.display = tab==='verif' ? 'block':'none';
 }
 
 function populateLevelSelect() {
@@ -817,21 +763,19 @@ function populateLevelSelect() {
     levels.map((l,i) => `<option value="${esc(l.name)}">#${i+1} ${esc(l.name)}</option>`).join('');
 }
 
-async function doSubmit() {
-  if (curSubTab === 'rec') {
+async function sendSubmission() {
+  if (currentSubmitTab === 'rec') {
     const level = document.getElementById('sLevel').value;
     const nick  = document.getElementById('sNick').value.trim();
     const pct   = document.getElementById('sPct').value;
     const video = document.getElementById('sVid').value.trim();
     const extra = document.getElementById('sExtra').value.trim();
-    if (!level) { msg('sMsg','Select a level.',true); return; }
-    if (!nick)  { msg('sMsg','Nickname required.',true); return; }
-    if (!pct)   { msg('sMsg','Completion % required.',true); return; }
-    if (!video) { msg('sMsg','Video proof required.',true); return; }
-
-    const sub = { type:'record', level, nickname:nick, pct, video, extra, submittedAt: Date.now() };
-    await dbPush('pending', sub);
-    await webhook({ username:'BDL Submissions', embeds:[{
+    if (!level) { showFormMsg('sMsg','Select a level.',true); return; }
+    if (!nick)  { showFormMsg('sMsg','Nickname required.',true); return; }
+    if (!pct)   { showFormMsg('sMsg','Completion % required.',true); return; }
+    if (!video) { showFormMsg('sMsg','Video proof required.',true); return; }
+    await dbPush('pending', { type:'record', level, nickname:nick, pct, video, extra, submittedAt:Date.now() });
+    await sendWebhook({ username:'BDL Submissions', embeds:[{
       title:'🎮 New Record Submission', color:0xc0392b,
       fields:[
         {name:'Level', value:level, inline:true},
@@ -842,28 +786,27 @@ async function doSubmit() {
       ],
       footer:{text:'BDL'}, timestamp:new Date().toISOString()
     }]});
-    msg('sMsg','Submitted! Admins will review your record.');
-    setTimeout(() => closeOv('subOv'), 2200);
-
+    showFormMsg('sMsg','Submitted! Admins will review your record.');
+    setTimeout(() => closeOverlay('subOv'), 2200);
   } else {
     const name  = document.getElementById('vName').value.trim();
     const verif = document.getElementById('vVerifier').value.trim();
     const video = document.getElementById('vVid').value.trim();
-    if (!name)  { msg('sMsg','Level name required.',true); return; }
-    if (!verif) { msg('sMsg','Verifier name required.',true); return; }
-    if (!video) { msg('sMsg','Verification video required.',true); return; }
-
+    if (!name)  { showFormMsg('sMsg','Level name required.',true); return; }
+    if (!verif) { showFormMsg('sMsg','Verifier name required.',true); return; }
+    if (!video) { showFormMsg('sMsg','Verification video required.',true); return; }
     const sub = {
       type:'verification', name, verifier:verif,
-      creator: document.getElementById('vCreator').value.trim(),
+      creator:   document.getElementById('vCreator').value.trim(),
       publisher: document.getElementById('vPub').value.trim(),
-      id: document.getElementById('vId').value.trim(),
-      video, showcase: document.getElementById('vShow').value.trim(),
-      notes: document.getElementById('vNotes').value.trim(),
+      id:        document.getElementById('vId').value.trim(),
+      video,
+      showcase:  document.getElementById('vShow').value.trim(),
+      notes:     document.getElementById('vNotes').value.trim(),
       submittedAt: Date.now()
     };
     await dbPush('pending', sub);
-    await webhook({ username:'BDL Submissions', embeds:[{
+    await sendWebhook({ username:'BDL Submissions', embeds:[{
       title:'🔬 Verification Submission', color:0xf39c12,
       fields:[
         {name:'Level', value:name, inline:true},
@@ -875,32 +818,118 @@ async function doSubmit() {
       ],
       footer:{text:'BDL'}, timestamp:new Date().toISOString()
     }]});
-    msg('sMsg','Verification submitted! Admins will review it.');
-    setTimeout(() => closeOv('subOv'), 2200);
+    showFormMsg('sMsg','Verification submitted! Admins will review it.');
+    setTimeout(() => closeOverlay('subOv'), 2200);
   }
 }
 
-// ────────────────────────────────
-// WEBHOOK
-// ────────────────────────────────
-async function webhook(payload) {
+async function sendWebhook(payload) {
   try { await fetch(WEBHOOK, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) }); }
-  catch(e) { console.warn('Webhook error:', e); }
+  catch(e) {}
 }
 
-// ────────────────────────────────
-// TOAST
-// ────────────────────────────────
-function toast(msg, err=false) {
+function buildLeaderboard() {
+  const playerTotals = {};
+
+  levels.forEach((lvl, i) => {
+    const pts = calcPoints(i + 1);
+    const recs = records[lvl._key]
+      ? Object.values(records[lvl._key])
+      : [];
+    recs.forEach(rec => {
+      const name = rec.nickname;
+      if (!playerTotals[name]) playerTotals[name] = { total:0, verified:[], completed:[] };
+      const contribution = pts * (rec.pct / 100);
+      playerTotals[name].total += contribution;
+      if (rec.pct === 100) {
+        playerTotals[name].completed.push({ name:lvl.name, pos:i+1, pts, _key:lvl._key });
+      } else {
+        playerTotals[name].verified.push({ name:lvl.name, pos:i+1, pts: Math.round(contribution*1000)/1000, _key:lvl._key });
+      }
+    });
+  });
+
+  const ranked = Object.entries(playerTotals)
+    .map(([name, data]) => ({ name, total: Math.round(data.total * 1000) / 1000, ...data }))
+    .sort((a,b) => b.total - a.total);
+
+  const ul = document.getElementById('lbSidebarList');
+  ul.innerHTML = '';
+  ranked.forEach((player, i) => {
+    const li = document.createElement('li');
+    li.className = 'lb-row' + (player.name === currentLbPlayer ? ' active' : '');
+    li.onclick = () => showLeaderboardPlayer(player, i + 1, ranked);
+    li.innerHTML = `
+      <span class="lb-pos">#${i+1}</span>
+      <span class="lb-pts">${player.total.toFixed(3)}</span>
+      <span class="lb-player">${esc(player.name)}</span>
+    `;
+    ul.appendChild(li);
+  });
+
+  if (ranked.length && !currentLbPlayer) {
+    showLeaderboardPlayer(ranked[0], 1, ranked);
+  } else if (currentLbPlayer) {
+    const idx = ranked.findIndex(p => p.name === currentLbPlayer);
+    if (idx >= 0) showLeaderboardPlayer(ranked[idx], idx + 1, ranked);
+  }
+
+  if (!ranked.length) {
+    document.getElementById('lbMain').innerHTML = `
+      <div class="empty-state">
+        <div class="empty-big">—</div>
+        <p>No records have been added yet.</p>
+      </div>`;
+  }
+}
+
+function showLeaderboardPlayer(player, rank, allRanked) {
+  currentLbPlayer = player.name;
+
+  document.querySelectorAll('.lb-row').forEach((el, i) => {
+    el.classList.toggle('active', allRanked[i]?.name === player.name);
+  });
+
+  const verifiedRows = player.verified.length
+    ? player.verified.map(l => `
+        <div class="lb-level-row" onclick="jumpToLevel('${esc(l._key)}')">
+          <span class="lb-level-pos">#${l.pos}</span>
+          <span class="lb-level-name">${esc(l.name)}</span>
+          <span class="lb-level-pts">+${l.pts}</span>
+        </div>`).join('')
+    : `<div class="lb-empty">None</div>`;
+
+  const completedRows = player.completed.length
+    ? player.completed.map(l => `
+        <div class="lb-level-row" onclick="jumpToLevel('${esc(l._key)}')">
+          <span class="lb-level-pos">#${l.pos}</span>
+          <span class="lb-level-name">${esc(l.name)}</span>
+          <span class="lb-level-pts">+${calcPoints(l.pos)}</span>
+        </div>`).join('')
+    : `<div class="lb-empty">None</div>`;
+
+  document.getElementById('lbMain').innerHTML = `
+    <div class="lb-hero-rank"><span>#${rank}</span> ${esc(player.name)}</div>
+    <div class="lb-hero-pts">${player.total.toFixed(3)}</div>
+    ${player.verified.length ? `<div class="lb-section-title">Verified (${player.verified.length})</div>${verifiedRows}` : ''}
+    ${player.completed.length ? `<div class="lb-section-title">Completed (${player.completed.length})</div>${completedRows}` : ''}
+  `;
+}
+
+function jumpToLevel(key) {
+  const idx = levels.findIndex(l => l._key === key);
+  if (idx < 0) return;
+  showPage('list');
+  showLevel(idx);
+}
+
+function showToast(message, isError=false) {
   const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.className = 'toast on' + (err?' err':'');
+  el.textContent = message;
+  el.className = 'toast on' + (isError?' err':'');
   setTimeout(() => el.classList.remove('on'), 3200);
 }
 
-// ────────────────────────────────
-// BOOT
-// ────────────────────────────────
 (async () => {
   checkAuth();
   await loadAll();
