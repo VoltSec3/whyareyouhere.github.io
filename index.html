@@ -1,456 +1,910 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>voltsec</title>
-<link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Buffed Demon List</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+
+<!-- Firebase compat (no ES module issues) -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --bg: #0e0c14;
-  --surface: #16121f;
-  --surface2: #1e1829;
-  --border: rgba(148, 130, 210, 0.15);
-  --border-hover: rgba(148, 130, 210, 0.35);
-  --purple: #9b87d4;
-  --purple-dim: #6b57a8;
-  --purple-bright: #c4b4f0;
-  --purple-faint: rgba(155, 135, 212, 0.08);
-  --text: #e8e0f4;
-  --text-muted: #8b7fb0;
-  --text-dim: #5a5075;
-  --font-serif: 'Libre Baskerville', Georgia, serif;
-  --font-mono: 'DM Mono', monospace;
+  --bg:      #1a0a0a;
+  --nav:     #2a0c0c;
+  --surface: #1e1212;
+  --border:  #3a1818;
+  --accent:  #c0392b;
+  --accent2: #e74c3c;
+  --gold:    #f39c12;
+  --text:    #f0e8e8;
+  --muted:   #9a7070;
+  --dim:     #5a3535;
 }
 
-html, body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: var(--font-serif);
-  min-height: 100vh;
-  overflow-x: hidden;
-}
+body { background: var(--bg); color: var(--text); font-family: 'Rajdhani', sans-serif; min-height: 100vh; overflow-x: hidden; }
 
-#grid-canvas {
-  position: fixed;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  z-index: 0;
+/* ── NAV ── */
+nav {
+  background: var(--nav);
+  border-bottom: 2px solid var(--accent);
+  padding: 0 1.5rem;
+  display: flex; align-items: center; height: 48px; gap: 1.5rem;
+  position: sticky; top: 0; z-index: 100;
+  box-shadow: 0 2px 16px rgba(192,57,43,0.35);
 }
+.nav-logo { font-size: 1.4rem; font-weight: 700; color: var(--text); letter-spacing: 2px; cursor: default; }
+.nav-logo span { color: var(--accent); }
+.nav-links { display: flex; list-style: none; }
+.nav-links a { color: var(--muted); text-decoration: none; font-size: 0.85rem; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; padding: 0 0.9rem; height: 48px; display: flex; align-items: center; border-bottom: 2px solid transparent; transition: all 0.2s; margin-bottom: -2px; }
+.nav-links a:hover { color: var(--text); }
+.nav-links a.active { color: var(--text); border-bottom-color: var(--accent); }
+.nav-right { margin-left: auto; display: flex; align-items: center; gap: 0.5rem; }
+.nav-version { font-size: 0.65rem; color: var(--dim); letter-spacing: 1px; font-family: 'Share Tech Mono', monospace; }
 
-.page {
-  position: relative;
-  z-index: 1;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 60px 24px 80px;
-}
+/* ── BUTTONS ── */
+.btn { padding: 0.35rem 1rem; border-radius: 2px; font-family: 'Rajdhani', sans-serif; font-weight: 700; font-size: 0.8rem; letter-spacing: 1px; text-transform: uppercase; cursor: pointer; transition: all 0.18s; border: 1px solid transparent; }
+.btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+.btn-primary:hover { background: var(--accent2); border-color: var(--accent2); }
+.btn-outline { background: transparent; color: var(--text); border-color: var(--border); }
+.btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+.btn-sm { padding: 0.22rem 0.7rem; font-size: 0.72rem; }
+.btn-ghost { background: transparent; border: none; color: var(--muted); font-family: 'Rajdhani',sans-serif; font-weight: 600; font-size: 0.8rem; letter-spacing: 1px; text-transform: uppercase; cursor: pointer; padding: 0.35rem 0.7rem; }
+.btn-ghost:hover { color: var(--text); }
 
-.header {
-  opacity: 0;
-  animation: fadeUp 0.7s ease forwards 0.5s;
-  text-align: center;
-  margin-bottom: 72px;
-}
-.header-wordmark {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.42em;
-  text-transform: uppercase;
-  color: var(--text-dim);
-  margin-bottom: 16px;
-}
-.header-title {
-  font-family: var(--font-serif);
-  font-size: clamp(40px, 8vw, 72px);
-  font-style: italic;
-  font-weight: 400;
-  color: var(--purple-bright);
-  letter-spacing: 0.06em;
-  line-height: 1;
-  text-shadow: 0 0 80px rgba(155, 135, 212, 0.18);
-  margin-bottom: 18px;
-}
-.header-sub {
-  font-family: var(--font-serif);
-  font-size: 14px;
-  font-style: italic;
-  color: var(--text-muted);
-  letter-spacing: 0.04em;
-}
+/* ── LAYOUT ── */
+.app { display: flex; min-height: calc(100vh - 48px); }
 
-.cards {
-  display: flex;
-  gap: 24px;
-  width: 100%;
-  max-width: 860px;
-  flex-wrap: wrap;
-  justify-content: center;
-}
+/* ── SIDEBAR ── */
+.sidebar { width: 260px; min-width: 260px; background: var(--surface); border-right: 1px solid var(--border); overflow-y: auto; height: calc(100vh - 48px); position: sticky; top: 48px; }
+.sidebar::-webkit-scrollbar { width: 4px; }
+.sidebar::-webkit-scrollbar-thumb { background: var(--border); }
+.sidebar-list { list-style: none; }
+.sidebar-item { display: flex; align-items: center; gap: 0.6rem; padding: 0.55rem 0.85rem; border-bottom: 1px solid #1a0e0e; cursor: pointer; transition: background 0.12s; border-left: 3px solid transparent; }
+.sidebar-item:hover { background: #220f0f; }
+.sidebar-item.active { background: #280f0f; border-left-color: var(--accent); }
+.s-rank { font-family: 'Share Tech Mono', monospace; font-size: 0.7rem; color: var(--dim); min-width: 26px; }
+.sidebar-item.active .s-rank { color: var(--accent); }
+.s-name { font-size: 0.85rem; font-weight: 600; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sidebar-item.active .s-name { color: var(--text); }
 
-.card {
-  position: relative;
-  flex: 1 1 360px;
-  min-height: 360px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  overflow: hidden;
-  cursor: pointer;
-  text-decoration: none;
-  display: flex;
-  flex-direction: column;
-  opacity: 0;
-  transform: translateY(24px);
-  transition:
-    border-color 0.35s ease,
-    box-shadow 0.35s ease,
-    transform 0.35s ease;
-}
-.card:nth-child(1) { animation: fadeUp 0.7s ease forwards 0.75s; }
-.card:nth-child(2) { animation: fadeUp 0.7s ease forwards 0.95s; }
+/* ── MAIN ── */
+.main { flex: 1; padding: 2rem 2.5rem; min-width: 0; }
 
-.card:hover {
-  border-color: var(--border-hover);
-  box-shadow: 0 0 60px rgba(155, 135, 212, 0.05), 0 20px 48px rgba(0,0,0,0.1);
-  transform: translateY(-4px);
-}
+/* level title */
+.lv-title { font-size: 2.5rem; font-weight: 700; color: var(--text); letter-spacing: 1px; margin-bottom: 0.6rem; line-height: 1.1; }
 
-.card::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(135deg, rgba(155,135,212,0.04) 0%, transparent 40%);
-  opacity: 0;
-  transition: opacity 0.35s ease;
-  z-index: 1;
-  pointer-events: none;
-}
-.card:hover::before { opacity: 1; }
+/* meta */
+.meta-row { display: flex; gap: 2rem; margin-bottom: 1.2rem; }
+.meta-item { display: flex; flex-direction: column; gap: 0.1rem; }
+.meta-lbl { font-size: 0.65rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--dim); }
+.meta-val { font-size: 0.88rem; font-weight: 600; color: var(--muted); }
 
-.card::after {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(155,135,212,0.5), transparent);
-  opacity: 0;
-  transition: opacity 0.35s ease;
-}
-.card:hover::after { opacity: 1; }
+/* tabs */
+.vtabs { display: flex; border-bottom: 1px solid var(--border); margin-bottom: 0; }
+.vtab { background: none; border: none; border-bottom: 2px solid transparent; margin-bottom: -1px; padding: 0.45rem 1rem; font-family: 'Rajdhani',sans-serif; font-weight: 600; font-size: 0.82rem; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); cursor: pointer; transition: all 0.18s; }
+.vtab.active { color: var(--text); border-bottom-color: var(--accent); }
 
-.card-visual {
-  position: relative;
-  height: 200px;
-  overflow: hidden;
-  background: var(--surface2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
+/* video */
+.video-box { width: 100%; max-width: 560px; aspect-ratio: 16/9; background: #000; border: 1px solid var(--border); overflow: hidden; }
+.video-box iframe { width: 100%; height: 100%; border: none; }
+.video-none { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: var(--dim); font-size: 0.75rem; letter-spacing: 1px; background: #0e0808; }
 
-.card-img {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center;
-  opacity: 0.75;
-  transition: opacity 0.35s ease, transform 0.5s ease;
-}
-.card:hover .card-img {
-  opacity: 1;
-  transform: scale(1.04);
-}
+/* stats bar */
+.stats-bar { display: flex; gap: 0; margin: 1rem 0; max-width: 560px; border: 1px solid var(--border); }
+.stat-cell { flex: 1; padding: 0.75rem 1rem; border-right: 1px solid var(--border); display: flex; flex-direction: column; gap: 0.15rem; }
+.stat-cell:last-child { border-right: none; }
+.stat-lbl { font-size: 0.6rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--dim); }
+.stat-val { font-family: 'Share Tech Mono', monospace; font-size: 0.9rem; color: var(--muted); }
+.stat-val.gold { color: var(--gold); }
 
-.card-body {
-  padding: 24px 28px 28px;
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  position: relative;
-  z-index: 2;
-}
-.card-tag {
-  font-family: var(--font-mono);
-  font-size: 9px;
-  letter-spacing: 0.3em;
-  text-transform: uppercase;
-  color: var(--purple-dim);
-  margin-bottom: 10px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.card-tag::before {
-  content: '';
-  display: block;
-  width: 20px;
-  height: 1px;
-  background: var(--purple-dim);
-}
-.card-name {
-  font-family: var(--font-serif);
-  font-size: 26px;
-  font-style: italic;
-  font-weight: 400;
-  color: var(--purple-bright);
-  letter-spacing: 0.04em;
-  margin-bottom: 10px;
-  line-height: 1.2;
-}
-.card-desc {
-  font-family: var(--font-serif);
-  font-size: 13px;
-  font-style: italic;
-  color: var(--text-muted);
-  line-height: 1.75;
-  flex: 1;
-}
-.card-arrow {
-  margin-top: 20px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  color: var(--text-dim);
-  transition: color 0.25s ease, gap 0.25s ease;
-}
-.card:hover .card-arrow {
-  color: var(--purple-bright);
-  gap: 12px;
-}
-.card-arrow-line {
-  width: 24px;
-  height: 1px;
-  background: currentColor;
-  transition: width 0.3s ease;
-}
-.card:hover .card-arrow-line { width: 36px; }
+/* records */
+.rec-section { max-width: 560px; margin-top: 1.2rem; }
+.rec-hdr { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); padding-bottom: 0.4rem; margin-bottom: 0.5rem; }
+.rec-hdr-lbl { font-size: 0.75rem; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--dim); }
+.rec-qualify { font-size: 0.75rem; color: var(--dim); margin-bottom: 0.5rem; }
+.rec-row { display: flex; align-items: center; gap: 1rem; padding: 0.4rem 0; border-bottom: 1px solid #1a0e0e; }
+.rec-pct { font-family: 'Share Tech Mono', monospace; font-size: 0.82rem; color: var(--accent2); min-width: 38px; }
+.rec-pct.full { color: var(--gold); }
+.rec-name { font-size: 0.88rem; font-weight: 600; flex: 1; color: var(--text); }
+.rec-vid { font-size: 0.7rem; color: var(--accent); text-decoration: none; letter-spacing: 0.5px; }
+.rec-vid:hover { color: var(--accent2); }
+.rec-del { background: none; border: none; color: var(--dim); cursor: pointer; font-size: 0.8rem; padding: 0.1rem 0.3rem; transition: color 0.15s; }
+.rec-del:hover { color: var(--accent); }
+.rec-empty { font-size: 0.78rem; color: var(--dim); padding: 0.5rem 0; }
 
-.footer {
-  margin-top: 64px;
-  opacity: 0;
-  animation: fadeUp 0.7s ease forwards 1.2s;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-}
-.footer-divider {
-  width: 1px;
-  height: 32px;
-  background: linear-gradient(to bottom, var(--border), transparent);
-}
-.footer-text {
-  font-family: var(--font-mono);
-  font-size: 9px;
-  letter-spacing: 0.3em;
-  text-transform: uppercase;
-  color: var(--text-dim);
-}
+/* empty / loading */
+.empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 60vh; gap: 1rem; text-align: center; }
+.empty-big { font-size: 4rem; font-weight: 700; color: #2a1010; letter-spacing: 4px; }
+.empty-state p { font-size: 0.85rem; color: var(--dim); max-width: 260px; line-height: 1.7; }
+.loading { display: flex; align-items: center; justify-content: center; height: 60vh; color: var(--dim); font-size: 0.8rem; letter-spacing: 2px; gap: 0.6rem; }
+.spin { width: 16px; height: 16px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
 
-@keyframes fadeUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
+/* ── OVERLAYS ── */
+.ov { display: none; position: fixed; inset: 0; background: rgba(5,2,2,0.85); z-index: 200; align-items: center; justify-content: center; padding: 1rem; }
+.ov.open { display: flex; }
+.panel { background: var(--surface); border: 1px solid var(--border); border-top: 2px solid var(--accent); border-radius: 2px; width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto; animation: pIn 0.22s ease; }
+@keyframes pIn { from { opacity:0; transform:translateY(-12px); } to { opacity:1; transform:translateY(0); } }
+.ph { padding: 0.9rem 1.2rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.ph h2 { font-size: 0.75rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--accent); }
+.xbtn { background: none; border: 1px solid var(--border); color: var(--muted); width: 26px; height: 26px; border-radius: 2px; cursor: pointer; font-size: 0.9rem; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+.xbtn:hover { border-color: var(--accent); color: var(--accent); }
+.pb { padding: 1.2rem; }
+.pf { padding: 0.75rem 1.2rem; border-top: 1px solid var(--border); display: flex; gap: 0.5rem; justify-content: flex-end; align-items: center; }
+.pmsg { font-size: 0.72rem; font-weight: 600; color: #6ee7b7; letter-spacing: 0.5px; margin-right: auto; display: none; }
+.pmsg.err { color: #f87171; }
+.pmsg.on { display: block; }
 
-.particle {
-  position: fixed;
-  width: 2px;
-  height: 2px;
-  background: var(--purple-bright);
-  border-radius: 50%;
-  pointer-events: none;
-  z-index: 0;
-  opacity: 0;
-}
+/* tabs inside overlay */
+.otabs { display: flex; gap: 0.35rem; margin-bottom: 1rem; }
+.otab { padding: 0.28rem 0.8rem; border: 1px solid var(--border); background: none; color: var(--muted); font-family: 'Rajdhani',sans-serif; font-weight: 700; font-size: 0.75rem; letter-spacing: 1px; text-transform: uppercase; cursor: pointer; border-radius: 2px; transition: all 0.15s; }
+.otab.active { background: var(--accent); border-color: var(--accent); color: #fff; }
 
-.header {
-  position: relative;
-  overflow: visible;
+/* forms */
+.fg { margin-bottom: 0.85rem; }
+.fg label { display: block; font-size: 0.62rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--dim); margin-bottom: 0.3rem; }
+.fg input, .fg textarea, .fg select {
+  width: 100%; background: #0e0808; border: 1px solid var(--border);
+  color: var(--text); padding: 0.48rem 0.7rem; font-family: 'Rajdhani',sans-serif;
+  font-size: 0.88rem; border-radius: 2px; outline: none; transition: border-color 0.18s;
 }
-.header-moon {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 340px;
-  pointer-events: none;
-  opacity: 0.7;
-  filter: saturate(0) sepia(1) hue-rotate(220deg) saturate(3) brightness(0.65);
-  mix-blend-mode: screen;
-  animation: moonFloat 9s ease-in-out infinite;
-  z-index: 0;
-}
-.header-wordmark,
-.header-title,
-.header-sub {
-  position: relative;
-  z-index: 1;
-}
-@keyframes moonFloat {
-  0%, 100% { transform: translate(-50%, -50%) translateY(0px); }
-  40%       { transform: translate(-50%, -50%) translateY(-7px); }
-  70%       { transform: translate(-50%, -50%) translateY(4px); }
-}
+.fg input:focus, .fg textarea:focus, .fg select:focus { border-color: var(--accent); }
+.fg input::placeholder, .fg textarea::placeholder { color: var(--dim); }
+.fg textarea { resize: vertical; min-height: 70px; }
+.fg select option { background: #1a0a0a; }
+.frow { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+.fhint { font-size: 0.65rem; color: var(--dim); margin-top: 0.28rem; letter-spacing: 0.5px; line-height: 1.6; }
+.pts-prev { background: #0e0808; border: 1px solid var(--border); padding: 0.48rem 0.7rem; display: flex; justify-content: space-between; align-items: center; margin-top: 0.3rem; border-radius: 2px; }
+.pts-prev span { font-size: 0.62rem; color: var(--dim); letter-spacing: 2px; text-transform: uppercase; }
+.pts-prev .pts { color: var(--gold); font-family: 'Share Tech Mono',monospace; font-size: 0.9rem; }
 
-@media (max-width: 600px) {
-  .cards { gap: 16px; }
-  .card { min-height: 300px; flex: 1 1 100%; }
-  .card-visual { height: 160px; }
-  .header { margin-bottom: 48px; }
-}
+/* manage table */
+.mtbl { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+.mtbl th { text-align: left; padding: 0.4rem 0.6rem; font-size: 0.6rem; letter-spacing: 2px; text-transform: uppercase; color: var(--dim); border-bottom: 1px solid var(--border); font-weight: 700; }
+.mtbl td { padding: 0.5rem 0.6rem; border-bottom: 1px solid #1a0e0e; vertical-align: middle; }
+.mtbl tr:hover td { background: #1a0d0d; }
+.mtbl .rc { color: var(--dim); font-size: 0.7rem; }
+.mtbl .nc { color: var(--muted); font-weight: 600; }
+.mtbl .pc { color: var(--gold); font-family:'Share Tech Mono',monospace; font-size:0.78rem; }
+.abx { display: flex; gap: 0.3rem; }
+.ibtn { background: none; border: 1px solid var(--border); color: var(--dim); width: 24px; height: 24px; border-radius: 2px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; transition: all 0.15s; }
+.ibtn:hover { border-color: var(--accent); color: var(--accent); }
+.ibtn.del:hover { border-color: #7f1d1d; color: #f87171; }
+
+/* pending card */
+.pcard { background: #0e0808; border: 1px solid var(--border); border-radius: 2px; padding: 0.85rem 1rem; margin-bottom: 0.6rem; }
+.pcard-type { font-size: 0.6rem; letter-spacing: 2px; text-transform: uppercase; color: var(--accent); margin-bottom: 0.4rem; }
+.pcard-title { font-size: 0.95rem; font-weight: 700; color: var(--text); margin-bottom: 0.3rem; }
+.pcard-detail { font-size: 0.78rem; color: var(--muted); line-height: 1.7; margin-bottom: 0.5rem; }
+.pcard a { color: var(--accent); text-decoration: none; font-size: 0.72rem; }
+.pcard-actions { display: flex; gap: 0.4rem; margin-top: 0.5rem; }
+
+/* pending dot */
+.pdot { display: inline-block; width: 6px; height: 6px; background: var(--gold); border-radius: 50%; margin-left: 4px; vertical-align: middle; animation: pulse 1.4s ease infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+/* toast */
+.toast { position: fixed; bottom: 1.5rem; right: 1.5rem; background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); padding: 0.65rem 1rem; font-size: 0.78rem; font-weight: 600; letter-spacing: 0.5px; z-index: 999; opacity: 0; transform: translateY(6px); transition: all 0.25s; pointer-events: none; max-width: 260px; color: var(--muted); border-radius: 2px; }
+.toast.on { opacity: 1; transform: translateY(0); }
+
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-thumb { background: var(--border); }
 </style>
 </head>
 <body>
 
-<canvas id="grid-canvas"></canvas>
-
-<div id="particles"></div>
-
-<div class="page">
-
-  <header class="header">
-    <img src="./images/somniatextbg.webp" alt="" draggable="false" class="header-moon" />
-    <div class="header-wordmark">voltsec.xyz</div>
-    <div class="header-title">Projects</div>
-    <div class="header-sub">small things made with love</div>
-  </header>
-
-  <div class="cards">
-
-    <a class="card" href="https://voltsec.xyz/somnia">
-      <div class="card-visual">
-        <img class="card-img" src="./images/card1.png" alt="" draggable="false" />
-      </div>
-      <div class="card-body">
-        <div class="card-tag">dream journal</div>
-        <div class="card-name">Somnia</div>
-        <div class="card-desc">Record, tag, and reflect on your dreams. Analytics, lucidity tracking, and privacy-first. No sign-up required.</div>
-        <div class="card-arrow">
-          <span class="card-arrow-line"></span>
-          Open
-        </div>
-      </div>
-    </a>
-
-    <a class="card" href="https://voltsec.xyz/triad">
-      <div class="card-visual">
-        <img class="card-img" src="./images/card2.png" alt="" draggable="false" />
-      </div>
-      <div class="card-body">
-        <div class="card-tag">card game</div>
-        <div class="card-name">Triple Triad</div>
-        <div class="card-desc">A recreation of the game Triple Triad from Final Fantasy VIII. Similar Ruleset, Made in a couple hours.</div>
-        <div class="card-arrow">
-          <span class="card-arrow-line"></span>
-          Play
-        </div>
-      </div>
-    </a>
-
+<!-- ── NAV ── -->
+<nav>
+  <div class="nav-logo">BDL <span class="nav-version">v1.0.0</span></div>
+  <ul class="nav-links">
+    <li><a href="#" class="active">List</a></li>
+    <li><a href="#">Leaderboard</a></li>
+  </ul>
+  <div class="nav-right" id="navRight">
+    <button class="btn btn-outline btn-sm" onclick="openOv('subOv')">Submit Record</button>
   </div>
+</nav>
 
-  <footer class="footer">
-    <div class="footer-divider"></div>
-    <div class="footer-text">voltsec · made with love <3</div>
-  </footer>
-
+<!-- ── APP ── -->
+<div class="app">
+  <aside class="sidebar"><ul class="sidebar-list" id="sidebarList"></ul></aside>
+  <main class="main" id="mainArea">
+    <div class="loading" id="loadEl"><div class="spin"></div>Loading...</div>
+    <div class="empty-state" id="emptyEl" style="display:none">
+      <div class="empty-big">BDL</div>
+      <p>No levels yet. Admins can add levels via the Admin Panel.</p>
+    </div>
+    <div id="detail" style="display:none"></div>
+  </main>
 </div>
 
+<!-- ════════════════════════════════
+     ADMIN PANEL
+════════════════════════════════ -->
+<div class="ov" id="adminOv">
+  <div class="panel" style="max-width:600px">
+    <div class="ph"><h2>Admin Panel</h2><button class="xbtn" onclick="closeOv('adminOv')">✕</button></div>
+    <div class="pb">
+      <div class="otabs">
+        <button class="otab active" onclick="aTab('add')">+ New Level</button>
+        <button class="otab" onclick="aTab('manage')">Manage</button>
+        <button class="otab" onclick="aTab('pending')" id="pendingTab">Pending</button>
+      </div>
+
+      <!-- ADD -->
+      <div id="aAdd">
+        <div class="fg"><label>Level Name</label><input id="fn" placeholder="e.g. Buffed Bloodbath"></div>
+        <div class="frow">
+          <div class="fg"><label>Creator</label><input id="fc" placeholder="Username"></div>
+          <div class="fg"><label>Verifier</label><input id="fv" placeholder="Username"></div>
+        </div>
+        <div class="fg"><label>Publisher</label><input id="fp" placeholder="Username"></div>
+        <div class="fg"><label>Level ID</label><input id="fi" placeholder="e.g. 116795677"></div>
+        <div class="fg"><label>Password</label><input id="fpw" placeholder="e.g. Free to Copy"></div>
+        <div class="fg"><label>Verification Video (YouTube)</label><input id="fvv" placeholder="https://youtu.be/..."></div>
+        <div class="fg"><label>Showcase Video (optional)</label><input id="fsv" placeholder="https://youtu.be/..."></div>
+        <div class="fg">
+          <label>Min % to Qualify for Records</label>
+          <input id="fmq" type="number" placeholder="55" min="1" max="100">
+        </div>
+        <div class="fg">
+          <label>Position in List</label>
+          <input id="fpos" type="number" placeholder="Leave blank = append" min="1" oninput="updPts()">
+          <div class="fhint">Leave blank to append. Other levels shift down.</div>
+        </div>
+        <div class="pts-prev"><span>Completion Points</span><span class="pts" id="ptsPreview">—</span></div>
+      </div>
+
+      <!-- MANAGE -->
+      <div id="aManage" style="display:none">
+        <table class="mtbl"><thead><tr><th>#</th><th>Name</th><th>ID</th><th>Pts</th><th></th></tr></thead><tbody id="mBody"></tbody></table>
+        <div id="mEmpty" style="display:none;text-align:center;padding:1.5rem;color:var(--dim);font-size:0.78rem">No levels yet.</div>
+      </div>
+
+      <!-- PENDING -->
+      <div id="aPending" style="display:none">
+        <div id="pendingList"><div style="color:var(--dim);font-size:0.78rem;padding:0.5rem 0">Loading...</div></div>
+      </div>
+    </div>
+    <div class="pf" id="adminFt">
+      <span class="pmsg" id="aMsg"></span>
+      <button class="btn btn-ghost" onclick="closeOv('adminOv')">Cancel</button>
+      <button class="btn btn-primary" onclick="doAddLevel()">Add Level</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════
+     ADD RECORD (admin)
+════════════════════════════════ -->
+<div class="ov" id="recOv">
+  <div class="panel" style="max-width:420px">
+    <div class="ph"><h2>Add Record — <span id="recLvlName" style="color:var(--muted);font-weight:400"></span></h2><button class="xbtn" onclick="closeOv('recOv')">✕</button></div>
+    <div class="pb">
+      <div class="fg"><label>Player Nickname</label><input id="rNick" placeholder="e.g. PlayerXYZ"></div>
+      <div class="fg"><label>Completion %</label><input id="rPct" type="number" placeholder="100" min="1" max="100"></div>
+      <div class="fg"><label>Video Proof (YouTube)</label><input id="rVid" placeholder="https://youtu.be/..."></div>
+    </div>
+    <div class="pf">
+      <span class="pmsg" id="rMsg"></span>
+      <button class="btn btn-ghost" onclick="closeOv('recOv')">Cancel</button>
+      <button class="btn btn-primary" onclick="doAddRecord()">Add Record</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════
+     PUBLIC SUBMIT
+════════════════════════════════ -->
+<div class="ov" id="subOv">
+  <div class="panel" style="max-width:580px">
+    <div class="ph"><h2>Submit to BDL</h2><button class="xbtn" onclick="closeOv('subOv')">✕</button></div>
+    <div class="pb">
+      <div class="otabs">
+        <button class="otab active" onclick="sTab('rec')">Record</button>
+        <button class="otab" onclick="sTab('verif')">Verification</button>
+      </div>
+
+      <!-- RECORD -->
+      <div id="sRec">
+        <p style="font-size:0.78rem;color:var(--muted);margin-bottom:1rem;line-height:1.7">Completed a level on the list? Submit your record for admin review.</p>
+        <div class="fg"><label>Level</label><select id="sLevel"><option value="">— Select a level —</option></select></div>
+        <div class="fg"><label>Your Nickname</label><input id="sNick" placeholder="Shown on the leaderboard"></div>
+        <div class="fg"><label>Completion %</label><input id="sPct" type="number" placeholder="100" min="1" max="100"></div>
+        <div class="fg"><label>Video Proof (YouTube)</label><input id="sVid" placeholder="https://youtu.be/..."></div>
+        <div class="fg"><label>Extra Info (optional)</label><textarea id="sExtra" placeholder="Device used, anything relevant..."></textarea></div>
+      </div>
+
+      <!-- VERIF -->
+      <div id="sVerif" style="display:none">
+        <p style="font-size:0.78rem;color:var(--muted);margin-bottom:1rem;line-height:1.7">Think a level should be on the BDL? Submit your verification.</p>
+        <div class="fg"><label>Level Name</label><input id="vName" placeholder="e.g. Buffed Bloodbath"></div>
+        <div class="frow">
+          <div class="fg"><label>Creator</label><input id="vCreator" placeholder="Username"></div>
+          <div class="fg"><label>Your Name (Verifier)</label><input id="vVerifier" placeholder="Your GD name"></div>
+        </div>
+        <div class="fg"><label>Publisher</label><input id="vPub" placeholder="Username"></div>
+        <div class="fg"><label>Level ID</label><input id="vId" placeholder="e.g. 116795677"></div>
+        <div class="fg"><label>Verification Video (YouTube)</label><input id="vVid" placeholder="https://youtu.be/..."></div>
+        <div class="fg"><label>Showcase Video (optional)</label><input id="vShow" placeholder="https://youtu.be/..."></div>
+        <div class="fg"><label>Notes for Admins (optional)</label><textarea id="vNotes" placeholder="Why should this be on the list?"></textarea></div>
+      </div>
+    </div>
+    <div class="pf">
+      <span class="pmsg" id="sMsg"></span>
+      <button class="btn btn-ghost" onclick="closeOv('subOv')">Cancel</button>
+      <button class="btn btn-primary" onclick="doSubmit()">Send to Admins</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- ════════════════════════════════
+     FIREBASE CONFIG — replace these values
+════════════════════════════════ -->
 <script>
-(function() {
-  const canvas = document.getElementById('grid-canvas');
-  const ctx = canvas.getContext('2d');
-  let W, H, t = 0, offX = 0, offY = 0, tOX = 0, tOY = 0;
+const FB_CONFIG = {
+    apiKey: "AIzaSyD-SIg70e0MDgDBqLSZv_uG6lpO682K7ds",
+    authDomain: "bdl-list.firebaseapp.com",
+    databaseURL: "https://bdl-list-default-rtdb.firebaseio.com",
+    projectId: "bdl-list",
+    storageBucket: "bdl-list.firebasestorage.app",
+    messagingSenderId: "744133456079",
+    appId: "1:744133456079:web:53f7efc59b8b039fff47ba"
+};
 
-  function resize() {
-    W = canvas.width = window.innerWidth;
-    H = canvas.height = window.innerHeight;
+const WEBHOOK = "https://discord.com/api/webhooks/1487541929351581846/7f2IOONC8OZNtjF9q1t1Y8PhRtUWT-_jyKD2XWzYNDXa0hyPHwNL5Py5iIMNnQfw0ceY";
+
+// ────────────────────────────────
+// INIT FIREBASE
+// ────────────────────────────────
+firebase.initializeApp(FB_CONFIG);
+const DB = firebase.database();
+
+function dbRef(path) { return DB.ref(path); }
+async function dbGet(path) { return (await dbRef(path).get()).val(); }
+async function dbSet(path, val) { return dbRef(path).set(val); }
+async function dbPush(path, val) { return dbRef(path).push(val); }
+async function dbRemove(path) { return dbRef(path).remove(); }
+async function dbUpdate(obj) { return DB.ref('/').update(obj); }
+
+let isAdmin = false;
+
+function checkAuth() {
+  const KEY = 'bdl_uid';
+  let id = localStorage.getItem(KEY);
+  if (!id) {
+    const c = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    id = Array.from({length:30},()=>c[Math.floor(Math.random()*c.length)]).join('');
+    localStorage.setItem(KEY, id);
   }
-  resize();
-  window.addEventListener('resize', resize);
+  isAdmin = (id === '67istufflikeohiomangos');
+  buildNav();
+}
 
-  window.addEventListener('mousemove', e => {
-    tOX = (e.clientX / W - 0.5) * 24;
-    tOY = (e.clientY / H - 0.5) * 16;
-  });
-
-  function draw() {
-    requestAnimationFrame(draw);
-    t += 0.003;
-    offX += (tOX - offX) * 0.05;
-    offY += (tOY - offY) * 0.05;
-    ctx.clearRect(0, 0, W, H);
-    const CELL = 52;
-    const driftX = (t * 10) % CELL;
-    const driftY = (t * 7) % CELL;
-    const baseX = -CELL + offX * 0.5 - driftX;
-    const baseY = -CELL + offY * 0.5 - driftY;
-    const cols = Math.ceil(W / CELL) + 3;
-    const rows = Math.ceil(H / CELL) + 3;
-    ctx.strokeStyle = 'rgba(155, 135, 212, 0.14)';
-    ctx.lineWidth = 0.5;
-    ctx.beginPath();
-    for (let c = 0; c <= cols; c++) {
-      const x = Math.round(baseX + c * CELL) + 0.5;
-      ctx.moveTo(x, 0); ctx.lineTo(x, H);
-    }
-    for (let r = 0; r <= rows; r++) {
-      const y = Math.round(baseY + r * CELL) + 0.5;
-      ctx.moveTo(0, y); ctx.lineTo(W, y);
-    }
-    ctx.stroke();
-  }
-  draw();
-})();
-
-(function() {
-  const container = document.getElementById('particles');
-  const count = 400;
-  for (let i = 0; i < count; i++) {
-    const p = document.createElement('div');
-    p.className = 'particle';
-    const x = Math.random() * 100;
-    const y = Math.random() * 100;
-    const dur = 6 + Math.random() * 10;
-    const delay = Math.random() * 8;
-    const size = Math.random() > 0.6 ? 3 : 2;
-    p.style.cssText = `
-      left: ${x}vw; top: ${y}vh;
-      width: ${size}px; height: ${size}px;
-      animation: particleDrift ${dur}s ease-in-out infinite ${delay}s;
-      opacity: 0;
+function buildNav() {
+  const nav = document.getElementById('navRight');
+  if (isAdmin) {
+    nav.innerHTML = `
+      <span style="font-size:0.65rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--gold)">Admin</span>
+      <button class="btn btn-outline btn-sm" onclick="openOv('subOv')">Submit Record</button>
+      <button class="btn btn-primary btn-sm" onclick="openAdmin()">Admin Panel</button>
     `;
-    container.appendChild(p);
   }
+}
 
-  const style = document.createElement('style');
-  style.textContent = `
-    @keyframes particleDrift {
-      0%   { opacity: 0;    transform: translateY(0) scale(1); }
-      20%  { opacity: ${0.15 + Math.random() * 0.2}; }
-      50%  { opacity: ${0.1 + Math.random() * 0.15}; transform: translateY(-24px) scale(1.2); }
-      80%  { opacity: ${0.1 + Math.random() * 0.1}; }
-      100% { opacity: 0;    transform: translateY(-48px) scale(0.8); }
+// ────────────────────────────────
+// CONSTANTS
+// ────────────────────────────────
+const LOG_BASE = Math.log(200 / 42.909) / Math.log(100);
+function calcPts(rank) {
+  if (rank < 1) rank = 1;
+  return Math.round(200 * Math.pow(1 / rank, LOG_BASE) * 1000) / 1000;
+}
+
+function ytEmbed(url) {
+  if (!url) return null;
+  const m = url.match(/(?:youtu\.be\/|v=|embed\/)([A-Za-z0-9_-]{11})/);
+  return m ? `https://www.youtube.com/embed/${m[1]}` : null;
+}
+function ytLink(url) {
+  if (!url) return url;
+  const m = url.match(/(?:youtu\.be\/|v=|embed\/)([A-Za-z0-9_-]{11})/);
+  return m ? `https://youtu.be/${m[1]}` : url;
+}
+
+function esc(s) {
+  if (!s && s !== 0) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ────────────────────────────────
+// STATE
+// ────────────────────────────────
+let levels  = [];
+let records = {};
+let curKey  = null;
+let curIdx  = -1;
+let recTargetKey = null;
+let curSubTab = 'rec';
+let curAdminTab = 'add';
+
+// ────────────────────────────────
+// LOAD
+// ────────────────────────────────
+async function loadAll() {
+  const [lvData, recData] = await Promise.all([dbGet('levels'), dbGet('records')]);
+
+  levels = lvData
+    ? Object.entries(lvData).map(([k,v]) => ({...v, _key: k})).sort((a,b) => (a.pos||9999)-(b.pos||9999))
+    : [];
+
+  records = recData || {};
+
+  document.getElementById('loadEl').style.display = 'none';
+  renderSidebar();
+
+  if (!levels.length) {
+    document.getElementById('emptyEl').style.display = 'flex';
+  } else {
+    showLevel(0);
+  }
+  populateLevelSelect();
+}
+
+// ────────────────────────────────
+// SIDEBAR
+// ────────────────────────────────
+function renderSidebar() {
+  const ul = document.getElementById('sidebarList');
+  ul.innerHTML = '';
+  levels.forEach((lvl, i) => {
+    const li = document.createElement('li');
+    li.className = 'sidebar-item' + (lvl._key === curKey ? ' active' : '');
+    li.onclick = () => showLevel(i);
+    li.innerHTML = `<span class="s-rank">#${i+1}</span><span class="s-name">${esc(lvl.name)}</span>`;
+    ul.appendChild(li);
+  });
+}
+
+// ────────────────────────────────
+// SHOW LEVEL
+// ────────────────────────────────
+function showLevel(idx) {
+  if (idx < 0 || idx >= levels.length) return;
+  curIdx = idx;
+  const lvl = levels[idx];
+  curKey = lvl._key;
+  renderSidebar();
+
+  const pts   = calcPts(idx + 1);
+  const vEmb  = ytEmbed(lvl.verif);
+  const sEmb  = ytEmbed(lvl.showcase);
+  const recs  = records[lvl._key]
+    ? Object.entries(records[lvl._key]).map(([k,v]) => ({...v, _key:k})).sort((a,b) => b.pct - a.pct)
+    : [];
+  const minPct = lvl.minPct || 55;
+
+  document.getElementById('emptyEl').style.display = 'none';
+  const det = document.getElementById('detail');
+  det.style.display = 'block';
+
+  function render(tab) {
+    const embedUrl = tab === 'v' ? vEmb : sEmb;
+    const vidHtml  = embedUrl
+      ? `<iframe src="${embedUrl}" allowfullscreen loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"></iframe>`
+      : `<div class="video-none">No video set for this tab</div>`;
+
+    const recHtml = recs.length
+      ? recs.map(r => `
+          <div class="rec-row">
+            <span class="rec-pct ${r.pct==100?'full':''}">${r.pct}%</span>
+            <span class="rec-name">${esc(r.nickname)}</span>
+            ${r.video ? `<a class="rec-vid" href="${esc(ytLink(r.video))}" target="_blank" rel="noopener">▶ video</a>` : ''}
+            ${isAdmin ? `<button class="rec-del" onclick="delRecord('${esc(lvl._key)}','${esc(r._key)}')">✕</button>` : ''}
+          </div>`).join('')
+      : `<div class="rec-empty">No records yet.</div>`;
+
+    det.innerHTML = `
+      <div class="lv-title">${esc(lvl.name)}</div>
+      <div class="meta-row">
+        <div class="meta-item"><div class="meta-lbl">Creator</div><div class="meta-val">${esc(lvl.creator)||'—'}</div></div>
+        <div class="meta-item"><div class="meta-lbl">Verifier</div><div class="meta-val">${esc(lvl.verifier)||'—'}</div></div>
+        <div class="meta-item"><div class="meta-lbl">Publisher</div><div class="meta-val">${esc(lvl.publisher)||'—'}</div></div>
+      </div>
+      <div class="vtabs">
+        <button class="vtab ${tab==='v'?'active':''}" id="tabV">Verification</button>
+        <button class="vtab ${tab==='s'?'active':''}" id="tabS">Showcase</button>
+      </div>
+      <div class="video-box">${vidHtml}</div>
+      <div class="stats-bar">
+        <div class="stat-cell"><div class="stat-lbl">Points When Completed</div><div class="stat-val gold">${pts}</div></div>
+        <div class="stat-cell"><div class="stat-lbl">ID</div><div class="stat-val">${esc(lvl.levelId)||'—'}</div></div>
+        <div class="stat-cell"><div class="stat-lbl">Password</div><div class="stat-val">${esc(lvl.password)||'Free to Copy'}</div></div>
+      </div>
+      <div class="rec-section">
+        <div class="rec-hdr">
+          <span class="rec-hdr-lbl">Records</span>
+          ${isAdmin ? `<button class="btn btn-primary btn-sm" onclick="openAddRec('${esc(lvl._key)}','${esc(lvl.name)}')">+ Record</button>` : ''}
+        </div>
+        <div class="rec-qualify">${minPct}% or better to qualify</div>
+        ${recHtml}
+      </div>
+    `;
+    document.getElementById('tabV').onclick = () => render('v');
+    document.getElementById('tabS').onclick = () => render('s');
+  }
+  render('v');
+}
+
+// ────────────────────────────────
+// OVERLAYS
+// ────────────────────────────────
+function openOv(id) { document.getElementById(id).classList.add('open'); }
+function closeOv(id) { document.getElementById(id).classList.remove('open'); }
+
+function msg(id, text, err=false) {
+  const el = document.getElementById(id);
+  el.textContent = text;
+  el.className = 'pmsg on' + (err ? ' err' : '');
+  setTimeout(() => el.classList.remove('on'), 4000);
+}
+
+// ────────────────────────────────
+// ADMIN PANEL
+// ────────────────────────────────
+function openAdmin() {
+  aTab('add');
+  openOv('adminOv');
+  updPts();
+  checkPendingBadge();
+}
+
+function aTab(t) {
+  curAdminTab = t;
+  document.querySelectorAll('#adminOv .otab').forEach((el,i) => el.classList.toggle('active', ['add','manage','pending'][i]===t));
+  document.getElementById('aAdd').style.display     = t==='add'     ? 'block':'none';
+  document.getElementById('aManage').style.display  = t==='manage'  ? 'block':'none';
+  document.getElementById('aPending').style.display = t==='pending' ? 'block':'none';
+  document.getElementById('adminFt').style.display  = t==='add'     ? 'flex' :'none';
+  if (t==='manage') renderManage();
+  if (t==='pending') renderPending();
+}
+
+function updPts() {
+  let pos = parseInt(document.getElementById('fpos')?.value);
+  if (isNaN(pos) || pos < 1) pos = levels.length + 1;
+  const el = document.getElementById('ptsPreview');
+  if (el) el.textContent = calcPts(pos) + ' pts';
+}
+
+async function doAddLevel() {
+  const name = document.getElementById('fn').value.trim();
+  if (!name) { msg('aMsg','Level name is required.',true); return; }
+
+  let pos = parseInt(document.getElementById('fpos').value);
+  if (isNaN(pos) || pos < 1) pos = levels.length + 1;
+  pos = Math.min(pos, levels.length + 1);
+
+  const lvl = {
+    name,
+    creator:   document.getElementById('fc').value.trim(),
+    verifier:  document.getElementById('fv').value.trim(),
+    publisher: document.getElementById('fp').value.trim(),
+    levelId:   document.getElementById('fi').value.trim(),
+    password:  document.getElementById('fpw').value.trim(),
+    verif:     document.getElementById('fvv').value.trim(),
+    showcase:  document.getElementById('fsv').value.trim(),
+    minPct:    parseInt(document.getElementById('fmq').value) || 55,
+    pos,
+  };
+
+  // Shift existing levels at or after this position
+  const updates = {};
+  for (const l of levels) {
+    const lp = l.pos || (levels.indexOf(l) + 1);
+    if (lp >= pos) updates[`levels/${l._key}/pos`] = lp + 1;
+  }
+  if (Object.keys(updates).length) await dbUpdate(updates);
+
+  // Push new level
+  const ref = await dbPush('levels', lvl);
+
+  // Rebuild
+  await loadAll();
+  clearAddForm();
+  closeOv('adminOv');
+  toast(`"${name}" added at #${pos}!`);
+
+  const newIdx = levels.findIndex(l => l._key === ref.key);
+  if (newIdx >= 0) showLevel(newIdx);
+}
+
+function clearAddForm() {
+  ['fn','fc','fv','fp','fi','fpw','fvv','fsv','fmq','fpos'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  updPts();
+}
+
+// ────────────────────────────────
+// MANAGE TABLE
+// ────────────────────────────────
+function renderManage() {
+  const tbody = document.getElementById('mBody');
+  const empty = document.getElementById('mEmpty');
+  tbody.innerHTML = '';
+  if (!levels.length) { empty.style.display='block'; return; }
+  empty.style.display = 'none';
+  levels.forEach((lvl, i) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="rc">#${i+1}</td>
+      <td class="nc">${esc(lvl.name)}</td>
+      <td style="color:var(--dim);font-size:0.7rem">${esc(lvl.levelId)||'—'}</td>
+      <td class="pc">${calcPts(i+1)}</td>
+      <td><div class="abx">
+        <button class="ibtn" title="Up"     onclick="moveL(${i},-1)">↑</button>
+        <button class="ibtn" title="Down"   onclick="moveL(${i}, 1)">↓</button>
+        <button class="ibtn del" title="Delete" onclick="delLevel(${i})">✕</button>
+      </div></td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+async function moveL(idx, dir) {
+  const n = idx + dir;
+  if (n < 0 || n >= levels.length) return;
+  const a = levels[idx], b = levels[n];
+  const pa = a.pos||(idx+1), pb = b.pos||(n+1);
+  const updates = {};
+  updates[`levels/${a._key}/pos`] = pb;
+  updates[`levels/${b._key}/pos`] = pa;
+  await dbUpdate(updates);
+  [levels[idx].pos, levels[n].pos] = [pb, pa];
+  levels.sort((x,y) => (x.pos||9999)-(y.pos||9999));
+  renderManage();
+  renderSidebar();
+  if (curKey === a._key) showLevel(n);
+  else if (curKey === b._key) showLevel(idx);
+}
+
+async function delLevel(idx) {
+  const lvl = levels[idx];
+  if (!confirm(`Delete "${lvl.name}"?`)) return;
+  await dbRemove(`levels/${lvl._key}`);
+  await dbRemove(`records/${lvl._key}`);
+  delete records[lvl._key];
+  levels.splice(idx, 1);
+  renderManage();
+  renderSidebar();
+  toast(`"${lvl.name}" deleted.`);
+  if (curKey === lvl._key) {
+    if (!levels.length) {
+      document.getElementById('emptyEl').style.display = 'flex';
+      document.getElementById('detail').style.display  = 'none';
+      curKey = null; curIdx = -1;
+    } else {
+      showLevel(Math.min(idx, levels.length - 1));
     }
-  `;
-  document.head.appendChild(style);
-})();
+  }
+}
 
+// ────────────────────────────────
+// ADD RECORD (admin)
+// ────────────────────────────────
+function openAddRec(key, name) {
+  recTargetKey = key;
+  document.getElementById('recLvlName').textContent = name;
+  ['rNick','rPct','rVid'].forEach(id => document.getElementById(id).value = '');
+  openOv('recOv');
+}
+
+async function doAddRecord() {
+  const nick  = document.getElementById('rNick').value.trim();
+  const pct   = parseInt(document.getElementById('rPct').value);
+  const video = document.getElementById('rVid').value.trim();
+  if (!nick)           { msg('rMsg','Nickname required.',true); return; }
+  if (!pct||pct<1||pct>100) { msg('rMsg','% must be 1–100.',true); return; }
+
+  const rec = { nickname: nick, pct, video, addedAt: Date.now() };
+  const ref = await dbPush(`records/${recTargetKey}`, rec);
+  if (!records[recTargetKey]) records[recTargetKey] = {};
+  records[recTargetKey][ref.key] = rec;
+
+  closeOv('recOv');
+  toast(`Record for ${nick} added!`);
+  if (curKey === recTargetKey) showLevel(curIdx);
+}
+
+async function delRecord(lvlKey, recKey) {
+  if (!isAdmin) return;
+  if (!confirm('Delete this record?')) return;
+  await dbRemove(`records/${lvlKey}/${recKey}`);
+  if (records[lvlKey]) delete records[lvlKey][recKey];
+  showLevel(curIdx);
+  toast('Record deleted.');
+}
+
+// ────────────────────────────────
+// PENDING
+// ────────────────────────────────
+async function checkPendingBadge() {
+  const data  = await dbGet('pending');
+  const count = data ? Object.keys(data).length : 0;
+  const tab   = document.getElementById('pendingTab');
+  if (tab) tab.innerHTML = `Pending${count > 0 ? ' <span class="pdot"></span>' : ''}`;
+}
+
+async function renderPending() {
+  const container = document.getElementById('pendingList');
+  const data = await dbGet('pending');
+  if (!data || !Object.keys(data).length) {
+    container.innerHTML = `<div style="color:var(--dim);font-size:0.78rem;padding:0.5rem 0">No pending submissions.</div>`;
+    return;
+  }
+  container.innerHTML = Object.entries(data).map(([key, sub]) => {
+    const date = new Date(sub.submittedAt).toLocaleDateString();
+    if (sub.type === 'record') {
+      return `<div class="pcard">
+        <div class="pcard-type">🎮 Record · ${date}</div>
+        <div class="pcard-title">${esc(sub.level)} — <span style="color:var(--gold)">${esc(sub.pct)}%</span></div>
+        <div class="pcard-detail">By: <b>${esc(sub.nickname)}</b>${sub.extra ? `<br>${esc(sub.extra)}` : ''}</div>
+        ${sub.video ? `<a href="${esc(sub.video)}" target="_blank" rel="noopener">▶ Proof video</a>` : ''}
+        <div class="pcard-actions">
+          <button class="btn btn-primary btn-sm" onclick="approvePending('${key}')">✓ Approve</button>
+          <button class="btn btn-outline btn-sm" onclick="dismissPending('${key}')">✕ Dismiss</button>
+        </div>
+      </div>`;
+    } else {
+      return `<div class="pcard">
+        <div class="pcard-type">🔬 Verification · ${date}</div>
+        <div class="pcard-title">${esc(sub.name)}</div>
+        <div class="pcard-detail">Creator: <b>${esc(sub.creator)||'—'}</b> · Verifier: <b>${esc(sub.verifier)}</b> · ID: <b>${esc(sub.id)||'—'}</b>${sub.notes ? `<br>${esc(sub.notes)}` : ''}</div>
+        ${sub.video ? `<a href="${esc(sub.video)}" target="_blank" rel="noopener">▶ Verification video</a>` : ''}
+        <div class="pcard-actions">
+          <button class="btn btn-outline btn-sm" onclick="dismissPending('${key}')">✕ Dismiss</button>
+        </div>
+      </div>`;
+    }
+  }).join('');
+}
+
+async function approvePending(key) {
+  const sub = await dbGet(`pending/${key}`);
+  if (!sub || sub.type !== 'record') return;
+  const lvl = levels.find(l => l.name.toLowerCase() === sub.level.toLowerCase());
+  if (!lvl) { toast('Level not found in list.', true); return; }
+  const rec = { nickname: sub.nickname, pct: parseInt(sub.pct)||100, video: sub.video||'', addedAt: Date.now() };
+  const ref = await dbPush(`records/${lvl._key}`, rec);
+  if (!records[lvl._key]) records[lvl._key] = {};
+  records[lvl._key][ref.key] = rec;
+  await dbRemove(`pending/${key}`);
+  if (curKey === lvl._key) showLevel(curIdx);
+  renderPending();
+  checkPendingBadge();
+  toast('Record approved!');
+}
+
+async function dismissPending(key) {
+  if (!confirm('Dismiss this submission?')) return;
+  await dbRemove(`pending/${key}`);
+  renderPending();
+  checkPendingBadge();
+  toast('Dismissed.');
+}
+
+// ────────────────────────────────
+// PUBLIC SUBMIT
+// ────────────────────────────────
+function sTab(t) {
+  curSubTab = t;
+  document.querySelectorAll('#subOv .otab').forEach((el,i) => el.classList.toggle('active', ['rec','verif'][i]===t));
+  document.getElementById('sRec').style.display   = t==='rec'   ? 'block':'none';
+  document.getElementById('sVerif').style.display = t==='verif' ? 'block':'none';
+}
+
+function populateLevelSelect() {
+  const sel = document.getElementById('sLevel');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">— Select a level —</option>' +
+    levels.map((l,i) => `<option value="${esc(l.name)}">#${i+1} ${esc(l.name)}</option>`).join('');
+}
+
+async function doSubmit() {
+  if (curSubTab === 'rec') {
+    const level = document.getElementById('sLevel').value;
+    const nick  = document.getElementById('sNick').value.trim();
+    const pct   = document.getElementById('sPct').value;
+    const video = document.getElementById('sVid').value.trim();
+    const extra = document.getElementById('sExtra').value.trim();
+    if (!level) { msg('sMsg','Select a level.',true); return; }
+    if (!nick)  { msg('sMsg','Nickname required.',true); return; }
+    if (!pct)   { msg('sMsg','Completion % required.',true); return; }
+    if (!video) { msg('sMsg','Video proof required.',true); return; }
+
+    const sub = { type:'record', level, nickname:nick, pct, video, extra, submittedAt: Date.now() };
+    await dbPush('pending', sub);
+    await webhook({ username:'BDL Submissions', embeds:[{
+      title:'🎮 New Record Submission', color:0xc0392b,
+      fields:[
+        {name:'Level', value:level, inline:true},
+        {name:'Player', value:nick, inline:true},
+        {name:'Completion', value:`${pct}%`, inline:true},
+        {name:'Video Proof', value:video},
+        ...(extra?[{name:'Extra Info',value:extra}]:[]),
+      ],
+      footer:{text:'BDL'}, timestamp:new Date().toISOString()
+    }]});
+    msg('sMsg','Submitted! Admins will review your record.');
+    setTimeout(() => closeOv('subOv'), 2200);
+
+  } else {
+    const name  = document.getElementById('vName').value.trim();
+    const verif = document.getElementById('vVerifier').value.trim();
+    const video = document.getElementById('vVid').value.trim();
+    if (!name)  { msg('sMsg','Level name required.',true); return; }
+    if (!verif) { msg('sMsg','Verifier name required.',true); return; }
+    if (!video) { msg('sMsg','Verification video required.',true); return; }
+
+    const sub = {
+      type:'verification', name, verifier:verif,
+      creator: document.getElementById('vCreator').value.trim(),
+      publisher: document.getElementById('vPub').value.trim(),
+      id: document.getElementById('vId').value.trim(),
+      video, showcase: document.getElementById('vShow').value.trim(),
+      notes: document.getElementById('vNotes').value.trim(),
+      submittedAt: Date.now()
+    };
+    await dbPush('pending', sub);
+    await webhook({ username:'BDL Submissions', embeds:[{
+      title:'🔬 Verification Submission', color:0xf39c12,
+      fields:[
+        {name:'Level', value:name, inline:true},
+        {name:'Verifier', value:verif, inline:true},
+        {name:'Creator', value:sub.creator||'—', inline:true},
+        {name:'Level ID', value:sub.id||'—', inline:true},
+        {name:'Video', value:video},
+        ...(sub.notes?[{name:'Notes',value:sub.notes}]:[]),
+      ],
+      footer:{text:'BDL'}, timestamp:new Date().toISOString()
+    }]});
+    msg('sMsg','Verification submitted! Admins will review it.');
+    setTimeout(() => closeOv('subOv'), 2200);
+  }
+}
+
+// ────────────────────────────────
+// WEBHOOK
+// ────────────────────────────────
+async function webhook(payload) {
+  try { await fetch(WEBHOOK, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) }); }
+  catch(e) { console.warn('Webhook error:', e); }
+}
+
+// ────────────────────────────────
+// TOAST
+// ────────────────────────────────
+function toast(msg, err=false) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast on' + (err?' err':'');
+  setTimeout(() => el.classList.remove('on'), 3200);
+}
+
+// ────────────────────────────────
+// BOOT
+// ────────────────────────────────
+(async () => {
+  checkAuth();
+  await loadAll();
+})();
 </script>
 </body>
 </html>
