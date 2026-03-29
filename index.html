@@ -701,7 +701,7 @@ async function renderPendingList() {
     const date = new Date(sub.submittedAt).toLocaleDateString();
     if (sub.type === 'record') {
       return `<div class="pcard">
-        <div class="pcard-type">🎮 Record · ${date}</div>
+        <div class="pcard-type">Record · ${date}</div>
         <div class="pcard-title">${esc(sub.level)} — <span style="color:var(--gold)">${esc(sub.pct)}%</span></div>
         <div class="pcard-detail">By: <b>${esc(sub.nickname)}</b>${sub.extra ? `<br>${esc(sub.extra)}` : ''}</div>
         ${sub.video ? `<a href="${esc(sub.video)}" target="_blank" rel="noopener">▶ Proof video</a>` : ''}
@@ -776,7 +776,7 @@ async function sendSubmission() {
     if (!video) { showFormMsg('sMsg','Video proof required.',true); return; }
     await dbPush('pending', { type:'record', level, nickname:nick, pct, video, extra, submittedAt:Date.now() });
     await sendWebhook({ username:'BDL Submissions', embeds:[{
-      title:'🎮 New Record Submission', color:0xc0392b,
+      title:'New Record Submission', color:0xc0392b,
       fields:[
         {name:'Level', value:level, inline:true},
         {name:'Player', value:nick, inline:true},
