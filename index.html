@@ -21,6 +21,7 @@
   --text:    #f0e8e8;
   --muted:   #9a7070;
   --dim:     #5a3535;
+  --green:   #27ae60;
 }
 
 body { background: var(--bg); color: var(--text); font-family: 'Rajdhani', sans-serif; min-height: 100vh; overflow-x: hidden; }
@@ -29,19 +30,20 @@ nav {
   background: var(--nav);
   border-bottom: 2px solid var(--accent);
   padding: 0 1.5rem;
-  display: flex; align-items: center; height: 48px; gap: 1.5rem;
+  display: flex; align-items: center; height: 48px; gap: 1rem;
   position: sticky; top: 0; z-index: 100;
   box-shadow: 0 2px 16px rgba(192,57,43,0.35);
 }
-.nav-logo { font-size: 1.4rem; font-weight: 700; color: var(--text); letter-spacing: 2px; cursor: default; }
+.nav-logo { font-size: 1.4rem; font-weight: 700; color: var(--text); letter-spacing: 2px; cursor: default; flex-shrink: 0; }
 .nav-links { display: flex; list-style: none; }
-.nav-links a { color: var(--muted); text-decoration: none; font-size: 0.85rem; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; padding: 0 0.9rem; height: 48px; display: flex; align-items: center; border-bottom: 2px solid transparent; transition: all 0.2s; margin-bottom: -2px; cursor: pointer; }
+.nav-links a { color: var(--muted); text-decoration: none; font-size: 0.85rem; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; padding: 0 0.75rem; height: 48px; display: flex; align-items: center; border-bottom: 2px solid transparent; transition: all 0.2s; margin-bottom: -2px; cursor: pointer; white-space: nowrap; }
 .nav-links a:hover { color: var(--text); }
 .nav-links a.active { color: var(--text); border-bottom-color: var(--accent); }
-.nav-right { margin-left: auto; display: flex; align-items: center; gap: 0.5rem; }
+.nav-right { margin-left: auto; display: flex; align-items: center; gap: 0.4rem; flex-shrink: 0; }
 .nav-version { font-size: 0.65rem; color: var(--dim); letter-spacing: 1px; font-family: 'Share Tech Mono', monospace; }
+.nav-hamburger { display: none; background: none; border: 1px solid var(--border); color: var(--muted); width: 32px; height: 32px; border-radius: 2px; cursor: pointer; font-size: 1rem; align-items: center; justify-content: center; flex-shrink: 0; }
 
-.btn { padding: 0.35rem 1rem; border-radius: 2px; font-family: 'Rajdhani', sans-serif; font-weight: 700; font-size: 0.8rem; letter-spacing: 1px; text-transform: uppercase; cursor: pointer; transition: all 0.18s; border: 1px solid transparent; }
+.btn { padding: 0.35rem 1rem; border-radius: 2px; font-family: 'Rajdhani', sans-serif; font-weight: 700; font-size: 0.8rem; letter-spacing: 1px; text-transform: uppercase; cursor: pointer; transition: all 0.18s; border: 1px solid transparent; white-space: nowrap; }
 .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
 .btn-primary:hover { background: var(--accent2); border-color: var(--accent2); }
 .btn-outline { background: transparent; color: var(--text); border-color: var(--border); }
@@ -53,7 +55,7 @@ nav {
 .page { display: none; }
 .page.active { display: flex; min-height: calc(100vh - 48px); }
 
-.sidebar { width: 260px; min-width: 260px; background: var(--surface); border-right: 1px solid var(--border); overflow-y: auto; height: calc(100vh - 48px); position: sticky; top: 48px; }
+.sidebar { width: 260px; min-width: 260px; background: var(--surface); border-right: 1px solid var(--border); overflow-y: auto; height: calc(100vh - 48px); position: sticky; top: 48px; transition: transform 0.28s ease; }
 .sidebar::-webkit-scrollbar { width: 4px; }
 .sidebar::-webkit-scrollbar-thumb { background: var(--border); }
 .sidebar-list { list-style: none; }
@@ -65,10 +67,17 @@ nav {
 .s-name { font-size: 0.85rem; font-weight: 600; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sidebar-item.active .s-name { color: var(--text); }
 
-.main { flex: 1; padding: 2rem 2.5rem; min-width: 0; }
+.sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 98; }
+.sidebar-overlay.show { display: block; }
 
-.lv-title { font-size: 2.5rem; font-weight: 700; color: var(--text); letter-spacing: 1px; margin-bottom: 0.6rem; line-height: 1.1; }
-.meta-row { display: flex; gap: 2rem; margin-bottom: 1.2rem; }
+.main { flex: 1; padding: 2rem 2.5rem; min-width: 0; overflow-x: hidden; }
+
+.lv-title { font-size: 2.5rem; font-weight: 700; color: var(--text); letter-spacing: 1px; margin-bottom: 0.8rem; line-height: 1.1; }
+
+.tag-row { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 1rem; }
+.tag { display: inline-block; padding: 0.2rem 0.65rem; border-radius: 20px; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.5px; border: 1px solid; cursor: default; }
+
+.meta-row { display: flex; flex-wrap: wrap; gap: 0.5rem 2rem; margin-bottom: 1.2rem; }
 .meta-item { display: flex; flex-direction: column; gap: 0.1rem; }
 .meta-lbl { font-size: 0.65rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--dim); }
 .meta-val { font-size: 0.88rem; font-weight: 600; color: var(--muted); }
@@ -81,8 +90,8 @@ nav {
 .video-box iframe { width: 100%; height: 100%; border: none; }
 .video-none { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: var(--dim); font-size: 0.75rem; letter-spacing: 1px; background: #0e0808; }
 
-.stats-bar { display: flex; margin: 1rem 0; max-width: 560px; border: 1px solid var(--border); }
-.stat-cell { flex: 1; padding: 0.75rem 1rem; border-right: 1px solid var(--border); display: flex; flex-direction: column; gap: 0.15rem; }
+.stats-bar { display: flex; flex-wrap: wrap; margin: 1rem 0; max-width: 560px; border: 1px solid var(--border); }
+.stat-cell { flex: 1; min-width: 100px; padding: 0.75rem 1rem; border-right: 1px solid var(--border); display: flex; flex-direction: column; gap: 0.15rem; }
 .stat-cell:last-child { border-right: none; }
 .stat-lbl { font-size: 0.6rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--dim); }
 .stat-val { font-family: 'Share Tech Mono', monospace; font-size: 0.9rem; color: var(--muted); }
@@ -102,6 +111,20 @@ nav {
 .rec-del:hover { color: var(--accent); }
 .rec-empty { font-size: 0.78rem; color: var(--dim); padding: 0.5rem 0; }
 
+.pos-history { max-width: 560px; margin-top: 1.5rem; }
+.pos-history-hdr { font-size: 1.2rem; font-weight: 700; color: var(--text); margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem; }
+.pos-history-hdr button { background: none; border: none; color: var(--accent); cursor: pointer; font-size: 0.8rem; padding: 0; line-height: 1; }
+.pos-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+.pos-table th { text-align: left; padding: 0.4rem 0.6rem; font-size: 0.62rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--dim); border-bottom: 1px solid var(--border); }
+.pos-table td { padding: 0.45rem 0.6rem; border-bottom: 1px solid #1a0e0e; vertical-align: middle; }
+.pos-table .pt-pos { font-family: 'Share Tech Mono', monospace; color: var(--text); font-weight: 600; }
+.pos-table .pt-chg { font-family: 'Share Tech Mono', monospace; font-size: 0.78rem; }
+.pt-chg.up   { color: var(--green); }
+.pt-chg.down { color: var(--accent2); }
+.pt-chg.same { color: var(--dim); }
+.pos-table .pt-cause { color: var(--muted); font-size: 0.8rem; }
+.pos-table .pt-date  { color: var(--dim); font-size: 0.75rem; font-family: 'Share Tech Mono', monospace; }
+
 .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 60vh; gap: 1rem; text-align: center; }
 .empty-big { font-size: 4rem; font-weight: 700; color: #2a1010; letter-spacing: 4px; }
 .empty-state p { font-size: 0.85rem; color: var(--dim); max-width: 260px; line-height: 1.7; }
@@ -109,13 +132,13 @@ nav {
 .spin { width: 16px; height: 16px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-.ov { display: none; position: fixed; inset: 0; background: rgba(5,2,2,0.85); z-index: 200; align-items: center; justify-content: center; padding: 1rem; }
+.ov { display: none; position: fixed; inset: 0; background: rgba(5,2,2,0.85); z-index: 200; align-items: flex-start; justify-content: center; padding: 1rem; overflow-y: auto; }
 .ov.open { display: flex; }
-.panel { background: var(--surface); border: 1px solid var(--border); border-top: 2px solid var(--accent); border-radius: 2px; width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto; animation: pIn 0.22s ease; }
+.panel { background: var(--surface); border: 1px solid var(--border); border-top: 2px solid var(--accent); border-radius: 2px; width: 100%; max-width: 560px; animation: pIn 0.22s ease; margin: auto; }
 @keyframes pIn { from { opacity:0; transform:translateY(-12px); } to { opacity:1; transform:translateY(0); } }
 .ph { padding: 0.9rem 1.2rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
 .ph h2 { font-size: 0.75rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--accent); }
-.xbtn { background: none; border: 1px solid var(--border); color: var(--muted); width: 26px; height: 26px; border-radius: 2px; cursor: pointer; font-size: 0.9rem; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+.xbtn { background: none; border: 1px solid var(--border); color: var(--muted); width: 26px; height: 26px; border-radius: 2px; cursor: pointer; font-size: 0.9rem; display: flex; align-items: center; justify-content: center; transition: all 0.15s; flex-shrink: 0; }
 .xbtn:hover { border-color: var(--accent); color: var(--accent); }
 .pb { padding: 1.2rem; }
 .pf { padding: 0.75rem 1.2rem; border-top: 1px solid var(--border); display: flex; gap: 0.5rem; justify-content: flex-end; align-items: center; }
@@ -123,9 +146,36 @@ nav {
 .pmsg.err { color: #f87171; }
 .pmsg.on { display: block; }
 
-.otabs { display: flex; gap: 0.35rem; margin-bottom: 1rem; }
+.otabs { display: flex; gap: 0.35rem; margin-bottom: 1rem; flex-wrap: wrap; }
 .otab { padding: 0.28rem 0.8rem; border: 1px solid var(--border); background: none; color: var(--muted); font-family: 'Rajdhani',sans-serif; font-weight: 700; font-size: 0.75rem; letter-spacing: 1px; text-transform: uppercase; cursor: pointer; border-radius: 2px; transition: all 0.15s; }
 .otab.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+.btn-link { background: none; border: none; padding: 0; color: var(--accent); cursor: pointer; font: inherit; text-align: left; }
+.btn-link:hover { color: var(--gold); }
+.pack-picker { display: flex; flex-wrap: wrap; gap: 0.45rem; padding: 0.6rem 0.4rem; background: #0e0808; border: 1px solid var(--border); border-radius: 3px; min-height: 42px; }
+.pack-picker-item { display: inline-flex; align-items: center; gap: 0.4rem; background: #120a0a; border: 1px solid var(--border); border-radius: 3px; padding: 0.35rem 0.75rem; font-size: 0.82rem; cursor: pointer; color: var(--text); border-radius: 4px; transition: all 0.15s; }
+.pack-picker-item.selected { background: rgba(255,255,255,0.08); border-color: var(--accent); color: #fff; }
+.pack-picker-item:hover { background: rgba(255,255,255,0.06); }
+.pack-picker-item input { margin: 0; accent-color: var(--accent); display:none; }
+.pack-chip { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.28rem 0.65rem; border-radius: 999px; border: 1px solid var(--border); background: rgba(255,255,255,0.03); color: var(--gold); font-weight: 700; cursor: pointer; }
+.pack-chip:hover { background: rgba(255,255,255,0.08); }
+.pack-hero { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+.pack-title { font-size: 2rem; font-weight: 700; color: var(--text); }
+.pack-meta { display: flex; gap: 1rem; flex-wrap: wrap; color: var(--muted); font-size: 0.95rem; }
+.pack-card { background: #0e0808; border: 1px solid var(--border); border-radius: 4px; padding: 1rem; margin-bottom: 1rem; }
+.pack-card .pack-card-title { font-size: 1rem; font-weight: 700; color: var(--text); margin-bottom: 0.5rem; }
+.pack-card .pack-card-meta { color: var(--dim); font-size: 0.85rem; }
+.pack-list { display: grid; gap: 1rem; }
+.profile-grid { display: grid; grid-template-columns: repeat(2, minmax(160px, 1fr)); gap: 1rem; margin-top: 1.2rem; }
+.profile-card { background: #120a0a; border: 1px solid var(--border); border-radius: 3px; padding: 1rem; }
+.profile-card .stat-lbl { color: var(--dim); margin-bottom: 0.4rem; font-size: 0.65rem; }
+.profile-card .stat-val { font-size: 1rem; color: var(--text); }
+.player-activity { margin-top: 1.5rem; }
+.activity-row { display: grid; grid-template-columns: 1fr auto auto; gap: 0.75rem; padding: 0.75rem 0; border-bottom: 1px solid #1a0e0e; }
+.activity-row:last-child { border-bottom: none; }
+.activity-name { font-size: 0.95rem; font-weight: 700; color: var(--text); }
+.activity-meta { font-size: 0.78rem; color: var(--dim); }
+.activity-time { font-family: 'Share Tech Mono', monospace; font-size: 0.75rem; color: var(--dim); }
 
 .fg { margin-bottom: 0.85rem; }
 .fg label { display: block; font-size: 0.62rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--dim); margin-bottom: 0.3rem; }
@@ -139,6 +189,17 @@ nav {
 .pts-prev { background: #0e0808; border: 1px solid var(--border); padding: 0.48rem 0.7rem; display: flex; justify-content: space-between; align-items: center; margin-top: 0.3rem; border-radius: 2px; }
 .pts-prev span { font-size: 0.62rem; color: var(--dim); letter-spacing: 2px; text-transform: uppercase; }
 .pts-prev .pts { color: var(--gold); font-family: 'Share Tech Mono',monospace; font-size: 0.9rem; }
+
+.tag-editor { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.4rem; }
+.tag-editor-item { display: flex; align-items: center; gap: 0.3rem; padding: 0.18rem 0.55rem; border-radius: 20px; font-size: 0.72rem; font-weight: 700; border: 1px solid; }
+.tag-editor-item button { background: none; border: none; cursor: pointer; color: inherit; opacity: 0.6; font-size: 0.75rem; line-height: 1; padding: 0; }
+.tag-editor-item button:hover { opacity: 1; }
+.tag-add-row { display: flex; gap: 0.4rem; margin-top: 0.4rem; }
+.tag-add-row input { flex: 1; }
+.color-row { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.4rem; }
+.color-swatch { width: 22px; height: 22px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: transform 0.1s; }
+.color-swatch:hover { transform: scale(1.2); }
+.color-swatch.selected { border-color: #fff; }
 
 .mtbl { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
 .mtbl th { text-align: left; padding: 0.4rem 0.6rem; font-size: 0.6rem; letter-spacing: 2px; text-transform: uppercase; color: var(--dim); border-bottom: 1px solid var(--border); font-weight: 700; }
@@ -165,14 +226,11 @@ nav {
 .toast { position: fixed; bottom: 1.5rem; right: 1.5rem; background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); padding: 0.65rem 1rem; font-size: 0.78rem; font-weight: 600; letter-spacing: 0.5px; z-index: 999; opacity: 0; transform: translateY(6px); transition: all 0.25s; pointer-events: none; max-width: 260px; color: var(--muted); border-radius: 2px; }
 .toast.on { opacity: 1; transform: translateY(0); }
 
-/* LEADERBOARD */
 .lb-wrap { display: flex; min-height: calc(100vh - 48px); width: 100%; }
-
 .lb-sidebar { width: 320px; min-width: 320px; background: var(--surface); border-right: 1px solid var(--border); overflow-y: auto; height: calc(100vh - 48px); position: sticky; top: 48px; }
 .lb-sidebar::-webkit-scrollbar { width: 4px; }
 .lb-sidebar::-webkit-scrollbar-thumb { background: var(--border); }
-
-.lb-row { display: flex; align-items: center; gap: 0; padding: 0.5rem 1rem; border-bottom: 1px solid #1a0e0e; cursor: pointer; transition: background 0.12s; border-left: 3px solid transparent; }
+.lb-row { display: flex; align-items: center; padding: 0.5rem 1rem; border-bottom: 1px solid #1a0e0e; cursor: pointer; transition: background 0.12s; border-left: 3px solid transparent; gap: 0; }
 .lb-row:hover { background: #220f0f; }
 .lb-row.active { background: #280f0f; border-left-color: var(--accent); }
 .lb-pos { font-family: 'Share Tech Mono', monospace; font-size: 0.78rem; color: var(--dim); min-width: 32px; }
@@ -180,16 +238,13 @@ nav {
 .lb-pts { font-family: 'Share Tech Mono', monospace; font-size: 0.78rem; color: var(--gold); min-width: 80px; }
 .lb-player { font-size: 0.88rem; font-weight: 600; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .lb-row.active .lb-player { color: var(--text); }
-
 .lb-main { flex: 1; padding: 2rem 2.5rem; min-width: 0; overflow-y: auto; }
-
 .lb-hero-rank { font-size: 2.8rem; font-weight: 700; color: var(--text); margin-bottom: 0.2rem; line-height: 1; }
 .lb-hero-rank span { color: var(--accent); }
 .lb-hero-pts { font-family: 'Share Tech Mono', monospace; font-size: 1.1rem; color: var(--gold); margin-bottom: 1.5rem; }
-
 .lb-section-title { font-size: 1.4rem; font-weight: 700; color: var(--text); margin: 1.4rem 0 0.7rem; }
-.lb-level-row { display: flex; align-items: center; padding: 0.45rem 0; border-bottom: 1px solid #1a0e0e; cursor: pointer; transition: background 0.1s; border-radius: 2px; }
-.lb-level-row:hover { background: #220f0f; padding-left: 0.4rem; }
+.lb-level-row { display: flex; align-items: center; padding: 0.45rem 0.3rem; border-bottom: 1px solid #1a0e0e; cursor: pointer; transition: all 0.1s; border-radius: 2px; }
+.lb-level-row:hover { background: #220f0f; padding-left: 0.6rem; }
 .lb-level-pos { font-family: 'Share Tech Mono', monospace; font-size: 0.75rem; color: var(--dim); min-width: 40px; }
 .lb-level-name { font-size: 0.9rem; font-weight: 600; color: var(--text); flex: 1; }
 .lb-level-pts { font-family: 'Share Tech Mono', monospace; font-size: 0.82rem; color: var(--accent2); }
@@ -197,15 +252,57 @@ nav {
 
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-thumb { background: var(--border); }
+
+@media (max-width: 768px) {
+  .nav-hamburger { display: flex; }
+  .nav-links { display: none; }
+  .nav-right .btn-outline { display: none; }
+  .nav-version { display: none; }
+
+  .sidebar {
+    position: fixed; top: 48px; left: 0; bottom: 0; z-index: 99;
+    transform: translateX(-100%); width: 80vw; max-width: 280px;
+  }
+  .sidebar.open { transform: translateX(0); }
+
+  .main { padding: 1.2rem 1rem; }
+  .lv-title { font-size: 1.8rem; }
+  .frow { grid-template-columns: 1fr; }
+  .stats-bar { flex-direction: column; }
+  .stat-cell { border-right: none; border-bottom: 1px solid var(--border); }
+  .stat-cell:last-child { border-bottom: none; }
+  .meta-row { gap: 0.5rem 1.2rem; }
+  .pos-table .pt-date { display: none; }
+
+  .lb-wrap { flex-direction: column; }
+  .lb-sidebar { width: 100%; min-width: unset; height: auto; max-height: 40vh; position: static; }
+  .lb-main { padding: 1.2rem 1rem; }
+  .lb-hero-rank { font-size: 2rem; }
+
+  .panel { max-width: 100%; margin: 0.5rem auto; }
+  .ov { padding: 0.5rem; align-items: flex-start; }
+}
+
+@media (max-width: 480px) {
+  nav { padding: 0 0.75rem; gap: 0.5rem; }
+  .nav-logo { font-size: 1.1rem; }
+  .main { padding: 1rem 0.75rem; }
+  .lv-title { font-size: 1.5rem; }
+  .lb-main { padding: 1rem 0.75rem; }
+}
 </style>
 </head>
 <body>
 
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="closeMobileSidebar()"></div>
+
 <nav>
+  <button class="nav-hamburger" id="hamburger" onclick="toggleMobileSidebar()">☰</button>
   <div class="nav-logo">BDL <span class="nav-version">v1.0.0</span></div>
   <ul class="nav-links">
     <li><a id="navList" class="active" onclick="showPage('list')">List</a></li>
     <li><a id="navLb" onclick="showPage('leaderboard')">Leaderboard</a></li>
+    <li><a id="navPack" onclick="showPage('pack')">Packs</a></li>
   </ul>
   <div class="nav-right" id="navRight">
     <button class="btn btn-outline btn-sm" onclick="openOverlay('subOv')">Submit Record</button>
@@ -213,7 +310,7 @@ nav {
 </nav>
 
 <div class="page active" id="pageList">
-  <aside class="sidebar"><ul class="sidebar-list" id="sidebarList"></ul></aside>
+  <aside class="sidebar" id="sidebar"><ul class="sidebar-list" id="sidebarList"></ul></aside>
   <main class="main" id="mainArea">
     <div class="loading" id="loadEl"><div class="spin"></div>Loading...</div>
     <div class="empty-state" id="emptyEl" style="display:none">
@@ -226,13 +323,17 @@ nav {
 
 <div class="page" id="pageLeaderboard">
   <div class="lb-wrap">
-    <aside class="lb-sidebar">
-      <ul id="lbSidebarList" style="list-style:none"></ul>
-    </aside>
-    <div class="lb-main" id="lbMain">
-      <div class="loading"><div class="spin"></div>Loading...</div>
-    </div>
+    <aside class="lb-sidebar"><ul id="lbSidebarList" style="list-style:none"></ul></aside>
+    <div class="lb-main" id="lbMain"><div class="loading"><div class="spin"></div>Loading...</div></div>
   </div>
+</div>
+
+<div class="page" id="pagePack">
+  <aside class="sidebar" id="packSidebar"><ul class="sidebar-list" id="packSidebarList"></ul></aside>
+  <main class="main" id="packArea">
+    <div class="pack-hero" id="packHero"></div>
+    <div id="packLevels"></div>
+  </main>
 </div>
 
 <div class="ov" id="adminOv">
@@ -242,6 +343,7 @@ nav {
       <div class="otabs">
         <button class="otab active" onclick="adminTab('add')">+ New Level</button>
         <button class="otab" onclick="adminTab('manage')">Manage</button>
+        <button class="otab" onclick="adminTab('packs')">Packs</button>
         <button class="otab" onclick="adminTab('pending')" id="pendingTab">Pending</button>
       </div>
       <div id="aAdd">
@@ -257,6 +359,19 @@ nav {
         <div class="fg"><label>Showcase Video (optional)</label><input id="fsv" placeholder="https://youtu.be/..."></div>
         <div class="fg"><label>Min % to Qualify for Records</label><input id="fmq" type="number" placeholder="55" min="1" max="100"></div>
         <div class="fg">
+          <label>Tags</label>
+          <div class="tag-editor" id="tagEditor"></div>
+          <div class="tag-add-row">
+            <input id="tagInput" placeholder="Add tag..." onkeydown="if(event.key==='Enter'){event.preventDefault();addTagToEditor();}">
+            <button class="btn btn-outline btn-sm" onclick="addTagToEditor()">Add</button>
+          </div>
+          <div class="color-row" id="colorRow"></div>
+        </div>
+        <div class="fg">
+          <label>Packs</label>
+          <div class="pack-picker" id="packPicker"></div>
+        </div>
+        <div class="fg">
           <label>Position in List</label>
           <input id="fpos" type="number" placeholder="Leave blank = append" min="1" oninput="updatePointsPreview()">
           <div class="fhint">Leave blank to append. Other levels shift down.</div>
@@ -267,6 +382,18 @@ nav {
         <table class="mtbl"><thead><tr><th>#</th><th>Name</th><th>ID</th><th>Pts</th><th></th></tr></thead><tbody id="mBody"></tbody></table>
         <div id="mEmpty" style="display:none;text-align:center;padding:1.5rem;color:var(--dim);font-size:0.78rem">No levels yet.</div>
       </div>
+      <div id="aPacks" style="display:none">
+        <div class="fg"><label>Pack Name</label><input id="ppn" placeholder="e.g. Arthritis Pack II"></div>
+        <div class="fg"><label>Color</label><div class="color-row" id="packColorRow"></div></div>
+        <div class="fg"><label>Description (optional)</label><textarea id="ppDesc" placeholder="Optional"></textarea></div>
+        <div class="fg"><label>Position in List</label><input id="ppos" type="number" placeholder="Leave blank = append" min="1"></div>
+        <div class="fg"><button class="btn btn-primary" id="packActionBtn" onclick="addPack()">Add Pack</button></div>
+        <div class="fg" style="margin-top:1.5rem;">
+          <label>Packs</label>
+          <table class="mtbl"><thead><tr><th>#</th><th>Name</th><th>Color</th><th>Levels</th><th></th></tr></thead><tbody id="packsBody"></tbody></table>
+          <div id="packsEmpty" style="display:none;text-align:center;padding:1.5rem;color:var(--dim);font-size:0.78rem">No packs yet.</div>
+        </div>
+      </div>
       <div id="aPending" style="display:none">
         <div id="pendingList"><div style="color:var(--dim);font-size:0.78rem;padding:0.5rem 0">Loading...</div></div>
       </div>
@@ -274,7 +401,7 @@ nav {
     <div class="pf" id="adminFt">
       <span class="pmsg" id="aMsg"></span>
       <button class="btn btn-ghost" onclick="closeOverlay('adminOv')">Cancel</button>
-      <button class="btn btn-primary" onclick="addLevel()">Add Level</button>
+      <button class="btn btn-primary" id="levelActionBtn" onclick="addLevel()">Add Level</button>
     </div>
   </div>
 </div>
@@ -286,6 +413,7 @@ nav {
       <div class="fg"><label>Player Nickname</label><input id="rNick" placeholder="e.g. PlayerXYZ"></div>
       <div class="fg"><label>Completion %</label><input id="rPct" type="number" placeholder="100" min="1" max="100"></div>
       <div class="fg"><label>Video Proof (YouTube)</label><input id="rVid" placeholder="https://youtu.be/..."></div>
+      <div class="fg"><label>Attempts</label><input id="rAttempts" type="number" placeholder="e.g. 5" min="1"></div>
     </div>
     <div class="pf">
       <span class="pmsg" id="rMsg"></span>
@@ -308,6 +436,7 @@ nav {
         <div class="fg"><label>Level</label><select id="sLevel"><option value="">— Select a level —</option></select></div>
         <div class="fg"><label>Your Nickname</label><input id="sNick" placeholder="Shown on the leaderboard"></div>
         <div class="fg"><label>Completion %</label><input id="sPct" type="number" placeholder="100" min="1" max="100"></div>
+        <div class="fg"><label>Attempts</label><input id="sAttempts" type="number" placeholder="e.g. 5" min="1"></div>
         <div class="fg"><label>Video Proof (YouTube)</label><input id="sVid" placeholder="https://youtu.be/..."></div>
         <div class="fg"><label>Extra Info (optional)</label><textarea id="sExtra" placeholder="Device used, anything relevant..."></textarea></div>
       </div>
@@ -320,6 +449,7 @@ nav {
         </div>
         <div class="fg"><label>Publisher</label><input id="vPub" placeholder="Username"></div>
         <div class="fg"><label>Level ID</label><input id="vId" placeholder="e.g. 116795677"></div>
+        <div class="fg"><label>Password</label><input id="vPw" placeholder="e.g. Free to Copy"></div>
         <div class="fg"><label>Verification Video (YouTube)</label><input id="vVid" placeholder="https://youtu.be/..."></div>
         <div class="fg"><label>Showcase Video (optional)</label><input id="vShow" placeholder="https://youtu.be/..."></div>
         <div class="fg"><label>Notes for Admins (optional)</label><textarea id="vNotes" placeholder="Why should this be on the list?"></textarea></div>
@@ -328,8 +458,15 @@ nav {
     <div class="pf">
       <span class="pmsg" id="sMsg"></span>
       <button class="btn btn-ghost" onclick="closeOverlay('subOv')">Cancel</button>
-      <button class="btn btn-primary" onclick="sendSubmission()">Send to Admins</button>
+      <button class="btn btn-primary" id="submitBtn" onclick="sendSubmission()">Send to Admins</button>
     </div>
+  </div>
+</div>
+
+<div class="ov" id="profileOv">
+  <div class="panel" style="max-width:700px">
+    <div class="ph"><h2>Player Profile</h2><button class="xbtn" onclick="closeOverlay('profileOv')">✕</button></div>
+    <div class="pb" id="profileMain"></div>
   </div>
 </div>
 
@@ -345,7 +482,6 @@ const FB_CONFIG = {
   messagingSenderId: "744133456079",
   appId: "1:744133456079:web:53f7efc59b8b039fff47ba"
 };
-
 const WEBHOOK = "https://discord.com/api/webhooks/1487541929351581846/7f2IOONC8OZNtjF9q1t1Y8PhRtUWT-_jyKD2XWzYNDXa0hyPHwNL5Py5iIMNnQfw0ceY";
 
 firebase.initializeApp(FB_CONFIG);
@@ -357,22 +493,42 @@ async function dbPush(path, v) { return dbPath(path).push(v); }
 async function dbRemove(path)  { return dbPath(path).remove(); }
 async function dbUpdate(obj)   { return DB.ref('/').update(obj); }
 
-let isAdmin = false;
-let levels  = [];
-let records = {};
+let isAdmin          = false;
+let levels           = [];
+let records          = {};
 let currentLevelKey  = null;
 let currentLevelIdx  = -1;
 let addRecordTarget  = null;
 let currentSubmitTab = 'rec';
 let currentAdminTab  = 'add';
 let currentLbPlayer  = null;
+let currentPackFilter = null;
+let currentPackView   = null;
+let packs            = [];
+let packColor        = '#c0392b';
+let editLevelKey     = null;
+let editPackKey      = null;
+let selectedPackIds  = new Set();
+let pendingTags      = [];
+let pendingTagColor  = '#c0392b';
+let submitLocked     = false;
+
+const TAG_COLORS = [
+  '#c0392b','#e67e22','#f1c40f','#2ecc71','#1abc9c',
+  '#3498db','#9b59b6','#e91e63','#ffffff','#95a5a6'
+];
 
 const LOG_BASE = Math.log(200 / 42.909) / Math.log(100);
 function calcPoints(rank) {
   if (rank < 1) rank = 1;
   return Math.round(200 * Math.pow(1 / rank, LOG_BASE) * 1000) / 1000;
 }
-
+function calcWeightedScore(pts, pct) {
+  const base = Math.log2(1 + pts) * 1.25;
+  const completionFactor = Math.pow(Math.max(0, pct) / 100, 1.7);
+  const bonus = pct === 100 ? 1.18 : 1;
+  return Math.round(base * completionFactor * bonus * 1000) / 1000;
+}
 function ytEmbed(url) {
   if (!url) return null;
   const m = url.match(/(?:youtu\.be\/|v=|embed\/)([A-Za-z0-9_-]{11})/);
@@ -387,13 +543,16 @@ function esc(s) {
   if (!s && s !== 0) return '';
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
+function fmtDate(ts) {
+  return new Date(ts).toLocaleDateString('en-US', { month:'numeric', day:'numeric', year:'numeric' });
+}
 
 function checkAuth() {
   const KEY = 'bdl_uid';
   let id = localStorage.getItem(KEY);
   if (!id) {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    id = Array.from({length:30}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+    const c = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    id = Array.from({length:30}, () => c[Math.floor(Math.random()*c.length)]).join('');
     localStorage.setItem(KEY, id);
   }
   isAdmin = (id === '67istufflikeohiomangos');
@@ -412,11 +571,14 @@ function updateNavRight() {
 }
 
 async function loadAll() {
-  const [lvData, recData] = await Promise.all([dbGet('levels'), dbGet('records')]);
+  const [lvData, recData, packData] = await Promise.all([dbGet('levels'), dbGet('records'), dbGet('packs')]);
   levels = lvData
-    ? Object.entries(lvData).map(([k,v]) => ({...v, _key:k})).sort((a,b) => (a.pos||9999)-(b.pos||9999))
+    ? Object.entries(lvData).map(([k,v]) => ({...v, _key:k, packs:v.packs||{}})).sort((a,b) => (a.pos||9999)-(b.pos||9999))
     : [];
   records = recData || {};
+  packs = packData
+    ? Object.entries(packData).map(([k,v]) => ({...v, _key:k})).sort((a,b) => (a.pos||9999)-(b.pos||9999))
+    : [];
   document.getElementById('loadEl').style.display = 'none';
   renderSidebar();
   if (!levels.length) {
@@ -425,25 +587,65 @@ async function loadAll() {
     showLevel(0);
   }
   populateLevelSelect();
+  renderPackPicker();
   buildLeaderboard();
 }
 
 function showPage(page) {
-  document.getElementById('pageList').classList.toggle('active', page === 'list');
-  document.getElementById('pageLeaderboard').classList.toggle('active', page === 'leaderboard');
-  document.getElementById('navList').classList.toggle('active', page === 'list');
-  document.getElementById('navLb').classList.toggle('active', page === 'leaderboard');
+  document.getElementById('pageList').classList.toggle('active', page==='list');
+  document.getElementById('pageLeaderboard').classList.toggle('active', page==='leaderboard');
+  document.getElementById('pagePack').classList.toggle('active', page==='pack');
+  document.getElementById('navList').classList.toggle('active', page==='list');
+  document.getElementById('navLb').classList.toggle('active', page==='leaderboard');
+  document.getElementById('navPack').classList.toggle('active', page==='pack');
+  if (page === 'pack') renderPackPage();
+  closeMobileSidebar();
+}
+
+function toggleMobileSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('sidebarOverlay');
+  const isOpen  = sidebar.classList.contains('open');
+  sidebar.classList.toggle('open', !isOpen);
+  overlay.classList.toggle('show', !isOpen);
+}
+function closeMobileSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebarOverlay').classList.remove('show');
 }
 
 function renderSidebar() {
   const ul = document.getElementById('sidebarList');
-  ul.innerHTML = '';
-  levels.forEach((lvl, i) => {
+  if (ul) {
+    ul.innerHTML = '';
+    const visibleLevels = currentPackFilter
+      ? levels.filter(lvl => lvl.packs && lvl.packs[currentPackFilter])
+      : levels;
+    visibleLevels.forEach((lvl, i) => {
+      const li = document.createElement('li');
+      li.className = 'sidebar-item' + (lvl._key === currentLevelKey ? ' active' : '');
+      li.onclick = () => { showLevel(levels.findIndex(x => x._key === lvl._key)); closeMobileSidebar(); };
+      li.innerHTML = `<span class="s-rank">#${lvl.pos || (levels.findIndex(x => x._key === lvl._key) + 1)}</span><span class="s-name">${esc(lvl.name)}</span>`;
+      ul.appendChild(li);
+    });
+  }
+  renderPackSidebar();
+}
+
+function renderPackSidebar() {
+  const packSidebar = document.getElementById('packSidebarList');
+  if (!packSidebar) return;
+  packSidebar.innerHTML = '';
+  if (!packs.length) {
+    packSidebar.innerHTML = '<li class="sidebar-item" style="color:var(--dim);">No packs yet.</li>';
+    return;
+  }
+  packs.forEach((pack, i) => {
     const li = document.createElement('li');
-    li.className = 'sidebar-item' + (lvl._key === currentLevelKey ? ' active' : '');
-    li.onclick = () => showLevel(i);
-    li.innerHTML = `<span class="s-rank">#${i+1}</span><span class="s-name">${esc(lvl.name)}</span>`;
-    ul.appendChild(li);
+    li.className = 'sidebar-item' + (currentPackView && currentPackView._key === pack._key ? ' active' : '');
+    li.onclick = () => showPackView(pack._key);
+    li.innerHTML = `<span class="s-rank">#${pack.pos || i+1}</span><span class="s-name">${esc(pack.name)}</span>`;
+    packSidebar.appendChild(li);
   });
 }
 
@@ -461,6 +663,10 @@ function showLevel(idx) {
     ? Object.entries(records[lvl._key]).map(([k,v]) => ({...v, _key:k})).sort((a,b) => b.pct - a.pct)
     : [];
   const minPct = lvl.minPct || 55;
+  const tags   = lvl.tags || [];
+  const history = lvl.posHistory
+    ? Object.values(lvl.posHistory).sort((a,b) => b.ts - a.ts)
+    : [];
 
   document.getElementById('emptyEl').style.display = 'none';
   const det = document.getElementById('detail');
@@ -476,14 +682,41 @@ function showLevel(idx) {
       ? recs.map(r => `
           <div class="rec-row">
             <span class="rec-pct ${r.pct==100?'full':''}">${r.pct}%</span>
-            <span class="rec-name">${esc(r.nickname)}</span>
+            <button class="rec-name btn-link" onclick="showPlayerProfile(${JSON.stringify(r.nickname)})">${esc(r.nickname)}</button>
             ${r.video ? `<a class="rec-vid" href="${esc(ytLink(r.video))}" target="_blank" rel="noopener">▶ video</a>` : ''}
             ${isAdmin ? `<button class="rec-del" onclick="deleteRecord('${esc(lvl._key)}','${esc(r._key)}')">✕</button>` : ''}
           </div>`).join('')
       : `<div class="rec-empty">No records yet.</div>`;
 
+    const tagHtml = tags.length
+      ? `<div class="tag-row">${tags.map(t => `<span class="tag" style="color:${esc(t.color)};border-color:${esc(t.color)};background:${esc(t.color)}22">${esc(t.name)}</span>`).join('')}</div>`
+      : '';
+    const packHtml = lvl.packs && Object.keys(lvl.packs).length
+      ? `<div class="tag-row">${Object.keys(lvl.packs).map(pk => {
+          const pack = packs.find(p => p._key === pk);
+          return pack ? `<span class="tag" style="color:${esc(pack.color)};border-color:${esc(pack.color)};background:${esc(pack.color)}22">${esc(pack.name)}</span>` : '';
+        }).join('')}</div>`
+      : '';
+
+    const histRows = history.length
+      ? history.map(h => {
+          let chgHtml = '';
+          if (h.change > 0)      chgHtml = `<span class="pt-chg down">↓ ${h.change}</span>`;
+          else if (h.change < 0) chgHtml = `<span class="pt-chg up">↑ ${Math.abs(h.change)}</span>`;
+          else                   chgHtml = `<span class="pt-chg same">—</span>`;
+          return `<tr>
+            <td class="pt-pos">#${h.pos}</td>
+            <td class="pt-chg">${chgHtml}</td>
+            <td class="pt-cause">${esc(h.cause)}</td>
+            <td class="pt-date">${fmtDate(h.ts)}</td>
+          </tr>`;
+        }).join('')
+      : `<tr><td colspan="4" style="color:var(--dim);font-size:0.78rem;padding:0.5rem 0.6rem">No history recorded.</td></tr>`;
+
     det.innerHTML = `
       <div class="lv-title">${esc(lvl.name)}</div>
+      ${tagHtml}
+      ${packHtml}
       <div class="meta-row">
         <div class="meta-item"><div class="meta-lbl">Creator</div><div class="meta-val">${esc(lvl.creator)||'—'}</div></div>
         <div class="meta-item"><div class="meta-lbl">Verifier</div><div class="meta-val">${esc(lvl.verifier)||'—'}</div></div>
@@ -507,6 +740,16 @@ function showLevel(idx) {
         <div class="rec-qualify">${minPct}% or better to qualify</div>
         ${recRows}
       </div>
+      <div class="pos-history">
+        <div class="pos-history-hdr">
+          Position History
+          ${isAdmin ? `<button onclick="openAddHistory('${esc(lvl._key)}','${esc(lvl.name)}')">+ Add</button>` : ''}
+        </div>
+        <table class="pos-table">
+          <thead><tr><th>Position</th><th>Change</th><th>Cause</th><th>Date</th></tr></thead>
+          <tbody>${histRows}</tbody>
+        </table>
+      </div>
     `;
     document.getElementById('tabV').onclick = () => renderVideoTab('v');
     document.getElementById('tabS').onclick = () => renderVideoTab('s');
@@ -515,8 +758,13 @@ function showLevel(idx) {
 }
 
 function openOverlay(id)  { document.getElementById(id).classList.add('open'); }
-function closeOverlay(id) { document.getElementById(id).classList.remove('open'); }
-
+function closeOverlay(id) {
+  document.getElementById(id).classList.remove('open');
+  if (id === 'adminOv') {
+    clearAddLevelForm();
+    clearAddPackForm();
+  }
+}
 function showFormMsg(id, text, isError=false) {
   const el = document.getElementById(id);
   el.textContent = text;
@@ -524,8 +772,27 @@ function showFormMsg(id, text, isError=false) {
   setTimeout(() => el.classList.remove('on'), 4000);
 }
 
+function getAttemptFields(prefix) {
+  const attempts = parseInt(document.getElementById(`${prefix}Attempts`).value);
+  const data = {};
+  if (!Number.isNaN(attempts) && attempts > 0) data.attempts = attempts;
+  return data;
+}
+
+function getAttemptFieldsFromSub(sub) {
+  const data = {};
+  if (sub.attempts) data.attempts = Number(sub.attempts);
+  return data;
+}
+
 function openAdminPanel() {
+  clearAddLevelForm();
+  clearAddPackForm();
   adminTab('add');
+  pendingTags = [];
+  pendingTagColor = '#c0392b';
+  renderTagEditor();
+  renderColorRow();
   openOverlay('adminOv');
   updatePointsPreview();
   updatePendingBadge();
@@ -533,12 +800,16 @@ function openAdminPanel() {
 
 function adminTab(tab) {
   currentAdminTab = tab;
-  document.querySelectorAll('#adminOv .otab').forEach((el,i) => el.classList.toggle('active', ['add','manage','pending'][i]===tab));
+  document.querySelectorAll('#adminOv .otab').forEach((el,i) => el.classList.toggle('active', ['add','manage','packs','pending'][i]===tab));
   document.getElementById('aAdd').style.display     = tab==='add'     ? 'block':'none';
   document.getElementById('aManage').style.display  = tab==='manage'  ? 'block':'none';
+  document.getElementById('aPacks').style.display   = tab==='packs'   ? 'block':'none';
   document.getElementById('aPending').style.display = tab==='pending' ? 'block':'none';
   document.getElementById('adminFt').style.display  = tab==='add'     ? 'flex' :'none';
+  if (tab==='add' && !editLevelKey) clearAddLevelForm();
+  if (tab==='packs' && !editPackKey) clearAddPackForm();
   if (tab==='manage') renderManageTable();
+  if (tab==='packs') renderPackTable();
   if (tab==='pending') renderPendingList();
 }
 
@@ -549,6 +820,364 @@ function updatePointsPreview() {
   if (el) el.textContent = calcPoints(pos) + ' pts';
 }
 
+function renderTagEditor() {
+  const el = document.getElementById('tagEditor');
+  if (!el) return;
+  el.innerHTML = pendingTags.map((t,i) => `
+    <span class="tag-editor-item" style="color:${esc(t.color)};border-color:${esc(t.color)};background:${esc(t.color)}22">
+      ${esc(t.name)}
+      <button onclick="removePendingTag(${i})">✕</button>
+    </span>`).join('');
+}
+
+function renderColorRow() {
+  const el = document.getElementById('colorRow');
+  if (!el) return;
+  el.innerHTML = TAG_COLORS.map(c => `
+    <div class="color-swatch ${c===pendingTagColor?'selected':''}" style="background:${c}"
+      onclick="selectTagColor('${c}')"></div>`).join('');
+}
+
+function renderPackColorRow() {
+  const el = document.getElementById('packColorRow');
+  if (!el) return;
+  el.innerHTML = TAG_COLORS.map(c => `
+    <div class="color-swatch ${c===packColor?'selected':''}" style="background:${c}"
+      onclick="selectPackColor('${c}')"></div>`).join('');
+}
+
+function selectPackColor(c) {
+  packColor = c;
+  renderPackColorRow();
+}
+
+function togglePackSelection(packId) {
+  if (selectedPackIds.has(packId)) selectedPackIds.delete(packId);
+  else selectedPackIds.add(packId);
+  renderPackPicker();
+}
+
+function renderPackPicker(selected = null) {
+  const el = document.getElementById('packPicker');
+  if (!el) return;
+  if (!packs.length) {
+    el.innerHTML = '<div style="color:var(--dim);font-size:0.82rem">No packs available.</div>';
+    return;
+  }
+  if (selected !== null) selectedPackIds = new Set(selected);
+  const selectedSet = new Set(selectedPackIds);
+  el.innerHTML = packs.map(pack => `
+    <button type="button" class="pack-picker-item${selectedSet.has(pack._key) ? ' selected' : ''}" onclick="togglePackSelection('${pack._key}')">
+      ${esc(pack.name)}
+    </button>`).join('');
+}
+
+async function addPack() {
+  const name = document.getElementById('ppn').value.trim();
+  if (!name) { showFormMsg('aMsg','Pack name is required.',true); return; }
+  const rawPos = parseInt(document.getElementById('ppos').value);
+  let pos = rawPos;
+  if (editPackKey) {
+    const currentPack = packs.find(p => p._key === editPackKey);
+    const currentPos = currentPack ? (currentPack.pos || (packs.indexOf(currentPack) + 1)) : packs.length;
+    if (isNaN(pos) || pos < 1) pos = currentPos;
+    pos = Math.min(pos, packs.length);
+  } else {
+    if (isNaN(pos) || pos < 1) pos = packs.length + 1;
+    pos = Math.min(pos, packs.length + 1);
+  }
+
+  const now = Date.now();
+  const packData = {
+    name,
+    color: packColor,
+    description: document.getElementById('ppDesc').value.trim(),
+    pos,
+  };
+
+  if (editPackKey) {
+    const origIdx = packs.findIndex(p => p._key === editPackKey);
+    if (origIdx < 0) { showFormMsg('aMsg','Unable to find the pack to edit.',true); return; }
+
+    const reordered = packs.slice();
+    reordered.splice(origIdx, 1);
+    reordered.splice(pos - 1, 0, { ...packs[origIdx], ...packData });
+
+    const updates = { [`packs/${editPackKey}`]: packData };
+    reordered.forEach((pack, i) => {
+      const newPos = i + 1;
+      const oldPos = pack.pos || (packs.findIndex(x => x._key === pack._key) + 1);
+      if (newPos !== oldPos) updates[`packs/${pack._key}/pos`] = newPos;
+    });
+
+    await dbUpdate(updates);
+    await loadAll();
+    clearAddPackForm();
+    adminTab('packs');
+    showToast(`Pack "${name}" updated!`);
+    return;
+  }
+
+  const updates = {};
+  for (const p of packs) {
+    const pp = p.pos || (packs.indexOf(p) + 1);
+    if (pp >= pos) updates[`packs/${p._key}/pos`] = pp + 1;
+  }
+  if (Object.keys(updates).length) await dbUpdate(updates);
+
+  const ref = await dbPush('packs', packData);
+  await loadAll();
+  clearAddPackForm();
+  adminTab('packs');
+  showToast(`Pack "${name}" added at #${pos}!`);
+}
+
+function clearAddPackForm() {
+  ['ppn','ppDesc','ppos'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  packColor = '#c0392b';
+  editPackKey = null;
+  document.getElementById('packActionBtn').textContent = 'Add Pack';
+  renderPackColorRow();
+}
+
+function openEditPack(idx) {
+  const pack = packs[idx];
+  if (!pack) return;
+  editPackKey = pack._key;
+  document.getElementById('ppn').value = pack.name || '';
+  document.getElementById('ppDesc').value = pack.description || '';
+  document.getElementById('ppos').value = pack.pos || (idx + 1);
+  packColor = pack.color || '#c0392b';
+  document.getElementById('packActionBtn').textContent = 'Save Changes';
+  renderPackColorRow();
+  openOverlay('adminOv');
+  adminTab('packs');
+}
+
+function openEditLevel(idx) {
+  const lvl = levels[idx];
+  if (!lvl) return;
+  editLevelKey = lvl._key;
+  document.getElementById('fn').value = lvl.name || '';
+  document.getElementById('fc').value = lvl.creator || '';
+  document.getElementById('fv').value = lvl.verifier || '';
+  document.getElementById('fp').value = lvl.publisher || '';
+  document.getElementById('fi').value = lvl.levelId || '';
+  document.getElementById('fpw').value = lvl.password || '';
+  document.getElementById('fvv').value = lvl.verif || '';
+  document.getElementById('fsv').value = lvl.showcase || '';
+  document.getElementById('fmq').value = lvl.minPct || 55;
+  document.getElementById('fpos').value = lvl.pos || (idx + 1);
+  pendingTags = lvl.tags ? [...lvl.tags] : [];
+  pendingTagColor = pendingTags[0]?.color || '#c0392b';
+  selectedPackIds = new Set(Object.keys(lvl.packs || {}));
+  renderTagEditor();
+  renderPackPicker();
+  document.getElementById('levelActionBtn').textContent = 'Save Changes';
+  updatePointsPreview();
+  openOverlay('adminOv');
+  adminTab('add');
+}
+
+function renderPackTable() {
+  const tbody = document.getElementById('packsBody');
+  const empty = document.getElementById('packsEmpty');
+  tbody.innerHTML = '';
+  if (!packs.length) { empty.style.display='block'; return; }
+  empty.style.display = 'none';
+  packs.forEach((pack, i) => {
+    const count = levels.filter(l => l.packs && l.packs[pack._key]).length;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="rc">#${i+1}</td>
+      <td class="nc">${esc(pack.name)}</td>
+      <td style="color:var(--muted);font-size:0.7rem"><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:${esc(pack.color)};vertical-align:middle;margin-right:0.4rem"></span>${esc(pack.color)}</td>
+      <td class="rc">${count}</td>
+      <td><div class="abx">
+        <button class="ibtn" onclick="openEditPack(${i})">✎</button>
+        <button class="ibtn" onclick="shiftPack(${i},-1)">↑</button>
+        <button class="ibtn" onclick="shiftPack(${i}, 1)">↓</button>
+        <button class="ibtn del" onclick="removePack(${i})">✕</button>
+      </div></td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+async function shiftPack(idx, dir) {
+  const n = idx + dir;
+  if (n < 0 || n >= packs.length) return;
+  const a = packs[idx], b = packs[n];
+  const pa = a.pos||(idx+1), pb = b.pos||(n+1);
+  const updates = {
+    [`packs/${a._key}/pos`]: pb,
+    [`packs/${b._key}/pos`]: pa,
+  };
+  await dbUpdate(updates);
+  [packs[idx].pos, packs[n].pos] = [pb, pa];
+  packs.sort((x,y) => (x.pos||9999)-(y.pos||9999));
+  renderPackTable();
+  renderPackPicker();
+}
+
+async function removePack(idx) {
+  const pack = packs[idx];
+  if (!confirm(`Delete pack "${pack.name}"?`)) return;
+  await dbRemove(`packs/${pack._key}`);
+  const updates = {};
+  levels.forEach(lvl => {
+    if (lvl.packs && lvl.packs[pack._key]) {
+      const next = {...lvl.packs};
+      delete next[pack._key];
+      updates[`levels/${lvl._key}/packs`] = next;
+    }
+  });
+  if (Object.keys(updates).length) await dbUpdate(updates);
+  packs.splice(idx, 1);
+  renderPackTable();
+  renderPackPicker();
+  await loadAll();
+  showToast(`Pack "${pack.name}" deleted.`);
+}
+
+function showPackView(packId) {
+  currentPackFilter = packId;
+  currentPackView = packs.find(p => p._key === packId) || null;
+  renderSidebar();
+  const pack = currentPackView;
+  if (!pack) return;
+  const packLevels = levels.filter(lvl => lvl.packs && lvl.packs[packId]);
+  const totalPoints = packLevels.reduce((sum, lvl, i) => sum + calcPoints(i+1), 0);
+  const completedCount = packLevels.reduce((count, lvl) => {
+    const recs = records[lvl._key] ? Object.values(records[lvl._key]) : [];
+    return count + (recs.some(rec => rec.pct === 100) ? 1 : 0);
+  }, 0);
+  document.getElementById('packHero').innerHTML = `
+    <div>
+      <div class="pack-title" style="color: ${esc(pack.color)};">${esc(pack.name)}</div>
+      <div class="pack-meta">${pack.description ? esc(pack.description) + ' • ' : ''}${packLevels.length} levels</div>
+      <div class="pack-meta" style="color: var(--gold); font-family: 'Share Tech Mono', monospace;">+${totalPoints.toFixed(1)} points</div>
+    </div>
+    <button class="btn btn-outline" onclick="resetPackFilter()">All Levels</button>
+  `;
+  document.getElementById('packLevels').innerHTML = packLevels.map((lvl, i) => `
+    <div class="pcard" style="background: linear-gradient(135deg, ${esc(pack.color)}22 0%, #0e0808 100%); border-left: 3px solid ${esc(pack.color)}; cursor: pointer;" onclick="showLevel(${levels.findIndex(x => x._key === lvl._key)}); showPage('list')">
+      <div class="pcard-type" style="color: ${esc(pack.color)};">LEVEL #${lvl.pos || (i+1)}</div>
+      <div class="pcard-title">${esc(lvl.name)}</div>
+      <div style="color: var(--gold); font-family: 'Share Tech Mono', monospace; font-size: 0.9rem; margin-top: 0.3rem;">
+        +${calcPoints(lvl.pos || (i+1))} points
+      </div>
+    </div>`).join('');
+  showPage('pack');
+}
+
+function resetPackFilter() {
+  currentPackFilter = null;
+  currentPackView = null;
+  renderSidebar();
+  showPage('list');
+}
+
+function renderPackPage() {
+  const hero = document.getElementById('packHero');
+  const levelsEl = document.getElementById('packLevels');
+  if (!hero || !levelsEl) return;
+  if (!currentPackView) {
+    hero.innerHTML = `
+      <div>
+        <div class="pack-title">Packs</div>
+        <div class="pack-meta">${packs.length} pack${packs.length === 1 ? '' : 's'} available</div>
+      </div>`;
+    levelsEl.innerHTML = packs.length
+      ? packs.map((pack, i) => {
+          const packLevels = levels.filter(lvl => lvl.packs && lvl.packs[pack._key]);
+          const completedCount = packLevels.reduce((count, lvl) => {
+            const recs = records[lvl._key] ? Object.values(records[lvl._key]) : [];
+            return count + (recs.some(rec => rec.pct === 100) ? 1 : 0);
+          }, 0);
+          const totalPoints = packLevels.reduce((sum, lvl) => {
+            const lvlIdx = levels.findIndex(x => x._key === lvl._key);
+            return sum + calcPoints(lvlIdx + 1);
+          }, 0);
+          
+          return `
+            <div class="pack-list">
+              <div class="pack-hero" style="margin-bottom: 1rem;">
+                <div>
+                  <div class="pack-title" style="color: ${esc(pack.color)}; font-size: 1.5rem;">#${pack.pos || (i+1)} ${esc(pack.name)}</div>
+                  <div class="pack-meta">${pack.description ? esc(pack.description) + ' • ' : ''}${packLevels.length} levels</div>
+                  <div class="pack-meta" style="color: var(--gold); font-family: 'Share Tech Mono', monospace;">+${totalPoints.toFixed(1)} points</div>
+                </div>
+              </div>
+              <div class="pack-levels-grid" style="display: grid; gap: 0.8rem;">
+                ${packLevels.length ? packLevels.map((lvl, lvlIdx) => {
+                  const globalIdx = levels.findIndex(x => x._key === lvl._key);
+                  const points = calcPoints(globalIdx + 1);
+                  
+                  return `
+                    <div class="pcard" style="background: linear-gradient(135deg, ${esc(pack.color)}22 0%, #0e0808 100%); border-left: 3px solid ${esc(pack.color)}; cursor: pointer;" onclick="showLevel(${globalIdx}); showPage('list')">
+                      <div class="pcard-type" style="color: ${esc(pack.color)};">LEVEL #${lvl.pos || (globalIdx + 1)}</div>
+                      <div class="pcard-title">${esc(lvl.name)}</div>
+                      <div style="color: var(--gold); font-family: 'Share Tech Mono', monospace; font-size: 0.9rem; margin-top: 0.3rem;">
+                        +${points} points
+                      </div>
+                    </div>`;
+                }).join('') : '<div style="color: var(--dim); font-size: 0.9rem; padding: 2rem; text-align: center; grid-column: 1 / -1;">No levels assigned to this pack yet.</div>'}
+              </div>
+            </div>`;
+        }).join('')
+      : '<div style="color:var(--dim);font-size:0.9rem">No packs available yet.</div>';
+    return;
+  }
+  const pack = currentPackView;
+  const packLevels = levels.filter(lvl => lvl.packs && lvl.packs[pack._key]);
+  const totalPoints = packLevels.reduce((sum, lvl) => {
+    const lvlIdx = levels.findIndex(x => x._key === lvl._key);
+    return sum + calcPoints(lvlIdx + 1);
+  }, 0);
+  
+  hero.innerHTML = `
+    <div>
+      <div class="pack-title" style="color: ${esc(pack.color)};">${esc(pack.name)}</div>
+      <div class="pack-meta">${pack.description ? esc(pack.description) + ' • ' : ''}${packLevels.length} levels</div>
+      <div class="pack-meta" style="color: var(--gold); font-family: 'Share Tech Mono', monospace;">+${totalPoints.toFixed(1)} points</div>
+    </div>
+    <button class="btn btn-outline" onclick="resetPackFilter()">All Levels</button>
+  `;
+  levelsEl.innerHTML = packLevels.length
+    ? `<div class="pack-levels-grid" style="display: grid; gap: 0.8rem;">
+        ${packLevels.map((lvl, i) => {
+          const globalIdx = levels.findIndex(x => x._key === lvl._key);
+          const points = calcPoints(globalIdx + 1);
+          
+          return `
+            <div class="pcard" style="background: linear-gradient(135deg, ${esc(pack.color)}22 0%, #0e0808 100%); border-left: 3px solid ${esc(pack.color)}; cursor: pointer;" onclick="showLevel(${globalIdx}); showPage('list')">
+              <div class="pcard-type" style="color: ${esc(pack.color)};">LEVEL #${lvl.pos || (globalIdx + 1)}</div>
+              <div class="pcard-title">${esc(lvl.name)}</div>
+              <div style="color: var(--gold); font-family: 'Share Tech Mono', monospace; font-size: 0.9rem; margin-top: 0.3rem;">
+                +${points} points
+              </div>
+            </div>`;
+        }).join('')}
+      </div>`
+    : '<div style="color:var(--dim);font-size:0.9rem">No levels assigned to this pack yet.</div>';
+}
+
+function addTagToEditor() {
+  const input = document.getElementById('tagInput');
+  const name  = input.value.trim();
+  if (!name) return;
+  pendingTags.push({ name, color: pendingTagColor });
+  input.value = '';
+  renderTagEditor();
+}
+
+function removePendingTag(i) {
+  pendingTags.splice(i, 1);
+  renderTagEditor();
+}
+
 async function addLevel() {
   const name = document.getElementById('fn').value.trim();
   if (!name) { showFormMsg('aMsg','Level name is required.',true); return; }
@@ -557,6 +1186,11 @@ async function addLevel() {
   if (isNaN(pos) || pos < 1) pos = levels.length + 1;
   pos = Math.min(pos, levels.length + 1);
 
+  const now = Date.now();
+  const selectedPacks = Array.from(selectedPackIds).reduce((obj, packId) => {
+    obj[packId] = true;
+    return obj;
+  }, {});
   const lvl = {
     name,
     creator:   document.getElementById('fc').value.trim(),
@@ -567,8 +1201,49 @@ async function addLevel() {
     verif:     document.getElementById('fvv').value.trim(),
     showcase:  document.getElementById('fsv').value.trim(),
     minPct:    parseInt(document.getElementById('fmq').value) || 55,
+    tags:      pendingTags,
+    packs:     selectedPacks,
     pos,
   };
+
+  if (editLevelKey) {
+    const origIdx = levels.findIndex(l => l._key === editLevelKey);
+    if (origIdx < 0) { showFormMsg('aMsg','Unable to find the level to edit.',true); return; }
+
+    const updatedLevel = { ...levels[origIdx], ...lvl };
+    const reordered = levels.slice();
+    reordered.splice(origIdx, 1);
+    reordered.splice(pos - 1, 0, updatedLevel);
+
+    const updates = {
+      [`levels/${editLevelKey}/name`]: name,
+      [`levels/${editLevelKey}/creator`]: lvl.creator,
+      [`levels/${editLevelKey}/verifier`]: lvl.verifier,
+      [`levels/${editLevelKey}/publisher`]: lvl.publisher,
+      [`levels/${editLevelKey}/levelId`]: lvl.levelId,
+      [`levels/${editLevelKey}/password`]: lvl.password,
+      [`levels/${editLevelKey}/verif`]: lvl.verif,
+      [`levels/${editLevelKey}/showcase`]: lvl.showcase,
+      [`levels/${editLevelKey}/minPct`]: lvl.minPct,
+      [`levels/${editLevelKey}/tags`]: lvl.tags,
+      [`levels/${editLevelKey}/packs`]: lvl.packs,
+      [`levels/${editLevelKey}/pos`]: lvl.pos,
+    };
+    reordered.forEach((level, i) => {
+      const newPos = i + 1;
+      const oldPos = level.pos || (levels.findIndex(x => x._key === level._key) + 1);
+      if (newPos !== oldPos) updates[`levels/${level._key}/pos`] = newPos;
+    });
+
+    await dbUpdate(updates);
+    await loadAll();
+    clearAddLevelForm();
+    closeOverlay('adminOv');
+    showToast(`"${name}" updated!`);
+    const newIdx = levels.findIndex(l => l._key === editLevelKey);
+    if (newIdx >= 0) showLevel(newIdx);
+    return;
+  }
 
   const updates = {};
   for (const l of levels) {
@@ -578,6 +1253,8 @@ async function addLevel() {
   if (Object.keys(updates).length) await dbUpdate(updates);
 
   const ref = await dbPush('levels', lvl);
+  await dbPush(`levels/${ref.key}/posHistory`, { pos, change: 0, cause: `Placed at #${pos}`, ts: now });
+
   await loadAll();
   clearAddLevelForm();
   closeOverlay('adminOv');
@@ -590,7 +1267,15 @@ function clearAddLevelForm() {
   ['fn','fc','fv','fp','fi','fpw','fvv','fsv','fmq','fpos'].forEach(id => {
     const el = document.getElementById(id); if (el) el.value = '';
   });
+  document.getElementById('packPicker').innerHTML = '';
+  selectedPackIds = new Set();
+  pendingTags = [];
+  pendingTagColor = '#c0392b';
+  editLevelKey = null;
+  document.getElementById('levelActionBtn').textContent = 'Add Level';
+  renderTagEditor();
   updatePointsPreview();
+  renderPackPicker();
 }
 
 function renderManageTable() {
@@ -607,6 +1292,7 @@ function renderManageTable() {
       <td style="color:var(--dim);font-size:0.7rem">${esc(lvl.levelId)||'—'}</td>
       <td class="pc">${calcPoints(i+1)}</td>
       <td><div class="abx">
+        <button class="ibtn" onclick="openEditLevel(${i})">✎</button>
         <button class="ibtn" onclick="shiftLevel(${i},-1)">↑</button>
         <button class="ibtn" onclick="shiftLevel(${i}, 1)">↓</button>
         <button class="ibtn del" onclick="removeLevel(${i})">✕</button>
@@ -620,7 +1306,19 @@ async function shiftLevel(idx, dir) {
   if (n < 0 || n >= levels.length) return;
   const a = levels[idx], b = levels[n];
   const pa = a.pos||(idx+1), pb = b.pos||(n+1);
-  await dbUpdate({ [`levels/${a._key}/pos`]: pb, [`levels/${b._key}/pos`]: pa });
+  const now = Date.now();
+  const updates = {
+    [`levels/${a._key}/pos`]: pb,
+    [`levels/${b._key}/pos`]: pa,
+  };
+  await dbUpdate(updates);
+
+  const newPosA = pb, newPosB = pa;
+  await Promise.all([
+    dbPush(`levels/${a._key}/posHistory`, { pos: newPosA, change: newPosA - pa, cause: `${b.name} was placed above`, ts: now }),
+    dbPush(`levels/${b._key}/posHistory`, { pos: newPosB, change: newPosB - pb, cause: `${a.name} was placed above`, ts: now }),
+  ]);
+
   [levels[idx].pos, levels[n].pos] = [pb, pa];
   levels.sort((x,y) => (x.pos||9999)-(y.pos||9999));
   renderManageTable();
@@ -651,10 +1349,55 @@ async function removeLevel(idx) {
   }
 }
 
+let historyTargetKey  = null;
+let historyTargetName = null;
+
+function openAddHistory(key, name) {
+  historyTargetKey  = key;
+  historyTargetName = name;
+  const existing = document.getElementById('histOv');
+  if (existing) existing.remove();
+
+  const div = document.createElement('div');
+  div.className = 'ov open';
+  div.id = 'histOv';
+  div.innerHTML = `
+    <div class="panel" style="max-width:440px">
+      <div class="ph"><h2>Add History — <span style="color:var(--muted);font-weight:400">${esc(name)}</span></h2>
+        <button class="xbtn" onclick="document.getElementById('histOv').remove()">✕</button></div>
+      <div class="pb">
+        <div class="fg"><label>New Position</label><input id="hPos" type="number" placeholder="e.g. 5" min="1"></div>
+        <div class="fg"><label>Change (negative = moved up)</label><input id="hChg" type="number" placeholder="e.g. -2 or 1"></div>
+        <div class="fg"><label>Cause</label><input id="hCause" placeholder="e.g. Buffed Xenon placed above"></div>
+      </div>
+      <div class="pf">
+        <button class="btn btn-ghost" onclick="document.getElementById('histOv').remove()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveHistory()">Save</button>
+      </div>
+    </div>`;
+  document.body.appendChild(div);
+}
+
+async function saveHistory() {
+  const pos   = parseInt(document.getElementById('hPos').value);
+  const chg   = parseInt(document.getElementById('hChg').value);
+  const cause = document.getElementById('hCause').value.trim();
+  if (!pos || !cause) { showToast('Position and cause required.',true); return; }
+  await dbPush(`levels/${historyTargetKey}/posHistory`, { pos, change: isNaN(chg)?0:chg, cause, ts: Date.now() });
+  const lvl = levels.find(l => l._key === historyTargetKey);
+  if (lvl) {
+    if (!lvl.posHistory) lvl.posHistory = {};
+    lvl.posHistory[Date.now()] = { pos, change: isNaN(chg)?0:chg, cause, ts: Date.now() };
+  }
+  document.getElementById('histOv').remove();
+  showLevel(currentLevelIdx);
+  showToast('History entry added.');
+}
+
 function openAddRecord(key, name) {
   addRecordTarget = key;
   document.getElementById('recLvlName').textContent = name;
-  ['rNick','rPct','rVid'].forEach(id => document.getElementById(id).value = '');
+  ['rNick','rPct','rVid','rAttempts'].forEach(id => document.getElementById(id).value = '');
   openOverlay('recOv');
 }
 
@@ -664,7 +1407,7 @@ async function saveRecord() {
   const video = document.getElementById('rVid').value.trim();
   if (!nick)                { showFormMsg('rMsg','Nickname required.',true); return; }
   if (!pct||pct<1||pct>100) { showFormMsg('rMsg','% must be 1–100.',true); return; }
-  const rec = { nickname:nick, pct, video, addedAt:Date.now() };
+  const rec = { nickname:nick, pct, video, addedAt:Date.now(), ...getAttemptFields('r') };
   const ref = await dbPush(`records/${addRecordTarget}`, rec);
   if (!records[addRecordTarget]) records[addRecordTarget] = {};
   records[addRecordTarget][ref.key] = rec;
@@ -701,7 +1444,7 @@ async function renderPendingList() {
     const date = new Date(sub.submittedAt).toLocaleDateString();
     if (sub.type === 'record') {
       return `<div class="pcard">
-        <div class="pcard-type">Record · ${date}</div>
+        <div class="pcard-type">🎮 Record · ${date}</div>
         <div class="pcard-title">${esc(sub.level)} — <span style="color:var(--gold)">${esc(sub.pct)}%</span></div>
         <div class="pcard-detail">By: <b>${esc(sub.nickname)}</b>${sub.extra ? `<br>${esc(sub.extra)}` : ''}</div>
         ${sub.video ? `<a href="${esc(sub.video)}" target="_blank" rel="noopener">▶ Proof video</a>` : ''}
@@ -714,9 +1457,16 @@ async function renderPendingList() {
       return `<div class="pcard">
         <div class="pcard-type">🔬 Verification · ${date}</div>
         <div class="pcard-title">${esc(sub.name)}</div>
-        <div class="pcard-detail">Creator: <b>${esc(sub.creator)||'—'}</b> · Verifier: <b>${esc(sub.verifier)}</b> · ID: <b>${esc(sub.id)||'—'}</b>${sub.notes ? `<br>${esc(sub.notes)}` : ''}</div>
+        <div class="pcard-detail">
+          Creator: <b>${esc(sub.creator)||'—'}</b> · Verifier: <b>${esc(sub.verifier)}</b><br>
+          Publisher: <b>${esc(sub.publisher)||'—'}</b> · ID: <b>${esc(sub.id)||'—'}</b>
+          ${sub.password ? ` · Password: <b>${esc(sub.password)}</b>` : ''}
+          ${sub.notes ? `<br>${esc(sub.notes)}` : ''}
+        </div>
         ${sub.video ? `<a href="${esc(sub.video)}" target="_blank" rel="noopener">▶ Verification video</a>` : ''}
+        ${sub.showcase ? ` · <a href="${esc(sub.showcase)}" target="_blank" rel="noopener">▶ Showcase</a>` : ''}
         <div class="pcard-actions">
+          <button class="btn btn-primary btn-sm" onclick="approveVerification('${key}')">✓ Approve & Add Level</button>
           <button class="btn btn-outline btn-sm" onclick="rejectSubmission('${key}')">✕ Dismiss</button>
         </div>
       </div>`;
@@ -725,11 +1475,12 @@ async function renderPendingList() {
 }
 
 async function approveRecord(key) {
+  if (!confirm('Approve this record?')) return;
   const sub = await dbGet(`pending/${key}`);
   if (!sub || sub.type !== 'record') return;
   const lvl = levels.find(l => l.name.toLowerCase() === sub.level.toLowerCase());
   if (!lvl) { showToast('Level not found in list.', true); return; }
-  const rec = { nickname:sub.nickname, pct:parseInt(sub.pct)||100, video:sub.video||'', addedAt:Date.now() };
+  const rec = { nickname:sub.nickname, pct:parseInt(sub.pct)||100, video:sub.video||'', addedAt:Date.now(), ...getAttemptFieldsFromSub(sub) };
   const ref = await dbPush(`records/${lvl._key}`, rec);
   if (!records[lvl._key]) records[lvl._key] = {};
   records[lvl._key][ref.key] = rec;
@@ -741,8 +1492,35 @@ async function approveRecord(key) {
   showToast('Record approved!');
 }
 
+async function approveVerification(key) {
+  if (!confirm('Approve this verification and add it as a new level?')) return;
+  const sub = await dbGet(`pending/${key}`);
+  if (!sub || sub.type !== 'verification') return;
+  const pos = levels.length + 1;
+  const now = Date.now();
+  const lvl = {
+    name:      sub.name,
+    creator:   sub.creator  || '',
+    verifier:  sub.verifier || '',
+    publisher: sub.publisher || '',
+    levelId:   sub.id       || '',
+    password:  sub.password || '',
+    verif:     sub.video    || '',
+    showcase:  sub.showcase || '',
+    minPct:    55,
+    tags:      [],
+    pos,
+  };
+  const ref = await dbPush('levels', lvl);
+  await dbPush(`levels/${ref.key}/posHistory`, { pos, change:0, cause:`Placed at #${pos}`, ts:now });
+  await dbRemove(`pending/${key}`);
+  await loadAll();
+  renderPendingList();
+  updatePendingBadge();
+  showToast(`"${sub.name}" added to the list!`);
+}
+
 async function rejectSubmission(key) {
-  if (!confirm('Dismiss this submission?')) return;
   await dbRemove(`pending/${key}`);
   renderPendingList();
   updatePendingBadge();
@@ -764,6 +1542,8 @@ function populateLevelSelect() {
 }
 
 async function sendSubmission() {
+  if (submitLocked) return;
+
   if (currentSubmitTab === 'rec') {
     const level = document.getElementById('sLevel').value;
     const nick  = document.getElementById('sNick').value.trim();
@@ -774,9 +1554,13 @@ async function sendSubmission() {
     if (!nick)  { showFormMsg('sMsg','Nickname required.',true); return; }
     if (!pct)   { showFormMsg('sMsg','Completion % required.',true); return; }
     if (!video) { showFormMsg('sMsg','Video proof required.',true); return; }
-    await dbPush('pending', { type:'record', level, nickname:nick, pct, video, extra, submittedAt:Date.now() });
+
+    submitLocked = true;
+    document.getElementById('submitBtn').disabled = true;
+
+    await dbPush('pending', { type:'record', level, nickname:nick, pct, video, extra, submittedAt:Date.now(), ...getAttemptFields('s') });
     await sendWebhook({ username:'BDL Submissions', embeds:[{
-      title:'New Record Submission', color:0xc0392b,
+      title:'🎮 New Record Submission', color:0xc0392b,
       fields:[
         {name:'Level', value:level, inline:true},
         {name:'Player', value:nick, inline:true},
@@ -786,8 +1570,16 @@ async function sendSubmission() {
       ],
       footer:{text:'BDL'}, timestamp:new Date().toISOString()
     }]});
-    showFormMsg('sMsg','Submitted! Admins will review your record.');
-    setTimeout(() => closeOverlay('subOv'), 2200);
+    showFormMsg('sMsg','Submitted! Closing in 3s...');
+    setTimeout(() => {
+      closeOverlay('subOv');
+      submitLocked = false;
+      document.getElementById('submitBtn').disabled = false;
+      ['sLevel','sNick','sPct','sVid','sExtra','sAttempts'].forEach(id => {
+        const el = document.getElementById(id); if (el) el.value = '';
+      });
+    }, 3000);
+
   } else {
     const name  = document.getElementById('vName').value.trim();
     const verif = document.getElementById('vVerifier').value.trim();
@@ -795,11 +1587,16 @@ async function sendSubmission() {
     if (!name)  { showFormMsg('sMsg','Level name required.',true); return; }
     if (!verif) { showFormMsg('sMsg','Verifier name required.',true); return; }
     if (!video) { showFormMsg('sMsg','Verification video required.',true); return; }
+
+    submitLocked = true;
+    document.getElementById('submitBtn').disabled = true;
+
     const sub = {
       type:'verification', name, verifier:verif,
       creator:   document.getElementById('vCreator').value.trim(),
       publisher: document.getElementById('vPub').value.trim(),
       id:        document.getElementById('vId').value.trim(),
+      password:  document.getElementById('vPw').value.trim(),
       video,
       showcase:  document.getElementById('vShow').value.trim(),
       notes:     document.getElementById('vNotes').value.trim(),
@@ -812,14 +1609,21 @@ async function sendSubmission() {
         {name:'Level', value:name, inline:true},
         {name:'Verifier', value:verif, inline:true},
         {name:'Creator', value:sub.creator||'—', inline:true},
+        {name:'Publisher', value:sub.publisher||'—', inline:true},
         {name:'Level ID', value:sub.id||'—', inline:true},
+        {name:'Password', value:sub.password||'—', inline:true},
         {name:'Video', value:video},
+        ...(sub.showcase?[{name:'Showcase', value:sub.showcase}]:[]),
         ...(sub.notes?[{name:'Notes',value:sub.notes}]:[]),
       ],
       footer:{text:'BDL'}, timestamp:new Date().toISOString()
     }]});
-    showFormMsg('sMsg','Verification submitted! Admins will review it.');
-    setTimeout(() => closeOverlay('subOv'), 2200);
+    showFormMsg('sMsg','Verification submitted! Closing in 3s...');
+    setTimeout(() => {
+      closeOverlay('subOv');
+      submitLocked = false;
+      document.getElementById('submitBtn').disabled = false;
+    }, 3000);
   }
 }
 
@@ -830,27 +1634,25 @@ async function sendWebhook(payload) {
 
 function buildLeaderboard() {
   const playerTotals = {};
-
   levels.forEach((lvl, i) => {
-    const pts = calcPoints(i + 1);
-    const recs = records[lvl._key]
-      ? Object.values(records[lvl._key])
-      : [];
+    const pts  = calcPoints(i + 1);
+    const recs = records[lvl._key] ? Object.values(records[lvl._key]) : [];
     recs.forEach(rec => {
       const name = rec.nickname;
-      if (!playerTotals[name]) playerTotals[name] = { total:0, verified:[], completed:[] };
-      const contribution = pts * (rec.pct / 100);
+      if (!playerTotals[name]) playerTotals[name] = { total:0, verified:[], completed:[], rawRecords:[] };
+      const contribution = calcWeightedScore(pts, rec.pct);
       playerTotals[name].total += contribution;
+      playerTotals[name].rawRecords.push({ ...rec, lvl, pos:i+1, pts, score: contribution });
       if (rec.pct === 100) {
-        playerTotals[name].completed.push({ name:lvl.name, pos:i+1, pts, _key:lvl._key });
+        playerTotals[name].completed.push({ name:lvl.name, pos:i+1, pts, score: contribution, _key:lvl._key });
       } else {
-        playerTotals[name].verified.push({ name:lvl.name, pos:i+1, pts: Math.round(contribution*1000)/1000, _key:lvl._key });
+        playerTotals[name].verified.push({ name:lvl.name, pos:i+1, pts, score: contribution, _key:lvl._key });
       }
     });
   });
 
   const ranked = Object.entries(playerTotals)
-    .map(([name, data]) => ({ name, total: Math.round(data.total * 1000) / 1000, ...data }))
+    .map(([name, data]) => ({ name, total:Math.round(data.total*1000)/1000, ...data }))
     .sort((a,b) => b.total - a.total);
 
   const ul = document.getElementById('lbSidebarList');
@@ -858,12 +1660,11 @@ function buildLeaderboard() {
   ranked.forEach((player, i) => {
     const li = document.createElement('li');
     li.className = 'lb-row' + (player.name === currentLbPlayer ? ' active' : '');
-    li.onclick = () => showLeaderboardPlayer(player, i + 1, ranked);
+    li.onclick = () => showLeaderboardPlayer(player, i+1, ranked);
     li.innerHTML = `
       <span class="lb-pos">#${i+1}</span>
       <span class="lb-pts">${player.total.toFixed(3)}</span>
-      <span class="lb-player">${esc(player.name)}</span>
-    `;
+      <span class="lb-player"><button class="btn-link" onclick="event.stopPropagation(); showPlayerProfile(${JSON.stringify(player.name)})">${esc(player.name)}</button></span>`;
     ul.appendChild(li);
   });
 
@@ -871,24 +1672,77 @@ function buildLeaderboard() {
     showLeaderboardPlayer(ranked[0], 1, ranked);
   } else if (currentLbPlayer) {
     const idx = ranked.findIndex(p => p.name === currentLbPlayer);
-    if (idx >= 0) showLeaderboardPlayer(ranked[idx], idx + 1, ranked);
+    if (idx >= 0) showLeaderboardPlayer(ranked[idx], idx+1, ranked);
   }
 
   if (!ranked.length) {
     document.getElementById('lbMain').innerHTML = `
-      <div class="empty-state">
-        <div class="empty-big">—</div>
-        <p>No records have been added yet.</p>
-      </div>`;
+      <div class="empty-state"><div class="empty-big">—</div><p>No records have been added yet.</p></div>`;
   }
+}
+
+function showPlayerProfile(name) {
+  const recordsForPlayer = [];
+  levels.forEach((lvl, i) => {
+    const recs = records[lvl._key] ? Object.values(records[lvl._key]) : [];
+    recs.forEach(rec => {
+      if (rec.nickname === name) {
+        recordsForPlayer.push({ ...rec, lvl, pos:i+1, pts: calcPoints(i+1) });
+      }
+    });
+  });
+
+  if (!recordsForPlayer.length) {
+    showToast('No profile data found for that player.', true);
+    return;
+  }
+
+  const totalScore = recordsForPlayer.reduce((sum, rec) => sum + calcWeightedScore(rec.pts, rec.pct), 0);
+  const totalRecords = recordsForPlayer.length;
+  const completed = recordsForPlayer.filter(rec => rec.pct === 100);
+  const verified = recordsForPlayer.filter(rec => rec.pct !== 100);
+  const averageCompletion = Math.round(recordsForPlayer.reduce((sum, rec) => sum + rec.pct, 0) / totalRecords * 100) / 100;
+  const attemptsRecords = recordsForPlayer.filter(rec => rec.attempts > 0);
+  const totalAttempts = attemptsRecords.reduce((sum, rec) => sum + (rec.attempts || 0), 0);
+  const avgAttempts = attemptsRecords.length ? Math.round((totalAttempts / attemptsRecords.length) * 100) / 100 : 0;
+  const personalBest = attemptsRecords.length ? Math.min(...attemptsRecords.map(rec => rec.attempts)) : null;
+  const hardest = completed.length
+    ? completed.reduce((best, rec) => rec.pts > best.pts ? rec : best, completed[0])
+    : recordsForPlayer.reduce((best, rec) => (rec.pts * (rec.pct / 100)) > (best.pts * (best.pct / 100)) ? rec : best, recordsForPlayer[0]);
+  const recentActivity = recordsForPlayer.sort((a,b) => (b.addedAt || 0) - (a.addedAt || 0)).slice(0, 6);
+
+  const activityHtml = recentActivity.map(rec => `
+      <div class="activity-row">
+        <div>
+          <div class="activity-name">#${rec.pos} ${esc(rec.lvl.name)}</div>
+          <div class="activity-meta">${rec.pct}% • ${rec.attempts ? `${rec.attempts} attempts` : 'No attempts'}</div>
+        </div>
+      </div>`).join('');
+
+  document.getElementById('profileMain').innerHTML = `
+    <div class="lb-hero-rank"><span>Profile</span> ${esc(name)}</div>
+    <div class="lb-hero-pts">${totalScore.toFixed(3)} pts</div>
+    <div class="profile-grid">
+      <div class="profile-card"><div class="stat-lbl">Total Records</div><div class="stat-val">${totalRecords}</div></div>
+      <div class="profile-card"><div class="stat-lbl">Completed</div><div class="stat-val">${completed.length}</div></div>
+      <div class="profile-card"><div class="stat-lbl">Verified</div><div class="stat-val">${verified.length}</div></div>
+      <div class="profile-card"><div class="stat-lbl">Avg Completion</div><div class="stat-val">${averageCompletion}%</div></div>
+        <div class="profile-card"><div class="stat-lbl">Hardest Completion</div><div class="stat-val">#${hardest.pos} ${esc(hardest.lvl.name)} ${hardest.pct}%</div></div>
+      <div class="profile-card"><div class="stat-lbl">Total Attempts</div><div class="stat-val">${totalAttempts}</div></div>
+      <div class="profile-card"><div class="stat-lbl">Average Attempts</div><div class="stat-val">${avgAttempts || '—'}</div></div>
+      <div class="profile-card"><div class="stat-lbl">Best Attempt Count</div><div class="stat-val">${personalBest !== null ? personalBest : '—'}</div></div>
+    </div>
+    <div class="player-activity">
+      <div class="lb-section-title">Recent Activity</div>
+      ${activityHtml}
+    </div>
+  `;
+  openOverlay('profileOv');
 }
 
 function showLeaderboardPlayer(player, rank, allRanked) {
   currentLbPlayer = player.name;
-
-  document.querySelectorAll('.lb-row').forEach((el, i) => {
-    el.classList.toggle('active', allRanked[i]?.name === player.name);
-  });
+  document.querySelectorAll('.lb-row').forEach((el, i) => el.classList.toggle('active', allRanked[i]?.name === player.name));
 
   const verifiedRows = player.verified.length
     ? player.verified.map(l => `
