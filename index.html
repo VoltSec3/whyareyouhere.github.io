@@ -631,7 +631,12 @@ AUTH.onAuthStateChanged(async (user) => {
   currentUser = user;
   if (user) {
     // Check if admin by UID stored in DB or listed in code
-    const adminData = await dbGet(`admins/${user.uid}`);
+    let adminData = null;
+    try {
+      adminData = await dbGet(`admins/${user.uid}`);
+    } catch (err) {
+      console.warn('Unable to read admin flag:', err);
+    }
     isAdmin = ADMIN_UIDs.includes(user.uid) || !!adminData;
   } else {
     isAdmin = false;
