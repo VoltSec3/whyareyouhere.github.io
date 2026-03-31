@@ -374,12 +374,12 @@ nav {
         <button class="auth-tab" id="authTabSignup" onclick="switchAuthTab('signup')">Sign Up</button>
       </div>
       <div id="authLoginForm">
-        <div class="fg"><label>Username</label><input id="authUsernameLogin" type="text" placeholder="Username"></div>
-        <div class="fg"><label>Password</label><input id="authPasswordLogin" type="password" placeholder="Password"></div>
+        <div class="fg"><label>Username</label><input id="authUsernameLogin" type="text" placeholder="Username" onkeydown="if(event.key==='Enter'){event.preventDefault();handleAuthSubmit();}"></div>
+        <div class="fg"><label>Password</label><input id="authPasswordLogin" type="password" placeholder="Password" onkeydown="if(event.key==='Enter'){event.preventDefault();handleAuthSubmit();}"></div>
       </div>
       <div id="authSignupForm" style="display:none">
-        <div class="fg"><label>Username</label><input id="authUsername" type="text" placeholder="Your display name"></div>
-        <div class="fg"><label>Password</label><input id="authPasswordSu" type="password" placeholder="Min 6 characters"></div>
+        <div class="fg"><label>Username</label><input id="authUsername" type="text" placeholder="Your display name" onkeydown="if(event.key==='Enter'){event.preventDefault();handleAuthSubmit();}"></div>
+        <div class="fg"><label>Password</label><input id="authPasswordSu" type="password" placeholder="Min 6 characters" onkeydown="if(event.key==='Enter'){event.preventDefault();handleAuthSubmit();}"></div>
       </div>
       <div id="authGoogleSetupForm" style="display:none">
         <p style="font-size:0.78rem;color:var(--muted);margin-bottom:0.8rem;line-height:1.6">Google auth connected. Choose your username.</p>
@@ -388,8 +388,8 @@ nav {
       <div class="auth-divider"><span>or</span></div>
       <div class="oauth-row">
         <button class="btn btn-google" onclick="signInWithGoogle()">
-          <span>G</span>
-          Continue with Google
+          <span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:#fff;color:#4285F4;font-weight:700;font-size:0.8rem;">G</span>
+          <span style="font-weight:600;letter-spacing:0.5px;">Continue with Google</span>
         </button>
       </div>
     </div>
@@ -883,11 +883,12 @@ function renderSidebar() {
     const visibleLevels = currentPackFilter
       ? levels.filter(lvl => lvl.packs && lvl.packs[currentPackFilter])
       : levels;
-    visibleLevels.forEach((lvl) => {
+    visibleLevels.forEach((lvl, idx) => {
       const li = document.createElement('li');
       li.className = 'sidebar-item' + (lvl._key === currentLevelKey ? ' active' : '');
       li.onclick = () => { showLevel(levels.findIndex(x => x._key === lvl._key)); closeMobileSidebar(); };
-      li.innerHTML = `<span class="s-rank">#${lvl.pos || (levels.findIndex(x => x._key === lvl._key) + 1)}</span><span class="s-name">${esc(lvl.name)}</span>`;
+      const rank = levels.findIndex(x => x._key === lvl._key) + 1;
+      li.innerHTML = `<span class="s-rank">#${rank}</span><span class="s-name">${esc(lvl.name)}</span>`;
       ul.appendChild(li);
     });
   }
@@ -919,7 +920,8 @@ function renderMobileSidebar() {
     const li = document.createElement('li');
     li.className = 'sidebar-item' + (lvl._key === currentLevelKey ? ' active' : '');
     li.onclick = () => { showLevel(levels.findIndex(x => x._key === lvl._key)); closeMobileSidebar(); };
-    li.innerHTML = `<span class="s-rank">#${lvl.pos || (levels.findIndex(x => x._key === lvl._key) + 1)}</span><span class="s-name">${esc(lvl.name)}</span>`;
+    const rank = levels.findIndex(x => x._key === lvl._key) + 1;
+    li.innerHTML = `<span class="s-rank">#${rank}</span><span class="s-name">${esc(lvl.name)}</span>`;
     ul.appendChild(li);
   });
 }
@@ -2213,22 +2215,29 @@ function showPlayerProfile(name) {
   const completed = recordsForPlayer.filter(rec => rec.pct === 100);
   const verified  = recordsForPlayer.filter(rec => rec.pct !== 100);
   const averageCompletion = Math.round(recordsForPlayer.reduce((sum, rec) => sum + rec.pct, 0) / totalRecords * 100) / 100;
-  const attemptsRecords = recordsForPlayer.filter(rec => rec.attempts > 0);
+  const attemptsRecords = recordsForPlayer.filter(rec => rec.attempts && rec.attempts > 0);
   const totalAttempts = attemptsRecords.reduce((sum, rec) => sum + (rec.attempts || 0), 0);
   const avgAttempts = attemptsRecords.length ? Math.round((totalAttempts / attemptsRecords.length) * 100) / 100 : 0;
   const personalBest = attemptsRecords.length ? Math.min(...attemptsRecords.map(rec => rec.attempts)) : null;
   const hardest = completed.length
     ? completed.reduce((best, rec) => rec.pts > best.pts ? rec : best, completed[0])
     : recordsForPlayer.reduce((best, rec) => (rec.pts * (rec.pct / 100)) > (best.pts * (best.pct / 100)) ? rec : best, recordsForPlayer[0]);
-  const recentActivity = [...recordsForPlayer].sort((a,b) => (b.addedAt || 0) - (a.addedAt || 0)).slice(0, 6);
+  const recentActivity = [...recordsForPlayer]
+    .filter(rec => rec.addedAt)
+    .sort((a,b) => (b.addedAt || 0) - (a.addedAt || 0))
+    .slice(0, 6);
 
-  const activityHtml = recentActivity.map(rec => `
-      <div class="activity-row">
-        <div>
-          <div class="activity-name">#${rec.pos} ${esc(rec.lvl.name)}</div>
-          <div class="activity-meta">${rec.pct}% | ${rec.attempts ? `${rec.attempts} attempts` : 'No attempts data'}</div>
-        </div>
-      </div>`).join('');
+  const activityHtml = recentActivity.length
+    ? recentActivity.map(rec => `
+        <div class="activity-row">
+          <div>
+            <div class="activity-name">#${rec.pos} ${esc(rec.lvl.name)}</div>
+            <div class="activity-meta">
+              ${rec.pct}%${rec.attempts ? ` | ${rec.attempts} attempts` : ''}
+            </div>
+          </div>
+        </div>`).join('')
+    : `<div class="lb-empty">No recent activity.</div>`;
 
   document.getElementById('profileMain').innerHTML = `
     <div class="lb-hero-rank"><span>Profile:</span> ${esc(name)}</div>
