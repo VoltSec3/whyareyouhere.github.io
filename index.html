@@ -931,12 +931,30 @@ function goToLeaderboardPlayer(name) {
   });
 }
 
-function openOverlay(id)  { document.getElementById(id).classList.add('open'); }
+function openOverlay(id)  {
+  document.getElementById(id).classList.add('open');
+  if (id === 'subOv') {
+    const nickInput = document.getElementById('sNick');
+    if (nickInput) {
+      if (currentUser) {
+        nickInput.value = getDisplayName();
+        nickInput.readOnly = true;
+      } else {
+        nickInput.value = '';
+        nickInput.readOnly = false;
+      }
+    }
+  }
+}
 function closeOverlay(id) {
   document.getElementById(id).classList.remove('open');
   if (id === 'adminOv') {
     clearAddLevelForm();
     clearAddPackForm();
+  }
+  if (id === 'subOv') {
+    const nickInput = document.getElementById('sNick');
+    if (nickInput) nickInput.readOnly = false;
   }
 }
 function showFormMsg(id, text, isError=false) {
