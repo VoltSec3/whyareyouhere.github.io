@@ -381,6 +381,17 @@ nav {
         <div class="fg"><label>Username</label><input id="authUsername" type="text" placeholder="Your display name"></div>
         <div class="fg"><label>Password</label><input id="authPasswordSu" type="password" placeholder="Min 6 characters"></div>
       </div>
+      <div id="authGoogleSetupForm" style="display:none">
+        <p style="font-size:0.78rem;color:var(--muted);margin-bottom:0.8rem;line-height:1.6">Google auth connected. Choose your username.</p>
+        <div class="fg"><label>Username</label><input id="authGoogleUsername" type="text" placeholder="Your display name"></div>
+      </div>
+      <div class="auth-divider"><span>or</span></div>
+      <div class="oauth-row">
+        <button class="btn btn-google" onclick="signInWithGoogle()">
+          <span>G</span>
+          Continue with Google
+        </button>
+      </div>
     </div>
     <div class="pf">
       <span class="pmsg" id="authMsg"></span>
@@ -583,6 +594,7 @@ let addRecordTarget  = null;
 let currentSubmitTab = 'rec';
 let currentAdminTab  = 'add';
 let currentAuthTab   = 'login';
+let accountUsername  = null;
 let currentLbPlayer  = null;
 let currentPackFilter = null;
 let currentPackView   = null;
@@ -617,7 +629,7 @@ function calcWeightedScore(pts, pct) {
 function ytEmbed(url) {
   if (!url) return null;
   const m = url.match(/(?:youtu\.be\/|v=|embed\/)([A-Za-z0-9_-]{11})/);
-  return m ? `https://www.youtube.com/embed/${m[1]}` : null;
+  return m ? `https://www.yout-ube.com/embed/${m[1]}` : null;
 }
 function ytLink(url) {
   if (!url) return url;
@@ -633,7 +645,44 @@ function fmtDate(ts) {
 }
 function getDisplayName() {
   if (!currentUser) return null;
-  return currentUser.displayName || currentUser.email?.split('@')[0] || 'User';
+  return accountUsername || currentUser.displayName || currentUser.email?.split('@')[0] || 'User';
+}
+function isGoogleUser(user) {
+  return !!user && Array.isArray(user.providerData) && user.providerData.some(p => p.providerId === 'google.com');
+}
+async function loadAccountUsername(uid) {
+  try {
+    const username = await dbGet(`users/${uid}/username`);
+    return typeof username === 'string' ? username.trim() : '';
+  } catch (err) {
+    console.warn('Unable to load account username:', err);
+    return '';
+  }
+}
+function ensureAdminAccess() {
+  if (!currentUser) {
+    showToast('Bro, make an account XD', true);
+    return false;
+  }
+  if (!isAdmin) {
+    showToast('Bad boy... stop trying to hack us! >:(', true);
+    return false;
+  }
+  return true;
+}
+function openGoogleUsernameSetup() {
+  currentAuthTab = 'google-setup';
+  document.getElementById('authTabLogin').classList.remove('active');
+  document.getElementById('authTabSignup').classList.remove('active');
+  document.getElementById('authLoginForm').style.display = 'none';
+  document.getElementById('authSignupForm').style.display = 'none';
+  document.getElementById('authGoogleSetupForm').style.display = 'block';
+  document.getElementById('authSubmitBtn').textContent = 'Save Username';
+  document.getElementById('authOvTitle').textContent = 'Finish Setup';
+  const setupInput = document.getElementById('authGoogleUsername');
+  if (setupInput) setupInput.value = '';
+  showFormMsg('authMsg', 'Pick a username to finish Google sign in.', false);
+  openOverlay('authOv');
 }
 
 // ---- AUTH ----
@@ -641,6 +690,7 @@ function getDisplayName() {
 AUTH.onAuthStateChanged(async (user) => {
   currentUser = user;
   if (user) {
+    accountUsername = await loadAccountUsername(user.uid);
     // Check if admin by UID stored in DB or listed in code
     let adminData = null;
     try {
@@ -649,15 +699,19 @@ AUTH.onAuthStateChanged(async (user) => {
       console.warn('Unable to read admin flag:', err);
     }
     isAdmin = ADMIN_UIDs.includes(user.uid) || !!adminData;
+    if (isGoogleUser(user) && !accountUsername) {
+      openGoogleUsernameSetup();
+    }
   } else {
     isAdmin = false;
+    accountUsername = null;
   }
   updateNavRight();
 });
 
 function openAuthOverlay() {
   switchAuthTab('login');
-  ['authUsernameLogin','authPasswordLogin','authUsername','authPasswordSu'].forEach(id => {
+  ['authUsernameLogin','authPasswordLogin','authUsername','authPasswordSu','authGoogleUsername'].forEach(id => {
     const el = document.getElementById(id); if (el) el.value = '';
   });
   showFormMsg('authMsg','',false);
@@ -670,15 +724,47 @@ function switchAuthTab(tab) {
   document.getElementById('authTabSignup').classList.toggle('active', tab==='signup');
   document.getElementById('authLoginForm').style.display  = tab==='login'  ? 'block':'none';
   document.getElementById('authSignupForm').style.display = tab==='signup' ? 'block':'none';
+  document.getElementById('authGoogleSetupForm').style.display = 'none';
   document.getElementById('authSubmitBtn').textContent    = tab==='login'  ? 'Sign In' : 'Create Account';
   document.getElementById('authOvTitle').textContent      = tab==='login'  ? 'Sign In'  : 'Sign Up';
+}
+
+async function signInWithGoogle() {
+  const provider = new firebase.auth.GoogleAuthProvider();
+  try {
+    const cred = await AUTH.signInWithPopup(provider);
+    const user = cred?.user;
+    if (!user) return;
+    const username = await loadAccountUsername(user.uid);
+    accountUsername = username;
+    if (!username) {
+      openGoogleUsernameSetup();
+      return;
+    }
+    closeOverlay('authOv');
+    showToast('Signed in with Google!');
+    updateNavRight();
+  } catch (e) {
+    showFormMsg('authMsg', e.message || 'Google auth failed.', true);
+  }
 }
 
 async function handleAuthSubmit() {
   const btn = document.getElementById('authSubmitBtn');
   btn.disabled = true;
   try {
-    if (currentAuthTab === 'login') {
+    if (currentAuthTab === 'google-setup') {
+      if (!currentUser) { showFormMsg('authMsg','Sign in again to continue.',true); return; }
+      const username = document.getElementById('authGoogleUsername').value.trim();
+      if (!username) { showFormMsg('authMsg','Username required.',true); return; }
+      if (/@|\s/.test(username)) { showFormMsg('authMsg','Username may not contain spaces or @.', true); return; }
+      await dbUpdate({ [`users/${currentUser.uid}/username`]: username });
+      accountUsername = username;
+      await currentUser.updateProfile({ displayName: username });
+      closeOverlay('authOv');
+      updateNavRight();
+      showToast(`Welcome, ${username}!`);
+    } else if (currentAuthTab === 'login') {
       const username = document.getElementById('authUsernameLogin').value.trim();
       const pass     = document.getElementById('authPasswordLogin').value;
       if (!username || !pass) { showFormMsg('authMsg','Username and password required.',true); return; }
@@ -708,6 +794,7 @@ async function signOut() {
   await AUTH.signOut();
   currentUser = null;
   isAdmin = false;
+  accountUsername = null;
   updateNavRight();
   showToast('Signed out.');
 }
@@ -982,7 +1069,7 @@ function openOverlay(id)  {
     if (nickInput) {
       if (currentUser) {
         nickInput.value = getDisplayName();
-        nickInput.readOnly = true;
+        nickInput.readOnly = false;
       } else {
         nickInput.value = '';
         nickInput.readOnly = false;
@@ -1022,6 +1109,7 @@ function getAttemptFieldsFromSub(sub) {
 }
 
 function openAdminPanel() {
+  if (!ensureAdminAccess()) return;
   clearAddLevelForm();
   clearAddPackForm();
   adminTab('add');
@@ -1171,6 +1259,7 @@ function renderVerifPackPicker() {
 }
 
 async function addPack() {
+  if (!ensureAdminAccess()) return;
   const name = document.getElementById('ppn').value.trim();
   if (!name) { showFormMsg('aMsg','Pack name is required.',true); return; }
   const rawPos = parseInt(document.getElementById('ppos').value);
@@ -1240,6 +1329,7 @@ function clearAddPackForm() {
 }
 
 function openEditPack(idx) {
+  if (!ensureAdminAccess()) return;
   const pack = packs[idx];
   if (!pack) return;
   editPackKey = pack._key;
@@ -1254,6 +1344,7 @@ function openEditPack(idx) {
 }
 
 function openEditLevel(idx) {
+  if (!ensureAdminAccess()) return;
   const lvl = levels[idx];
   if (!lvl) return;
   editLevelKey = lvl._key;
@@ -1303,6 +1394,7 @@ function renderPackTable() {
 }
 
 async function shiftPack(idx, dir) {
+  if (!ensureAdminAccess()) return;
   const n = idx + dir;
   if (n < 0 || n >= packs.length) return;
   const a = packs[idx], b = packs[n];
@@ -1319,6 +1411,7 @@ async function shiftPack(idx, dir) {
 }
 
 async function removePack(idx) {
+  if (!ensureAdminAccess()) return;
   const pack = packs[idx];
   if (!confirm(`Delete pack "${pack.name}"?`)) return;
   await dbRemove(`packs/${pack._key}`);
@@ -1463,6 +1556,7 @@ function removePendingTag(i) {
 // Also auto-logs position history for all levels shifted down
 
 async function addLevel() {
+  if (!ensureAdminAccess()) return;
   const name = document.getElementById('fn').value.trim();
   if (!name) { showFormMsg('aMsg','Level name is required.',true); return; }
 
@@ -1530,7 +1624,7 @@ async function addLevel() {
         historyPushes.push(dbPush(`levels/${level._key}/posHistory`, {
           pos: newPos,
           change: newPos - oldPos,
-          cause: `${name} was moved to #${pos}`,
+          cause: newPos > oldPos ? `${name} was placed above at #${pos}` : `${name} was moved below to #${pos}`,
           ts: now
         }));
       }
@@ -1627,6 +1721,7 @@ function renderManageTable() {
 }
 
 async function shiftLevel(idx, dir) {
+  if (!ensureAdminAccess()) return;
   const n = idx + dir;
   if (n < 0 || n >= levels.length) return;
   const a = levels[idx], b = levels[n];
@@ -1643,13 +1738,13 @@ async function shiftLevel(idx, dir) {
     dbPush(`levels/${a._key}/posHistory`, {
       pos: newPosA,
       change: newPosA - pa,
-      cause: `${b.name} was placed above`,
+      cause: newPosA > pa ? `${b.name} was placed above at #${newPosB}` : `${b.name} was moved below to #${newPosB}`,
       ts: now
     }),
     dbPush(`levels/${b._key}/posHistory`, {
       pos: newPosB,
       change: newPosB - pb,
-      cause: `${a.name} was placed above`,
+      cause: newPosB > pb ? `${a.name} was placed above at #${newPosA}` : `${a.name} was moved below to #${newPosA}`,
       ts: now
     }),
   ]);
@@ -1663,12 +1758,35 @@ async function shiftLevel(idx, dir) {
 }
 
 async function removeLevel(idx) {
+  if (!ensureAdminAccess()) return;
   const lvl = levels[idx];
   if (!confirm(`Delete "${lvl.name}"?`)) return;
+  const now = Date.now();
+  const removedPos = lvl.pos || (idx + 1);
+  const oldPositions = new Map(levels.map((l, i) => [l._key, l.pos || (i + 1)]));
   await dbRemove(`levels/${lvl._key}`);
   await dbRemove(`records/${lvl._key}`);
   delete records[lvl._key];
   levels.splice(idx, 1);
+  const reindexUpdates = {};
+  const historyPushes = [];
+  levels.forEach((l, i) => {
+    const oldPos = oldPositions.get(l._key) || (i + 1);
+    const newPos = i + 1;
+    l.pos = newPos;
+    if (newPos !== oldPos) {
+      reindexUpdates[`levels/${l._key}/pos`] = newPos;
+      historyPushes.push(dbPush(`levels/${l._key}/posHistory`, {
+        pos: newPos,
+        change: newPos - oldPos,
+        cause: `${lvl.name} was removed from #${removedPos}`,
+        ts: now
+      }));
+    }
+  });
+  if (Object.keys(reindexUpdates).length) await dbUpdate(reindexUpdates);
+  if (historyPushes.length) await Promise.all(historyPushes);
+  levels.sort((a,b) => (a.pos||9999)-(b.pos||9999));
   renderManageTable();
   renderSidebar();
   buildLeaderboard();
@@ -1688,6 +1806,7 @@ let historyTargetKey  = null;
 let historyTargetName = null;
 
 function openAddHistory(key, name) {
+  if (!ensureAdminAccess()) return;
   historyTargetKey  = key;
   historyTargetName = name;
   const existing = document.getElementById('histOv');
@@ -1714,6 +1833,7 @@ function openAddHistory(key, name) {
 }
 
 async function saveHistory() {
+  if (!ensureAdminAccess()) return;
   const pos   = parseInt(document.getElementById('hPos').value);
   const chg   = parseInt(document.getElementById('hChg').value);
   const cause = document.getElementById('hCause').value.trim();
@@ -1730,6 +1850,7 @@ async function saveHistory() {
 }
 
 function openAddRecord(key, name) {
+  if (!ensureAdminAccess()) return;
   addRecordTarget = key;
   document.getElementById('recLvlName').textContent = name;
   ['rNick','rPct','rVid','rAttempts'].forEach(id => document.getElementById(id).value = '');
@@ -1737,6 +1858,7 @@ function openAddRecord(key, name) {
 }
 
 async function saveRecord() {
+  if (!ensureAdminAccess()) return;
   const nick  = document.getElementById('rNick').value.trim();
   const pct   = parseInt(document.getElementById('rPct').value);
   const video = document.getElementById('rVid').value.trim();
@@ -1753,7 +1875,7 @@ async function saveRecord() {
 }
 
 async function deleteRecord(lvlKey, recKey) {
-  if (!isAdmin || !confirm('Delete this record?')) return;
+  if (!ensureAdminAccess() || !confirm('Delete this record?')) return;
   await dbRemove(`records/${lvlKey}/${recKey}`);
   if (records[lvlKey]) delete records[lvlKey][recKey];
   showLevel(currentLevelIdx);
@@ -1769,6 +1891,7 @@ async function updatePendingBadge() {
 }
 
 async function renderPendingList() {
+  if (!ensureAdminAccess()) return;
   const container = document.getElementById('pendingList');
   const data = await dbGet('pending');
   if (!data || !Object.keys(data).length) {
@@ -1778,10 +1901,13 @@ async function renderPendingList() {
   container.innerHTML = Object.entries(data).map(([key, sub]) => {
     const date = new Date(sub.submittedAt).toLocaleDateString();
     if (sub.type === 'record') {
+      const suspiciousLabel = sub.isSuspicious
+        ? `<br><span style="color:var(--gold);font-weight:700">Suspicious / Tampered</span>`
+        : '';
       return `<div class="pcard">
         <div class="pcard-type">Record | ${date}</div>
         <div class="pcard-title">${esc(sub.level)} -- <span style="color:var(--gold)">${esc(sub.pct)}%</span></div>
-        <div class="pcard-detail">By: <b>${esc(sub.nickname)}</b>${sub.extra ? `<br>${esc(sub.extra)}` : ''}</div>
+        <div class="pcard-detail">By: <b>${esc(sub.nickname)}</b>${sub.extra ? `<br>${esc(sub.extra)}` : ''}${suspiciousLabel}</div>
         ${sub.video ? `<a href="${esc(sub.video)}" target="_blank" rel="noopener">Proof video</a>` : ''}
         <div class="pcard-actions">
           <button class="btn btn-primary btn-sm" onclick="approveRecord('${key}')">Approve</button>
@@ -1820,6 +1946,7 @@ async function renderPendingList() {
 }
 
 async function approveRecord(key) {
+  if (!ensureAdminAccess()) return;
   if (!confirm('Approve this record?')) return;
   const sub = await dbGet(`pending/${key}`);
   if (!sub || sub.type !== 'record') return;
@@ -1838,6 +1965,7 @@ async function approveRecord(key) {
 }
 
 async function approveVerification(key) {
+  if (!ensureAdminAccess()) return;
   if (!confirm('Approve this verification and add it as a new level?')) return;
   const sub = await dbGet(`pending/${key}`);
   if (!sub || sub.type !== 'verification') return;
@@ -1874,6 +2002,7 @@ async function approveVerification(key) {
 }
 
 async function rejectSubmission(key) {
+  if (!ensureAdminAccess()) return;
   await dbRemove(`pending/${key}`);
   renderPendingList();
   updatePendingBadge();
@@ -1919,7 +2048,17 @@ async function sendSubmission() {
     submitLocked = true;
     document.getElementById('submitBtn').disabled = true;
 
-    await dbPush('pending', { type:'record', level, nickname:nick, pct, video, extra, submittedAt:Date.now(), ...getAttemptFields('s') });
+    const accountName = getDisplayName();
+    const payload = { type:'record', level, nickname:nick, pct, video, extra, submittedAt:Date.now(), ...getAttemptFields('s') };
+    if (currentUser) {
+      payload.accountUid = currentUser.uid;
+      payload.accountName = accountName || '';
+      if (accountName && accountName.toLowerCase() !== nick.toLowerCase()) {
+        payload.isSuspicious = true;
+        payload.suspiciousReason = 'nickname_mismatch';
+      }
+    }
+    await dbPush('pending', payload);
     await sendWebhook({ username:'BDL Submissions', embeds:[{
       title:'New Record Submission', color:0xc0392b,
       fields:[
