@@ -84,6 +84,7 @@ nav {
 
 .tag-row { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 1rem; }
 .tag { display: inline-block; padding: 0.2rem 0.65rem; border-radius: 20px; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.5px; border: 1px solid; cursor: default; }
+.tag.clickable { cursor: pointer; }
 
 .meta-row { display: flex; flex-wrap: wrap; gap: 0.5rem 2rem; margin-bottom: 1.2rem; }
 .meta-item { display: flex; flex-direction: column; gap: 0.1rem; }
@@ -855,7 +856,7 @@ function showLevel(idx) {
     const packHtml = lvl.packs && Object.keys(lvl.packs).length
       ? `<div class="tag-row">${Object.keys(lvl.packs).map(pk => {
           const pack = packs.find(p => p._key === pk);
-          return pack ? `<span class="tag" style="color:${esc(pack.color)};border-color:${esc(pack.color)};background:${esc(pack.color)}22">${esc(pack.name)}</span>` : '';
+          return pack ? `<span class="tag clickable" style="color:${esc(pack.color)};border-color:${esc(pack.color)};background:${esc(pack.color)}22" onclick="showPackView('${esc(pack._key)}')" title="View pack: ${esc(pack.name)}">${esc(pack.name)}</span>` : '';
         }).join('')}</div>`
       : '';
 
