@@ -74,9 +74,17 @@ nav {
 .sidebar-item.active .s-rank { color: var(--accent); }
 .s-name { font-size: 0.85rem; font-weight: 600; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sidebar-item.active .s-name { color: var(--text); }
+.sidebar-nav-item { display: none; font-weight: 700; text-transform: uppercase; color: var(--text); }
+.sidebar-divider { display: none; list-style: none; margin: 0.25rem 0; padding: 0; height: 1px; background: rgba(255,255,255,0.05); }
+
+@media (max-width: 768px) {
+  .sidebar-nav-item { display: flex; }
+  .sidebar-divider { display: block; }
+}
 
 .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 98; }
 .sidebar-overlay.show { display: block; }
+.mobile-sidebar { display: none; }
 
 .main { flex: 1; padding: 2rem 2.5rem; min-width: 0; overflow-x: hidden; }
 
@@ -282,6 +290,7 @@ nav {
     transform: translateX(-100%); width: 80vw; max-width: 280px;
   }
   .sidebar.open { transform: translateX(0); }
+  .mobile-sidebar { display: block; }
 
   .main { padding: 1.2rem 1rem; }
   .lv-title { font-size: 1.8rem; }
@@ -313,6 +322,7 @@ nav {
 <body>
 
 <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeMobileSidebar()"></div>
+<aside class="sidebar mobile-sidebar" id="mobileSidebar"><ul class="sidebar-list" id="mobileSidebarList"></ul></aside>
 
 <nav>
   <button class="nav-hamburger" id="hamburger" onclick="toggleMobileSidebar()">&#9776;</button>
@@ -742,6 +752,7 @@ async function loadAll() {
     : [];
   document.getElementById('loadEl').style.display = 'none';
   renderSidebar();
+  renderMobileSidebar();
   if (!levels.length) {
     document.getElementById('emptyEl').style.display = 'flex';
   } else {
@@ -761,18 +772,20 @@ function showPage(page) {
   document.getElementById('navLb').classList.toggle('active', page==='leaderboard');
   document.getElementById('navPack').classList.toggle('active', page==='pack');
   if (page === 'pack') renderPackPage();
+  renderMobileSidebar();
   closeMobileSidebar();
 }
 
 function toggleMobileSidebar() {
-  const sidebar = document.getElementById('sidebar');
+  const sidebar = document.getElementById('mobileSidebar');
   const overlay = document.getElementById('sidebarOverlay');
   const isOpen  = sidebar.classList.contains('open');
   sidebar.classList.toggle('open', !isOpen);
   overlay.classList.toggle('show', !isOpen);
 }
 function closeMobileSidebar() {
-  document.getElementById('sidebar').classList.remove('open');
+  const sidebar = document.getElementById('mobileSidebar');
+  sidebar.classList.remove('open');
   document.getElementById('sidebarOverlay').classList.remove('show');
 }
 
@@ -792,6 +805,36 @@ function renderSidebar() {
     });
   }
   renderPackSidebar();
+  renderMobileSidebar();
+}
+
+function renderMobileSidebar() {
+  const ul = document.getElementById('mobileSidebarList');
+  if (!ul) return;
+  ul.innerHTML = '';
+  const navItems = [
+    { label: 'List', page: 'list' },
+    { label: 'Leaderboard', page: 'leaderboard' },
+    { label: 'Packs', page: 'pack' }
+  ];
+  navItems.forEach(item => {
+    const li = document.createElement('li');
+    li.className = 'sidebar-item sidebar-nav-item' + (document.getElementById(`nav${item.page==='list'?'List':item.page==='leaderboard'?'Lb':'Pack'}`)?.classList.contains('active') ? ' active' : '');
+    li.onclick = () => { showPage(item.page); closeMobileSidebar(); };
+    li.innerHTML = `<span class="s-name">${esc(item.label)}</span>`;
+    ul.appendChild(li);
+  });
+  const divider = document.createElement('li');
+  divider.className = 'sidebar-divider';
+  ul.appendChild(divider);
+  const visibleLevels = levels;
+  visibleLevels.forEach((lvl) => {
+    const li = document.createElement('li');
+    li.className = 'sidebar-item' + (lvl._key === currentLevelKey ? ' active' : '');
+    li.onclick = () => { showLevel(levels.findIndex(x => x._key === lvl._key)); closeMobileSidebar(); };
+    li.innerHTML = `<span class="s-rank">#${lvl.pos || (levels.findIndex(x => x._key === lvl._key) + 1)}</span><span class="s-name">${esc(lvl.name)}</span>`;
+    ul.appendChild(li);
+  });
 }
 
 function renderPackSidebar() {
