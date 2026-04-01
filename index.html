@@ -280,6 +280,24 @@ nav {
 .lb-level-pts { font-family: 'Share Tech Mono', monospace; font-size: 0.82rem; color: var(--accent2); }
 .lb-empty { color: var(--dim); font-size: 0.82rem; padding: 0.5rem 0; }
 
+.lb-profile-header { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-bottom: 1rem; flex-wrap: wrap; }
+.lb-profile-flag { font-size: 1.75rem; line-height: 1; min-width: 2.5rem; text-align: center; }
+.lb-profile-state { font-size: 0.88rem; font-weight: 600; color: var(--muted); max-width: 6rem; text-align: right; line-height: 1.25; word-break: break-word; }
+.lb-profile-title { flex: 1; text-align: center; font-size: 2.2rem; font-weight: 700; color: var(--text); line-height: 1.15; word-break: break-word; }
+.lb-stat-grid { display: grid; grid-template-columns: repeat(2, minmax(140px, 1fr)); gap: 1rem 1.5rem; margin-bottom: 1.25rem; }
+.lb-stat-item .lb-stat-lbl { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--dim); margin-bottom: 0.35rem; }
+.lb-stat-item .lb-stat-val { font-size: 1rem; color: var(--text); font-weight: 500; }
+.lb-stat-item .lb-stat-val strong { font-weight: 700; color: var(--text); }
+.lb-cloud { line-height: 1.9; text-align: center; margin: 0.5rem 0 1.25rem; padding: 0.5rem 0; }
+.lb-cloud-item { cursor: pointer; transition: opacity 0.15s; display: inline; }
+.lb-cloud-item:hover { opacity: 0.82; }
+.lb-cloud-sep { color: var(--dim); font-weight: 400; font-size: 0.85em; user-select: none; }
+.lb-cloud--verified { opacity: 0.92; }
+.lb-showcase-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 0.6rem; color: var(--muted); }
+.lb-showcase-wrap { width: 100%; max-width: 640px; margin: 0 auto; aspect-ratio: 16/9; background: #000; border: 1px solid var(--border); border-radius: 4px; overflow: hidden; }
+.lb-showcase-wrap iframe { width: 100%; height: 100%; border: none; }
+.nav-user-btn { cursor: pointer; font: inherit; background: none; border: none; padding: 0; margin: 0; }
+
 /* Auth panel styles */
 .auth-divider { display: flex; align-items: center; gap: 0.75rem; margin: 1rem 0; }
 .auth-divider::before, .auth-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
@@ -597,6 +615,55 @@ nav {
   </div>
 </div>
 
+<!-- PROFILE SETTINGS (signed-in user) -->
+<div class="ov" id="profileSettingsOv">
+  <div class="panel" style="max-width:520px">
+    <div class="ph"><h2>Profile settings</h2><button class="xbtn" onclick="closeOverlay('profileSettingsOv')">&#10005;</button></div>
+    <div class="pb">
+      <p style="font-size:0.78rem;color:var(--muted);margin-bottom:1rem;line-height:1.6">Shown on the public leaderboard for your nickname. Showcase must be a level you have completed at 100%.</p>
+      <div class="fg"><label>Country (flag)</label>
+        <select id="profCountry">
+          <option value="">— None —</option>
+          <option value="US">United States</option>
+          <option value="GB">United Kingdom</option>
+          <option value="CA">Canada</option>
+          <option value="AU">Australia</option>
+          <option value="DE">Germany</option>
+          <option value="FR">France</option>
+          <option value="PL">Poland</option>
+          <option value="BR">Brazil</option>
+          <option value="MX">Mexico</option>
+          <option value="JP">Japan</option>
+          <option value="KR">South Korea</option>
+          <option value="CN">China</option>
+          <option value="IN">India</option>
+          <option value="RU">Russia</option>
+          <option value="SE">Sweden</option>
+          <option value="NO">Norway</option>
+          <option value="FI">Finland</option>
+          <option value="NL">Netherlands</option>
+          <option value="ES">Spain</option>
+          <option value="IT">Italy</option>
+          <option value="PH">Philippines</option>
+          <option value="AR">Argentina</option>
+          <option value="CL">Chile</option>
+        </select>
+      </div>
+      <div class="fg"><label>State / region</label><input id="profState" type="text" placeholder="e.g. LA or Louisiana"></div>
+      <div class="fg"><label>Clan tag</label><input id="profClan" type="text" placeholder="e.g. SARK (shown as [SARK])"></div>
+      <div class="fg"><label>Showcase demon</label>
+        <select id="profShowcase"><option value="">— None —</option></select>
+      </div>
+      <div class="fg"><label>Showcase video (optional)</label><input id="profShowcaseVid" type="text" placeholder="YouTube URL — leave blank to use your record proof"></div>
+    </div>
+    <div class="pf">
+      <span class="pmsg" id="profMsg"></span>
+      <button class="btn btn-ghost" onclick="closeOverlay('profileSettingsOv')">Cancel</button>
+      <button class="btn btn-primary" type="button" onclick="saveProfileSettings()">Save</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -634,7 +701,8 @@ let currentAdminTab  = 'add';
 let currentAuthTab   = 'login';
 let accountUsername  = null;
 let currentLbPlayer  = null;
-let currentPackFilter = null;
+let lastRankedLeaderboard = [];
+let cachedUserProfile = null;
 let levelSearchQuery = '';
 let selectedLevelTags = new Set();
 let currentPackView   = null;
@@ -669,7 +737,7 @@ function calcWeightedScore(pts, pct) {
 function ytEmbed(url) {
   if (!url) return null;
   const m = url.match(/(?:youtu\.be\/|v=|embed\/)([A-Za-z0-9_-]{11})/);
-  return m ? `https://www.yout-ube.com/embed/${m[1]}` : null;
+  return m ? `https://www.youtube.com/embed/${m[1]}` : null;
 }
 function ytLink(url) {
   if (!url) return url;
@@ -682,6 +750,70 @@ function esc(s) {
 }
 function fmtDate(ts) {
   return new Date(ts).toLocaleDateString('en-US', { month:'numeric', day:'numeric', year:'numeric' });
+}
+function nicknameToProfileKey(name) {
+  try {
+    return btoa(unescape(encodeURIComponent(String(name)))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  } catch (e) {
+    return 'x';
+  }
+}
+function profileDbPathForNickname(name) {
+  return `playerProfiles/${nicknameToProfileKey(name)}`;
+}
+function countryCodeToFlagEmoji(code) {
+  if (!code || String(code).length !== 2) return '';
+  const c = String(code).toUpperCase();
+  if (!/^[A-Z]{2}$/.test(c)) return '';
+  return String.fromCodePoint(...[...c].map(ch => 127397 + ch.charCodeAt(0)));
+}
+function getRecordVideoForPlayer(nickname, levelKey) {
+  const recs = records[levelKey];
+  if (!recs) return '';
+  const list = Object.values(recs).filter(r => r.nickname === nickname);
+  const full = list.find(r => r.pct === 100);
+  const pick = full || list[0];
+  return (pick && pick.video) ? pick.video : '';
+}
+function getCompletedLevelsForNickname(nick) {
+  const seen = new Set();
+  const out = [];
+  levels.forEach((lvl, i) => {
+    const recs = records[lvl._key] ? Object.values(records[lvl._key]) : [];
+    recs.forEach(rec => {
+      if (rec.nickname === nick && rec.pct === 100 && !seen.has(lvl._key)) {
+        seen.add(lvl._key);
+        out.push({ _key: lvl._key, name: lvl.name, pos: i + 1 });
+      }
+    });
+  });
+  return out.sort((a, b) => a.pos - b.pos);
+}
+async function loadPlayerProfile(nickname) {
+  if (!nickname) return null;
+  try {
+    const p = await dbGet(profileDbPathForNickname(nickname));
+    return p && typeof p === 'object' ? p : null;
+  } catch (e) {
+    return null;
+  }
+}
+function buildLeaderboardCloudHtml(items, isVerified) {
+  if (!items.length) return '';
+  const maxPts = Math.max(...items.map(i => i.pts));
+  const sepInner = isVerified ? ' <span class="lb-cloud-sep">·</span> ' : ' <span class="lb-cloud-sep"> - </span> ';
+  return items.map((l, idx) => {
+    const w = maxPts > 0 ? l.pts / maxPts : 1;
+    const base = isVerified ? 0.68 : 0.78;
+    const range = isVerified ? 0.17 : 0.27;
+    const fontSize = base + range * w;
+    const fw = 400 + Math.round((isVerified ? 250 : 300) * w);
+    const muted = w < 0.35;
+    const color = w > 0.5 ? 'var(--text)' : (w > 0.28 ? 'var(--muted)' : 'var(--dim)');
+    const italic = isVerified || muted;
+    const sep = idx > 0 ? sepInner : '';
+    return `${sep}<span class="lb-cloud-item" style="font-size:${fontSize.toFixed(2)}rem;font-weight:${fw};color:${color};${italic ? 'font-style:italic;' : ''}" onclick="jumpToLevel('${esc(l._key)}')">${esc(l.name)}</span>`;
+  }).join('');
 }
 function getDisplayName() {
   if (!currentUser) return null;
@@ -742,9 +874,15 @@ AUTH.onAuthStateChanged(async (user) => {
     if (isGoogleUser(user) && !accountUsername) {
       openGoogleUsernameSetup();
     }
+    try {
+      cachedUserProfile = await dbGet(`users/${user.uid}/profile`);
+    } catch (e) {
+      cachedUserProfile = null;
+    }
   } else {
     isAdmin = false;
     accountUsername = null;
+    cachedUserProfile = null;
   }
   updateNavRight();
 });
@@ -835,6 +973,7 @@ async function signOut() {
   currentUser = null;
   isAdmin = false;
   accountUsername = null;
+  cachedUserProfile = null;
   updateNavRight();
   showToast('Signed out.');
 }
@@ -851,7 +990,7 @@ function updateNavRight() {
   const name = getDisplayName();
   if (isAdmin) {
     nav.innerHTML = `
-      <span class="nav-user">${esc(name)}</span>
+      <button type="button" class="nav-user nav-user-btn" onclick="void openProfileSettings()">${esc(name)}</button>
       <span style="font-size:0.65rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--gold)">Admin</span>
       <button class="btn btn-outline btn-sm" onclick="openOverlay('subOv')">Submit Record</button>
       <button class="btn btn-primary btn-sm" onclick="openAdminPanel()">Admin Panel</button>
@@ -859,7 +998,7 @@ function updateNavRight() {
     `;
   } else {
     nav.innerHTML = `
-      <span class="nav-user">${esc(name)}</span>
+      <button type="button" class="nav-user nav-user-btn" onclick="void openProfileSettings()">${esc(name)}</button>
       <button class="btn btn-outline btn-sm" onclick="openOverlay('subOv')">Submit Record</button>
       <button class="btn btn-ghost btn-sm" onclick="signOut()">Sign Out</button>
     `;
@@ -888,7 +1027,7 @@ async function loadAll() {
   populateLevelSelect();
   renderPackPicker();
   renderVerifPackPicker();
-  buildLeaderboard();
+  await buildLeaderboard();
 }
 
 function showPage(page) {
@@ -919,7 +1058,6 @@ function closeMobileSidebar() {
 function getFilteredLevels() {
   const query = levelSearchQuery.trim().toLowerCase();
   return levels
-    .filter(lvl => !currentPackFilter || (lvl.packs && lvl.packs[currentPackFilter]))
     .filter(lvl => {
       if (query && !lvl.name.toLowerCase().includes(query)) return false;
       if (selectedLevelTags.size) {
@@ -1577,7 +1715,6 @@ async function removePack(idx) {
 }
 
 function showPackView(packId) {
-  currentPackFilter = packId;
   currentPackView = packs.find(p => p._key === packId) || null;
   renderSidebar();
   const pack = currentPackView;
@@ -1604,7 +1741,6 @@ function showPackView(packId) {
 }
 
 function resetPackFilter() {
-  currentPackFilter = null;
   currentPackView = null;
   renderSidebar();
   showPage('list');
@@ -1934,7 +2070,7 @@ async function removeLevel(idx) {
   levels.sort((a,b) => (a.pos||9999)-(b.pos||9999));
   renderManageTable();
   renderSidebar();
-  buildLeaderboard();
+  await buildLeaderboard();
   showToast(`"${lvl.name}" deleted.`);
   if (currentLevelKey === lvl._key) {
     if (!levels.length) {
@@ -2016,7 +2152,7 @@ async function saveRecord() {
   closeOverlay('recOv');
   showToast(`Record for ${nick} added!`);
   if (currentLevelKey === addRecordTarget) showLevel(currentLevelIdx);
-  buildLeaderboard();
+  await buildLeaderboard();
 }
 
 async function deleteRecord(lvlKey, recKey) {
@@ -2024,7 +2160,7 @@ async function deleteRecord(lvlKey, recKey) {
   await dbRemove(`records/${lvlKey}/${recKey}`);
   if (records[lvlKey]) delete records[lvlKey][recKey];
   showLevel(currentLevelIdx);
-  buildLeaderboard();
+  await buildLeaderboard();
   showToast('Record deleted.');
 }
 
@@ -2105,7 +2241,7 @@ async function approveRecord(key) {
   if (currentLevelKey === lvl._key) showLevel(currentLevelIdx);
   renderPendingList();
   updatePendingBadge();
-  buildLeaderboard();
+  await buildLeaderboard();
   showToast('Record approved!');
 }
 
@@ -2287,7 +2423,7 @@ async function sendWebhook(payload) {
   catch(e) {}
 }
 
-function buildLeaderboard() {
+async function buildLeaderboard() {
   const playerTotals = {};
   levels.forEach((lvl, i) => {
     const pts  = calcPoints(i + 1);
@@ -2310,13 +2446,15 @@ function buildLeaderboard() {
     .map(([name, data]) => ({ name, total:Math.round(data.total*1000)/1000, ...data }))
     .sort((a,b) => b.total - a.total);
 
+  lastRankedLeaderboard = ranked;
+
   const ul = document.getElementById('lbSidebarList');
   ul.innerHTML = '';
   ranked.forEach((player, i) => {
     const li = document.createElement('li');
     li.className = 'lb-row' + (player.name === currentLbPlayer ? ' active' : '');
     li.setAttribute('data-player', player.name);
-    li.onclick = () => showLeaderboardPlayer(player, i+1, ranked);
+    li.onclick = () => { void showLeaderboardPlayer(player, i+1, ranked); };
     li.innerHTML = `
       <span class="lb-pos">#${i+1}</span>
       <span class="lb-pts">${player.total.toFixed(3)}</span>
@@ -2325,10 +2463,10 @@ function buildLeaderboard() {
   });
 
   if (ranked.length && !currentLbPlayer) {
-    showLeaderboardPlayer(ranked[0], 1, ranked);
+    await showLeaderboardPlayer(ranked[0], 1, ranked);
   } else if (currentLbPlayer) {
     const idx = ranked.findIndex(p => p.name === currentLbPlayer);
-    if (idx >= 0) showLeaderboardPlayer(ranked[idx], idx+1, ranked);
+    if (idx >= 0) await showLeaderboardPlayer(ranked[idx], idx+1, ranked);
   }
 
   if (!ranked.length) {
@@ -2403,36 +2541,148 @@ function showPlayerProfile(name) {
   openOverlay('profileOv');
 }
 
-function showLeaderboardPlayer(player, rank, allRanked) {
+async function showLeaderboardPlayer(player, rank, allRanked) {
   currentLbPlayer = player.name;
   document.querySelectorAll('.lb-row').forEach(el => {
     el.classList.toggle('active', el.getAttribute('data-player') === player.name);
   });
 
-  const verifiedRows = player.verified.length
-    ? player.verified.map(l => `
-        <div class="lb-level-row" onclick="jumpToLevel('${esc(l._key)}')">
-          <span class="lb-level-pos">#${l.pos}</span>
-          <span class="lb-level-name">${esc(l.name)}</span>
-          <span class="lb-level-pts">+${l.pts}</span>
-        </div>`).join('')
-    : `<div class="lb-empty">None</div>`;
+  const lbMain = document.getElementById('lbMain');
+  lbMain.innerHTML = '<div class="loading"><div class="spin"></div>Loading...</div>';
 
-  const completedRows = player.completed.length
-    ? player.completed.map(l => `
-        <div class="lb-level-row" onclick="jumpToLevel('${esc(l._key)}')">
-          <span class="lb-level-pos">#${l.pos}</span>
-          <span class="lb-level-name">${esc(l.name)}</span>
-          <span class="lb-level-pts">+${calcPoints(l.pos)}</span>
-        </div>`).join('')
-    : `<div class="lb-empty">None</div>`;
+  const profile = await loadPlayerProfile(player.name);
+  const completedSorted = player.completed.slice().sort((a, b) => b.pts - a.pts);
+  const verifiedSorted = player.verified.slice().sort((a, b) => b.pts - a.pts);
+  const hardest = completedSorted.length
+    ? completedSorted.reduce((best, c) => (c.pts > best.pts || (c.pts === best.pts && c.pos < best.pos) ? c : best), completedSorted[0])
+    : null;
 
-  document.getElementById('lbMain').innerHTML = `
-    <div class="lb-hero-rank"><span>#${rank}</span> ${esc(player.name)}</div>
-    <div class="lb-hero-pts">${player.total.toFixed(3)}</div>
-    ${player.verified.length ? `<div class="lb-section-title">Verified (${player.verified.length})</div>${verifiedRows}` : ''}
-    ${player.completed.length ? `<div class="lb-section-title">Completed (${player.completed.length})</div>${completedRows}` : ''}
+  const clanRaw = profile && profile.clanTag ? String(profile.clanTag).trim() : '';
+  const countryFlag = profile && profile.country ? countryCodeToFlagEmoji(profile.country) : '';
+  const stateStr = profile && profile.state ? String(profile.state).trim() : '';
+  const titleCenter = clanRaw
+    ? `<span style="color:var(--accent)">[${esc(clanRaw)}]</span> ${esc(player.name)}`
+    : esc(player.name);
+
+  const completedCloud = buildLeaderboardCloudHtml(completedSorted, false);
+  const verifiedCloud = buildLeaderboardCloudHtml(verifiedSorted, true);
+
+  let showcaseBlock = '';
+  const sk = profile && profile.showcaseLevelKey;
+  if (sk) {
+    const lvl = levels.find(l => l._key === sk);
+    const vidUrl = (profile.showcaseVideoUrl && String(profile.showcaseVideoUrl).trim())
+      || getRecordVideoForPlayer(player.name, sk);
+    const embed = ytEmbed(vidUrl);
+    if (lvl && embed) {
+      showcaseBlock = `
+        <div class="lb-section-title">Showcase demon</div>
+        <div class="lb-showcase-title">${esc(lvl.name)}</div>
+        <div class="lb-showcase-wrap"><iframe src="${esc(embed)}" title="Showcase" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>`;
+    } else if (lvl) {
+      showcaseBlock = `
+        <div class="lb-section-title">Showcase demon</div>
+        <div class="lb-showcase-title">${esc(lvl.name)}</div>
+        <div class="lb-empty">Add a video URL in profile settings or ensure your record has a proof video.</div>`;
+    }
+  }
+
+  lbMain.innerHTML = `
+    <div class="lb-profile-header">
+      <div class="lb-profile-flag">${countryFlag || ''}</div>
+      <div class="lb-profile-title">${titleCenter}</div>
+      <div class="lb-profile-state">${stateStr ? esc(stateStr) : ''}</div>
+    </div>
+    <div class="lb-stat-grid">
+      <div class="lb-stat-item"><div class="lb-stat-lbl">Leaderboard rank</div><div class="lb-stat-val"><strong>#${rank}</strong></div></div>
+      <div class="lb-stat-item"><div class="lb-stat-lbl">Score</div><div class="lb-stat-val"><strong>${player.total.toFixed(3)}</strong></div></div>
+      <div class="lb-stat-item"><div class="lb-stat-lbl">Records</div><div class="lb-stat-val">${player.completed.length} completed · ${player.verified.length} verified</div></div>
+      <div class="lb-stat-item"><div class="lb-stat-lbl">Hardest demon</div><div class="lb-stat-val"><strong>${hardest ? esc(hardest.name) : '—'}</strong></div></div>
+    </div>
+    ${showcaseBlock}
+    ${player.completed.length ? `<div class="lb-section-title">Levels completed (${player.completed.length})</div><div class="lb-cloud">${completedCloud}</div>` : ''}
+    ${player.verified.length ? `<div class="lb-section-title">Verified (${player.verified.length})</div><div class="lb-cloud lb-cloud--verified">${verifiedCloud}</div>` : ''}
   `;
+}
+
+async function openProfileSettings() {
+  if (!currentUser) return;
+  const nick = getDisplayName();
+  if (!nick) {
+    showToast('Set a username first.', true);
+    return;
+  }
+  const msg = document.getElementById('profMsg');
+  if (msg) msg.textContent = '';
+  try {
+    cachedUserProfile = await dbGet(`users/${currentUser.uid}/profile`) || null;
+  } catch (e) {
+    cachedUserProfile = null;
+  }
+  const profile = cachedUserProfile || {};
+  const countryEl = document.getElementById('profCountry');
+  const stateEl = document.getElementById('profState');
+  const clanEl = document.getElementById('profClan');
+  const showcaseSel = document.getElementById('profShowcase');
+  const vidEl = document.getElementById('profShowcaseVid');
+  if (countryEl) countryEl.value = profile.country || '';
+  if (stateEl) stateEl.value = profile.state || '';
+  if (clanEl) clanEl.value = profile.clanTag || '';
+  const completed = getCompletedLevelsForNickname(nick);
+  if (showcaseSel) {
+    showcaseSel.innerHTML = '<option value="">— None —</option>' +
+      completed.map(l => `<option value="${esc(l._key)}">#${l.pos} ${esc(l.name)}</option>`).join('');
+    if (profile.showcaseLevelKey) showcaseSel.value = profile.showcaseLevelKey;
+  }
+  if (vidEl) vidEl.value = profile.showcaseVideoUrl || '';
+  openOverlay('profileSettingsOv');
+}
+
+async function saveProfileSettings() {
+  if (!currentUser) return;
+  const msg = document.getElementById('profMsg');
+  if (msg) msg.textContent = '';
+  const country = document.getElementById('profCountry').value.trim();
+  const state = document.getElementById('profState').value.trim();
+  const clanTag = document.getElementById('profClan').value.trim();
+  const showcaseLevelKey = document.getElementById('profShowcase').value.trim();
+  const showcaseVideoUrl = document.getElementById('profShowcaseVid').value.trim();
+  const name = getDisplayName();
+  if (!name) {
+    if (msg) msg.textContent = 'No display name.';
+    return;
+  }
+  if (showcaseLevelKey) {
+    const completed = getCompletedLevelsForNickname(name);
+    if (!completed.some(c => c._key === showcaseLevelKey)) {
+      if (msg) msg.textContent = 'Showcase must be a level you completed (100%).';
+      return;
+    }
+  }
+  const profile = {
+    country: country || null,
+    state: state || null,
+    clanTag: clanTag || null,
+    showcaseLevelKey: showcaseLevelKey || null,
+    showcaseVideoUrl: showcaseVideoUrl || null,
+    nickname: name
+  };
+  const nickPath = nicknameToProfileKey(name);
+  try {
+    await dbUpdate({
+      [`users/${currentUser.uid}/profile`]: profile,
+      [`playerProfiles/${nickPath}`]: profile
+    });
+    cachedUserProfile = profile;
+    closeOverlay('profileSettingsOv');
+    showToast('Profile saved.');
+    if (currentLbPlayer === name && lastRankedLeaderboard.length) {
+      const idx = lastRankedLeaderboard.findIndex(p => p.name === name);
+      if (idx >= 0) await showLeaderboardPlayer(lastRankedLeaderboard[idx], idx + 1, lastRankedLeaderboard);
+    }
+  } catch (e) {
+    if (msg) msg.textContent = e.message || 'Save failed.';
+  }
 }
 
 function jumpToLevel(key) {
