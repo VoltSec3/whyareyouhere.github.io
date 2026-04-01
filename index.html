@@ -76,6 +76,18 @@ nav {
 .sidebar-item.active .s-name { color: var(--text); }
 .sidebar-nav-item { display: none; font-weight: 700; text-transform: uppercase; color: var(--text); }
 .sidebar-divider { display: none; list-style: none; margin: 0.25rem 0; padding: 0; height: 1px; background: rgba(255,255,255,0.05); }
+.sidebar-filters { padding: 1rem 0.85rem; display: flex; flex-direction: column; gap: 0.85rem; }
+.sidebar-search-row { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; width: 100%; }
+.sidebar-search-hdr { font-size: 0.62rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--dim); white-space: nowrap; flex-shrink: 0; }
+.search-input { width: 100%; background: #0e0808; border: 1px solid var(--border); color: var(--text); padding: 0.55rem 0.8rem; border-radius: 3px; outline: none; }
+.search-input--sidebar { width: auto; max-width: 200px; min-width: 140px; flex: 1 1 140px; }
+.search-input:focus { border-color: var(--accent); }
+.search-row { display: flex; gap: 0.5rem; align-items: center; flex-wrap: nowrap; flex: 1 1 auto; justify-content: flex-end; min-width: 0; }
+.tag-action-btn { width: 36px; min-width: 36px; height: 36px; padding: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 4px; }
+.tag-action-icon { display: inline-flex; flex-direction: column; gap: 3px; width: 16px; }
+.tag-action-icon span { display: block; height: 2px; background: var(--text); border-radius: 1px; }
+.tag-filter-row { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.tag.active { background: var(--accent); color: #fff; border-color: var(--accent); }
 
 @media (max-width: 768px) {
   .sidebar-nav-item { display: flex; }
@@ -91,8 +103,9 @@ nav {
 .lv-title { font-size: 2.5rem; font-weight: 700; color: var(--text); letter-spacing: 1px; margin-bottom: 0.8rem; line-height: 1.1; }
 
 .tag-row { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 1rem; }
-.tag { display: inline-block; padding: 0.2rem 0.65rem; border-radius: 20px; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.5px; border: 1px solid; cursor: default; }
+.tag { display: inline-block; padding: 0.2rem 0.65rem; border-radius: 20px; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.5px; border: 1px solid var(--border); background: rgba(255,255,255,0.04); color: var(--text); cursor: default; }
 .tag.clickable { cursor: pointer; }
+.tag.active { background: var(--accent); color: #fff; border-color: var(--accent); }
 
 .meta-row { display: flex; flex-wrap: wrap; gap: 0.5rem 2rem; margin-bottom: 1.2rem; }
 .meta-item { display: flex; flex-direction: column; gap: 0.1rem; }
@@ -338,7 +351,18 @@ nav {
 </nav>
 
 <div class="page active" id="pageList">
-  <aside class="sidebar" id="sidebar"><ul class="sidebar-list" id="sidebarList"></ul></aside>
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-filters">
+      <div class="sidebar-search-row">
+        <span class="sidebar-search-hdr">Search levels</span>
+        <div class="search-row">
+          <input id="levelSearch" class="search-input search-input--sidebar" type="text" placeholder="Search by level name..." oninput="updateLevelSearch()">
+          <button class="btn btn-outline btn-sm tag-action-btn" id="tagFilterButton" onclick="openTagFilterPanel()" aria-label="Open tag filter"><span class="tag-action-icon"><span></span><span></span><span></span></span></button>
+        </div>
+      </div>
+    </div>
+    <ul class="sidebar-list" id="sidebarList"></ul>
+  </aside>
   <main class="main" id="mainArea">
     <div class="loading" id="loadEl"><div class="spin"></div>Loading...</div>
     <div class="empty-state" id="emptyEl" style="display:none">
@@ -397,6 +421,20 @@ nav {
       <span class="pmsg" id="authMsg"></span>
       <button class="btn btn-ghost" onclick="closeOverlay('authOv')">Cancel</button>
       <button class="btn btn-primary" id="authSubmitBtn" onclick="handleAuthSubmit()">Sign In</button>
+    </div>
+  </div>
+</div>
+
+<!-- TAG FILTER OVERLAY -->
+<div class="ov" id="tagFilterOv">
+  <div class="panel" style="max-width:420px">
+    <div class="ph"><h2>Select a Tag</h2><button class="xbtn" onclick="closeTagFilterPanel()">&#10005;</button></div>
+    <div class="pb">
+      <div class="tag-row" id="tagFilterPanelRow"></div>
+    </div>
+    <div class="pf">
+      <button class="btn btn-ghost" onclick="closeTagFilterPanel()">Cancel</button>
+      <button class="btn btn-primary" onclick="clearLevelTagFilter(); closeTagFilterPanel()">Clear Filter</button>
     </div>
   </div>
 </div>
@@ -597,6 +635,8 @@ let currentAuthTab   = 'login';
 let accountUsername  = null;
 let currentLbPlayer  = null;
 let currentPackFilter = null;
+let levelSearchQuery = '';
+let selectedLevelTags = new Set();
 let currentPackView   = null;
 let packs            = [];
 let packColor        = '#c0392b';
@@ -876,24 +916,127 @@ function closeMobileSidebar() {
   document.getElementById('sidebarOverlay').classList.remove('show');
 }
 
+function getFilteredLevels() {
+  const query = levelSearchQuery.trim().toLowerCase();
+  return levels
+    .filter(lvl => !currentPackFilter || (lvl.packs && lvl.packs[currentPackFilter]))
+    .filter(lvl => {
+      if (query && !lvl.name.toLowerCase().includes(query)) return false;
+      if (selectedLevelTags.size) {
+        return lvl.tags && lvl.tags.some(t => selectedLevelTags.has(t.name));
+      }
+      return true;
+    });
+}
+
+function getLevelTags() {
+  const tags = new Set();
+  levels.forEach(lvl => (lvl.tags || []).forEach(t => tags.add(t.name)));
+  return [...tags].sort((a, b) => a.localeCompare(b));
+}
+
+function renderTagFilterButton() {
+  const btn = document.getElementById('tagFilterButton');
+  if (!btn) return;
+  const selectedCount = selectedLevelTags.size;
+  btn.title = selectedCount ? `${selectedCount} tag${selectedCount > 1 ? 's' : ''} selected` : 'Open tag filter';
+}
+
+function renderTagFilterPanel() {
+  const row = document.getElementById('tagFilterPanelRow');
+  if (!row) return;
+  const tags = getLevelTags();
+  row.innerHTML = '';
+  if (!tags.length) {
+    const empty = document.createElement('span');
+    empty.style.color = 'var(--dim)';
+    empty.textContent = 'No tags yet.';
+    row.appendChild(empty);
+    return;
+  }
+  const allBtn = document.createElement('span');
+  allBtn.className = `tag clickable${selectedLevelTags.size === 0 ? ' active' : ''}`;
+  allBtn.textContent = 'All';
+  allBtn.onclick = () => { clearLevelTagFilter(); renderTagFilterPanel(); };
+  row.appendChild(allBtn);
+  tags.forEach(tag => {
+    const span = document.createElement('span');
+    span.className = `tag clickable${selectedLevelTags.has(tag) ? ' active' : ''}`;
+    span.textContent = tag;
+    span.onclick = () => { toggleLevelTagFilter(tag); };
+    row.appendChild(span);
+  });
+}
+
+function toggleLevelTagFilter(tag) {
+  if (selectedLevelTags.has(tag)) selectedLevelTags.delete(tag);
+  else selectedLevelTags.add(tag);
+  renderTagFilterButton();
+  renderTagFilterPanel();
+  renderSidebar();
+}
+
+function clearLevelTagFilter() {
+  selectedLevelTags.clear();
+  renderTagFilterButton();
+  renderSidebar();
+}
+
+function updateLevelSearch() {
+  levelSearchQuery = document.getElementById('levelSearch').value;
+  renderSidebar();
+}
+
+function renderSidebar() {
+  renderTagFilterButton();
+  renderSidebar();
+}
+
+function clearLevelTagFilter() {
+  selectedLevelTags.clear();
+  renderTagFilterButton();
+  renderSidebar();
+}
+
+function updateLevelSearch() {
+  levelSearchQuery = document.getElementById('levelSearch').value;
+  renderSidebar();
+}
+
 function renderSidebar() {
   const ul = document.getElementById('sidebarList');
   if (ul) {
     ul.innerHTML = '';
-    const visibleLevels = currentPackFilter
-      ? levels.filter(lvl => lvl.packs && lvl.packs[currentPackFilter])
-      : levels;
-    visibleLevels.forEach((lvl, idx) => {
+    const visibleLevels = getFilteredLevels();
+    if (!visibleLevels.length) {
       const li = document.createElement('li');
-      li.className = 'sidebar-item' + (lvl._key === currentLevelKey ? ' active' : '');
-      li.onclick = () => { showLevel(levels.findIndex(x => x._key === lvl._key)); closeMobileSidebar(); };
-      const rank = levels.findIndex(x => x._key === lvl._key) + 1;
-      li.innerHTML = `<span class="s-rank">#${rank}</span><span class="s-name">${esc(lvl.name)}</span>`;
+      li.className = 'sidebar-item';
+      li.style.color = 'var(--dim)';
+      li.textContent = 'No levels match your search.';
       ul.appendChild(li);
-    });
+    } else {
+      visibleLevels.forEach((lvl) => {
+        const li = document.createElement('li');
+        li.className = 'sidebar-item' + (lvl._key === currentLevelKey ? ' active' : '');
+        li.onclick = () => { showLevel(levels.findIndex(x => x._key === lvl._key)); closeMobileSidebar(); };
+        const rank = levels.findIndex(x => x._key === lvl._key) + 1;
+        li.innerHTML = `<span class="s-rank">#${rank}</span><span class="s-name">${esc(lvl.name)}</span>`;
+        ul.appendChild(li);
+      });
+    }
   }
+  renderTagFilterButton();
   renderPackSidebar();
   renderMobileSidebar();
+}
+
+function openTagFilterPanel() {
+  renderTagFilterPanel();
+  openOverlay('tagFilterOv');
+}
+
+function closeTagFilterPanel() {
+  closeOverlay('tagFilterOv');
 }
 
 function renderMobileSidebar() {
@@ -915,7 +1058,7 @@ function renderMobileSidebar() {
   const divider = document.createElement('li');
   divider.className = 'sidebar-divider';
   ul.appendChild(divider);
-  const visibleLevels = levels;
+  const visibleLevels = getFilteredLevels();
   visibleLevels.forEach((lvl) => {
     const li = document.createElement('li');
     li.className = 'sidebar-item' + (lvl._key === currentLevelKey ? ' active' : '');
@@ -983,12 +1126,12 @@ function showLevel(idx) {
       : `<div class="rec-empty">No records yet.</div>`;
 
     const tagHtml = tags.length
-      ? `<div class="tag-row">${tags.map(t => `<span class="tag" style="color:${esc(t.color)};border-color:${esc(t.color)};background:${esc(t.color)}22">${esc(t.name)}</span>`).join('')}</div>`
+      ? `<div class="tag-row">${tags.map(t => `<span class="tag">${esc(t.name)}</span>`).join('')}</div>`
       : '';
     const packHtml = lvl.packs && Object.keys(lvl.packs).length
       ? `<div class="tag-row">${Object.keys(lvl.packs).map(pk => {
           const pack = packs.find(p => p._key === pk);
-          return pack ? `<span class="tag clickable" style="color:${esc(pack.color)};border-color:${esc(pack.color)};background:${esc(pack.color)}22" onclick="showPackView('${esc(pack._key)}')" title="View pack: ${esc(pack.name)}">${esc(pack.name)}</span>` : '';
+          return pack ? `<span class="tag clickable" onclick="showPackView('${esc(pack._key)}')" title="View pack: ${esc(pack.name)}">${esc(pack.name)}</span>` : '';
         }).join('')}</div>`
       : '';
 
