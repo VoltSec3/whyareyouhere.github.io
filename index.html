@@ -1,14 +1,14 @@
 <!DOCTYPE html>
 <html>
 <head>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
   body {
-    background: #080b10;
-    color: #e2e8f0;
-    font-family: 'Syne', sans-serif;
+    background: #0e0c14;
+    color: #e8e0f4;
+    font-family: 'Libre Baskerville', Georgia, serif;
     min-height: 100vh;
     overflow-x: hidden;
   }
@@ -18,9 +18,9 @@
     inset: 0;
     z-index: 0;
     background-image:
-      linear-gradient(rgba(0,255,170,0.045) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(0,255,170,0.045) 1px, transparent 1px);
-    background-size: 44px 44px;
+      linear-gradient(rgba(155,135,212,0.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(155,135,212,0.06) 1px, transparent 1px);
+    background-size: 40px 40px;
     animation: gridDrift 35s linear infinite;
   }
 
@@ -29,65 +29,64 @@
     inset: 0;
     z-index: 1;
     background:
-      radial-gradient(ellipse 90% 55% at 50% 50%, transparent 20%, #080b10 85%),
-      linear-gradient(to bottom, #080b10 0%, transparent 12%, transparent 88%, #080b10 100%);
+      radial-gradient(ellipse 85% 55% at 50% 50%, transparent 15%, #0e0c14 82%),
+      linear-gradient(to bottom, #0e0c14 0%, transparent 10%, transparent 90%, #0e0c14 100%);
   }
 
   @keyframes gridDrift {
-    0% { transform: translateY(0); }
-    100% { transform: translateY(44px); }
+    0%   { transform: translateY(0); }
+    100% { transform: translateY(40px); }
   }
 
   .page {
     position: relative;
     z-index: 2;
-    max-width: 760px;
+    max-width: 720px;
     margin: 0 auto;
-    padding: 72px 36px 88px;
+    padding: 72px 40px 88px;
   }
 
   .hero {
-    margin-bottom: 52px;
+    margin-bottom: 56px;
     opacity: 0;
     animation: fadeUp 0.8s ease 0.1s forwards;
   }
 
   .name {
-    font-size: clamp(48px, 9vw, 76px);
-    font-weight: 800;
-    line-height: 0.95;
-    letter-spacing: -0.03em;
-    color: #eef2ff;
-    margin-bottom: 18px;
-  }
-
-  .name em {
-    font-style: normal;
-    color: #00ffaa;
+    font-size: clamp(44px, 8vw, 70px);
+    font-weight: 700;
+    font-style: italic;
+    line-height: 1;
+    letter-spacing: 0.01em;
+    color: #c4b4f0;
+    margin-bottom: 16px;
   }
 
   .role {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 12px;
-    color: #3a5a6e;
-    letter-spacing: 0.1em;
-    margin-bottom: 22px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: #5a5075;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    margin-bottom: 24px;
   }
 
   .glow-line {
-    width: 52px;
-    height: 1.5px;
-    background: linear-gradient(90deg, #00ffaa, transparent);
-    border-radius: 1px;
-    margin-bottom: 22px;
+    width: 48px;
+    height: 1px;
+    background: linear-gradient(90deg, #9b87d4, transparent);
+    margin-bottom: 24px;
   }
 
   .tagline {
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 400;
-    color: #4a6478;
+    font-style: italic;
+    color: #8b7fb0;
     max-width: 400px;
-    line-height: 1.65;
+    line-height: 1.75;
+    border-left: 2px solid rgba(148,130,210,0.25);
+    padding-left: 18px;
   }
 
   .section {
@@ -96,113 +95,113 @@
     animation: fadeUp 0.8s ease forwards;
   }
 
-  .section:nth-child(2) { animation-delay: 0.2s; }
-  .section:nth-child(3) { animation-delay: 0.32s; }
-  .section:nth-child(4) { animation-delay: 0.44s; }
+  .section:nth-child(2) { animation-delay: 0.22s; }
+  .section:nth-child(3) { animation-delay: 0.34s; }
+  .section:nth-child(4) { animation-delay: 0.46s; }
 
   .section-label {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 10px;
-    letter-spacing: 0.16em;
-    color: #00ffaa;
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.3em;
     text-transform: uppercase;
-    margin-bottom: 20px;
+    color: #5a5075;
+    margin-bottom: 18px;
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 14px;
   }
 
   .section-label::after {
     content: '';
     flex: 1;
     height: 1px;
-    background: linear-gradient(90deg, rgba(0,255,170,0.25), transparent);
+    background: linear-gradient(90deg, rgba(148,130,210,0.2), transparent);
   }
 
   .conveyor-wrap {
     overflow: hidden;
-    position: relative;
-    mask-image: linear-gradient(90deg, transparent 0%, black 8%, black 92%, transparent 100%);
-    -webkit-mask-image: linear-gradient(90deg, transparent 0%, black 8%, black 92%, transparent 100%);
+    mask-image: linear-gradient(90deg, transparent 0%, black 7%, black 93%, transparent 100%);
+    -webkit-mask-image: linear-gradient(90deg, transparent 0%, black 7%, black 93%, transparent 100%);
   }
 
   .conveyor-track {
     display: flex;
-    gap: 10px;
+    gap: 8px;
     width: max-content;
-    animation: conveyor 28s linear infinite;
+    animation: conveyor 30s linear infinite;
   }
 
   @keyframes conveyor {
-    0% { transform: translateX(0); }
+    0%   { transform: translateX(0); }
     100% { transform: translateX(-50%); }
   }
 
   .chip {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 11px;
-    padding: 7px 16px;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    padding: 6px 14px;
     border-radius: 3px;
-    border: 1px solid rgba(0,255,170,0.12);
-    background: rgba(0,255,170,0.03);
-    color: #5a8a78;
-    letter-spacing: 0.05em;
+    border: 1px solid rgba(148,130,210,0.18);
+    background: rgba(155,135,212,0.06);
+    color: #6b57a8;
+    letter-spacing: 0.08em;
     white-space: nowrap;
-    cursor: default;
     user-select: none;
+    cursor: default;
   }
 
   .contact-row {
     display: flex;
     flex-wrap: wrap;
-    gap: 10px;
+    gap: 8px;
   }
 
   .contact-link {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 11px;
-    padding: 8px 18px;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    padding: 8px 16px;
     border-radius: 3px;
-    border: 1px solid rgba(255,255,255,0.07);
-    color: #3a5a6e;
+    border: 1px solid rgba(148,130,210,0.18);
+    color: #5a5075;
+    letter-spacing: 0.1em;
     text-decoration: none;
-    letter-spacing: 0.06em;
-    transition: all 0.22s;
     cursor: pointer;
+    transition: border-color 0.2s, color 0.2s, background 0.2s;
   }
 
   .contact-link:hover {
-    border-color: rgba(0,255,170,0.35);
-    color: #00ffaa;
-    background: rgba(0,255,170,0.04);
+    border-color: rgba(155,135,212,0.45);
+    color: #c4b4f0;
+    background: rgba(155,135,212,0.07);
   }
 
   .contact-link.primary {
-    border-color: rgba(0,255,170,0.3);
-    color: #00d490;
+    border-color: rgba(155,135,212,0.3);
+    color: #9b87d4;
   }
 
   .footer-line {
-    margin-top: 68px;
+    margin-top: 64px;
     display: flex;
     align-items: center;
-    gap: 18px;
+    gap: 16px;
     opacity: 0;
     animation: fadeUp 0.8s ease 0.6s forwards;
   }
 
   .footer-item {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 10px;
-    color: #1e3040;
-    letter-spacing: 0.08em;
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    color: #2d2540;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
   }
 
-  .footer-sep { color: #1a2a35; }
+  .footer-sep { color: #201a30; }
 
   @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(16px); }
-    to { opacity: 1; transform: translateY(0); }
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: translateY(0); }
   }
 </style>
 </head>
@@ -214,10 +213,10 @@
 <div class="page">
 
   <div class="hero section">
-    <div class="name">Sawyer<br><em>Davis</em></div>
-    <div class="role">// cybersecurity student</div>
+    <div class="name">Sawyer Davis</div>
+    <div class="role">cybersecurity student</div>
     <div class="glow-line"></div>
-    <div class="tagline">I fuck around with cybersecurity. I'm not good but close enough.</div>
+    <div class="tagline">Exploring offensive security, CTFs, and building safer systems — one vulnerability at a time.</div>
   </div>
 
   <div class="section">
@@ -231,7 +230,7 @@
     <div class="section-label">Contact</div>
     <div class="contact-row">
       <div class="contact-link primary">phonesawyer@gmail.com</div>
-      <div class="contact-link">github.com/voltsec3</div>
+      <div class="contact-link">github.com/voltsec</div>
     </div>
   </div>
 
@@ -240,7 +239,7 @@
     <div class="footer-sep">·</div>
     <div class="footer-item">open to collaboration</div>
     <div class="footer-sep">·</div>
-    <div class="footer-item">2026</div>
+    <div class="footer-item">2025</div>
   </div>
 
 </div>
@@ -251,7 +250,6 @@
     'OSINT', 'SQL Injection', 'Cryptography', 'Nmap', 'Wireshark',
     'Burp Suite', 'Python Scripting', 'Reverse Engineering', 'Metasploit', 'Bash'
   ];
-
   const track = document.getElementById('track');
   [...skills, ...skills].forEach(s => {
     const c = document.createElement('div');
