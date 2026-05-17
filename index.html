@@ -1625,7 +1625,10 @@ function computeClassicChangesFromDraft() {
     if (lp === undefined) {
       lines.push(`${l.name} has been placed at ${posStr}, above ${above || 'the start'} and below ${below || 'the end'}`.replace('above the start', 'above nothing').replace('below the end', 'below nothing'));
     } else {
-      lines.push(`${l.name} has been moved from #${lp} to #${dp}, above ${above || 'the start'} and below ${below || 'the end'}`.replace('above the start', 'above nothing').replace('below the end', 'below nothing'));
+      // Only report moves where position decreased (moved up), not cascading moves down
+      if (dp < lp) {
+        lines.push(`${l.name} has been moved up from #${lp} to #${dp}`);
+      }
     }
   });
 
