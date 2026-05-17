@@ -1627,7 +1627,7 @@ function computeClassicChangesFromDraft() {
     } else {
       // Only report moves where position decreased (moved up), not cascading moves down
       if (dp < lp) {
-        lines.push(`${l.name} has been moved up from #${lp} to #${dp}`);
+        lines.push(`${l.name} has been moved up from #${lp} to #${dp}, above ${above || 'nothing'} and below ${below || 'nothing'}`);
       }
     }
   });
