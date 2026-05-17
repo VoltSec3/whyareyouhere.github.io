@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Buffed Demon List</title>
+<title>Cancerous Levels List</title>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
@@ -35,7 +35,6 @@ nav {
   padding: 0 1.5rem;
   display: flex; align-items: center; height: 48px; gap: 1rem;
   position: sticky; top: 0; z-index: 100;
-  box-shadow: 0 2px 16px rgba(192,57,43,0.35);
 }
 .nav-logo { font-size: 1.4rem; font-weight: 700; color: var(--text); letter-spacing: 2px; cursor: default; flex-shrink: 0; }
 .nav-links { display: flex; list-style: none; }
@@ -359,7 +358,7 @@ nav {
 
 <nav>
   <button class="nav-hamburger" id="hamburger" onclick="toggleMobileSidebar()">&#9776;</button>
-  <div class="nav-logo">BDL <span class="nav-version">v1.0.0</span></div>
+  <div class="nav-logo">CLL <span class="nav-version">v1.0.0</span></div>
   <ul class="nav-links">
     <li><a id="navList" class="active" onclick="showPage('list')">List</a></li>
     <li><a id="navLb" onclick="showPage('leaderboard')">Leaderboard</a></li>
@@ -386,7 +385,7 @@ nav {
   <main class="main" id="mainArea">
     <div class="loading" id="loadEl"><div class="spin"></div>Loading...</div>
     <div class="empty-state" id="emptyEl" style="display:none">
-      <div class="empty-big">BDL</div>
+      <div class="empty-big">CLL</div>
       <p>No levels yet. Admins can add levels via the Admin Panel.</p>
     </div>
     <div id="detail" style="display:none"></div>
@@ -471,7 +470,7 @@ nav {
         <button class="otab" onclick="adminTab('pending')" id="pendingTab">Pending</button>
       </div>
       <div id="aAdd">
-        <div class="fg"><label>Level Name</label><input id="fn" placeholder="e.g. Buffed Bloodbath"></div>
+        <div class="fg"><label>Level Name</label><input id="fn" placeholder="e.g. Piss Pulse Finale"></div>
         <div class="frow">
           <div class="fg"><label>Creator</label><input id="fc" placeholder="Username"></div>
           <div class="fg"><label>Verifier</label><input id="fv" placeholder="Username"></div>
@@ -551,7 +550,7 @@ nav {
 <!-- SUBMIT OVERLAY (public) -->
 <div class="ov" id="subOv">
   <div class="panel" style="max-width:580px">
-    <div class="ph"><h2>Submit to BDL</h2><button class="xbtn" onclick="closeOverlay('subOv')">&#10005;</button></div>
+    <div class="ph"><h2>Submit to CLL</h2><button class="xbtn" onclick="closeOverlay('subOv')">&#10005;</button></div>
     <div class="pb">
       <div class="otabs">
         <button class="otab active" onclick="submitTab('rec')">Record</button>
@@ -567,8 +566,8 @@ nav {
         <div class="fg"><label>Extra Info (optional)</label><textarea id="sExtra" placeholder="Device used, anything relevant..."></textarea></div>
       </div>
       <div id="sVerif" style="display:none">
-        <p style="font-size:0.78rem;color:var(--muted);margin-bottom:1rem;line-height:1.7">Think a level should be on the BDL? Submit your verification.</p>
-        <div class="fg"><label>Level Name</label><input id="vName" placeholder="e.g. Buffed Bloodbath"></div>
+        <p style="font-size:0.78rem;color:var(--muted);margin-bottom:1rem;line-height:1.7">Think a level should be on the CLL? Submit your verification.</p>
+        <div class="fg"><label>Level Name</label><input id="vName" placeholder="e.g. Piss Pulse Finale"></div>
         <div class="frow">
           <div class="fg"><label>Creator</label><input id="vCreator" placeholder="Username"></div>
           <div class="fg"><label>Your Name (Verifier)</label><input id="vVerifier" placeholder="Your GD name"></div>
@@ -652,10 +651,10 @@ nav {
 <script>
 const FB_CONFIG = {
   apiKey: "AIzaSyD-SIg70e0MDgDBqLSZv_uG6lpO682K7ds",
-  authDomain: "bdl-list.firebaseapp.com",
-  databaseURL: "https://bdl-list-default-rtdb.firebaseio.com",
-  projectId: "bdl-list",
-  storageBucket: "bdl-list.firebasestorage.app",
+  authDomain: "CLL-list.firebaseapp.com",
+  databaseURL: "https://CLL-list-default-rtdb.firebaseio.com",
+  projectId: "CLL-list",
+  storageBucket: "CLL-list.firebasestorage.app",
   messagingSenderId: "744133456079",
   appId: "1:744133456079:web:53f7efc59b8b039fff47ba"
 };
@@ -2129,7 +2128,7 @@ function openAddHistory(key, name) {
       <div class="pb">
         <div class="fg"><label>New Position</label><input id="hPos" type="number" placeholder="e.g. 5" min="1"></div>
         <div class="fg"><label>Change (negative = moved up)</label><input id="hChg" type="number" placeholder="e.g. -2 or 1"></div>
-        <div class="fg"><label>Cause</label><input id="hCause" placeholder="e.g. Buffed Xenon placed above"></div>
+        <div class="fg"><label>Cause</label><input id="hCause" placeholder="e.g. X placed above"></div>
       </div>
       <div class="pf">
         <button class="btn btn-ghost" onclick="document.getElementById('histOv').remove()">Cancel</button>
@@ -2366,7 +2365,7 @@ async function sendSubmission() {
       }
     }
     await dbPush('pending', payload);
-    await sendWebhook({ username:'BDL Submissions', embeds:[{
+    await sendWebhook({ username:'CLL Submissions', embeds:[{
       title:'New Record Submission', color:0xc0392b,
       fields:[
         {name:'Level', value:level, inline:true},
@@ -2375,7 +2374,7 @@ async function sendSubmission() {
         {name:'Video Proof', value:video},
         ...(extra?[{name:'Extra Info',value:extra}]:[]),
       ],
-      footer:{text:'BDL'}, timestamp:new Date().toISOString()
+      footer:{text:'CLL'}, timestamp:new Date().toISOString()
     }]});
     showFormMsg('sMsg','Submitted! Closing in 3s...');
     setTimeout(() => {
@@ -2417,7 +2416,7 @@ async function sendSubmission() {
 
     const packNames = suggestedPacks.map(pid => { const p = packs.find(x => x._key === pid); return p ? p.name : pid; }).join(', ') || 'None';
     const tagNames  = verifTags.map(t => t.name).join(', ') || 'None';
-    await sendWebhook({ username:'BDL Submissions', embeds:[{
+    await sendWebhook({ username:'CLL Submissions', embeds:[{
       title:'Verification Submission', color:0xf39c12,
       fields:[
         {name:'Level', value:name, inline:true},
@@ -2433,7 +2432,7 @@ async function sendSubmission() {
         {name:'Suggested Packs', value:packNames, inline:true},
         ...(sub.suggestedNewPack?[{name:'New Pack Suggestion',value:sub.suggestedNewPack}]:[]),
       ],
-      footer:{text:'BDL'}, timestamp:new Date().toISOString()
+      footer:{text:'CLL'}, timestamp:new Date().toISOString()
     }]});
     showFormMsg('sMsg','Verification submitted! Closing in 3s...');
     setTimeout(() => {
