@@ -1645,7 +1645,7 @@ async function publishDraftChanges() {
   const lines = computeClassicChangesFromDraft();
   const payload = {
     username: 'CLL Classic Changes',
-    content: 'Changes:\n' + lines.join('\n')
+    content: '@List Changes\nChanges:\n' + lines.join('\n')
   };
 
   // Apply removals + final ordering.
