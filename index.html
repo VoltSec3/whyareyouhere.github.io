@@ -468,6 +468,7 @@ nav {
         <button class="otab" onclick="adminTab('manage')">Manage</button>
         <button class="otab" onclick="adminTab('packs')">Packs</button>
         <button class="otab" onclick="adminTab('pending')" id="pendingTab">Pending</button>
+        <button class="otab" id="pendingPublishBtn" onclick="publishDraftChanges()" style="display:none">Publish Changes</button>
       </div>
       <div id="aAdd">
         <div class="fg"><label>Level Name</label><input id="fn" placeholder="e.g. Piss Pulse Finale"></div>
@@ -1513,9 +1514,15 @@ function discardDraftLevels() {
 
 function updatePublishButtonVisibility() {
   const btn = document.getElementById('publishChangesBtn');
-  if (!btn) return;
-  const show = !!(draftLevels && draftIsDirty && draftLevels.length >= 0);
-  btn.style.display = show ? 'inline-flex' : 'none';
+  if (btn) {
+    const show = !!(draftLevels && draftIsDirty && draftLevels.length >= 0);
+    btn.style.display = show ? 'inline-flex' : 'none';
+  }
+  const pendingBtn = document.getElementById('pendingPublishBtn');
+  if (pendingBtn) {
+    const show = !!(draftLevels && draftIsDirty && draftLevels.length >= 0);
+    pendingBtn.style.display = show ? 'inline-flex' : 'none';
+  }
 }
 
 function markDraftDirty() {
@@ -1673,7 +1680,7 @@ async function publishDraftChanges() {
 
   // Send webhook.
   // Discord webhooks accept either {content:...} or embeds; we send classic text only.
-  await sendWebhook({ content: 'Classic Changes\n' + lines.join('\n') });
+  await sendWebhook({ content: 'Changes:\n' + lines.join('\n') });
 
 
   // Refresh.
