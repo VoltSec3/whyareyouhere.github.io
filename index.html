@@ -683,6 +683,7 @@ let records          = {};
 let draftLevels = null; // deep copy of levels while admin edits
 let draftDeletedLevelKeys = new Set();
 let draftIsDirty = false; // whether draft differs from live
+let originalLevels = null; // snapshot of levels before draft started
 
 let currentLevelKey  = null;
 let currentLevelIdx  = -1;
@@ -1497,6 +1498,7 @@ function deepCopyLevels(arr) {
 }
 
 function startDraftLevels() {
+  originalLevels = deepCopyLevels(levels);
   draftLevels = deepCopyLevels(levels);
   // Ensure deterministic ordering by pos.
   draftLevels.sort((a,b)=>(a.pos||9999)-(b.pos||9999));
@@ -1509,6 +1511,7 @@ function discardDraftLevels() {
   draftLevels = null;
   draftDeletedLevelKeys = new Set();
   draftIsDirty = false;
+  originalLevels = null;
   updatePublishButtonVisibility();
 }
 
@@ -1556,7 +1559,8 @@ function findDraftIndexByKey(key) {
 
 function getLiveLevelsByKey() {
   const map = new Map();
-  levels.forEach((l,i)=>map.set(l._key,l));
+  const source = originalLevels || levels;
+  source.forEach((l,i)=>map.set(l._key,l));
   return map;
 }
 
@@ -1568,7 +1572,8 @@ function computeClassicChangesFromDraft() {
   if (!draftLevels) return [];
 
   const liveByKey = getLiveLevelsByKey();
-  const liveOrdered = levels.slice().sort((a,b)=>(a.pos||9999)-(b.pos||9999));
+  const source = originalLevels || levels;
+  const liveOrdered = source.slice().sort((a,b)=>(a.pos||9999)-(b.pos||9999));
   const draftOrdered = getDraftLevelsInOrder();
 
   const livePosByKey = new Map(liveOrdered.map((l,i)=>[l._key, i+1]));
@@ -1637,12 +1642,13 @@ async function publishDraftChanges() {
   const lines = computeClassicChangesFromDraft();
   const payload = {
     username: 'CLL Classic Changes',
-    content: 'Classic Changes\n' + lines.join('\n')
+    content: 'Changes:\n' + lines.join('\n')
   };
 
   // Apply removals + final ordering.
   // 1) Remove deleted levels from DB.
-  const liveKeys = new Set(levels.map(l=>l._key));
+  const source = originalLevels || levels;
+  const liveKeys = new Set(source.map(l=>l._key));
   const draftKeys = new Set(draftLevels.map(l=>l._key));
   const removedKeys = Array.from(liveKeys).filter(k=>!draftKeys.has(k));
 
@@ -2246,7 +2252,7 @@ async function removeLevel(idx) {
   draftLevels = draftLevels.filter(l => l._key !== lvl._key);
   rebalanceDraftPositions();
 
-  // Mirror to live UI.
+  // Mirror to live UI (for display only, not for comparison).
   levels = getDraftLevelsInOrder();
   renderManageTable();
   renderSidebar();
