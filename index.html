@@ -1623,11 +1623,11 @@ function computeClassicChangesFromDraft() {
     const below = info.belowName;
     const posStr = `#${dp}`;
     if (lp === undefined) {
-      lines.push(`${l.name} has been placed at ${posStr}, above ${above || 'the start'} and below ${below || 'the end'}`.replace('above the start', 'above nothing').replace('below the end', 'below nothing'));
+      lines.push(`${l.name} has been placed at ${posStr}, below ${above || 'the start'} and above ${below || 'the end'}`.replace('above the start', 'above nothing').replace('below the end', 'below nothing'));
     } else {
       // Only report moves where position decreased (moved up), not cascading moves down
       if (dp < lp) {
-        lines.push(`${l.name} has been moved up from #${lp} to #${dp}, above ${above || 'nothing'} and below ${below || 'nothing'}`);
+        lines.push(`${l.name} has been moved up from #${lp} to #${dp}, below ${above || 'nothing'} and above ${below || 'nothing'}`);
       }
     }
   });
