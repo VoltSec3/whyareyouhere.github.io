@@ -524,6 +524,7 @@ nav {
     <div class="pf" id="adminFt">
       <span class="pmsg" id="aMsg"></span>
       <button class="btn btn-ghost" onclick="closeOverlay('adminOv')">Cancel</button>
+      <button class="btn btn-outline" id="publishChangesBtn" onclick="publishDraftChanges()" style="display:none">Publish Changes</button>
       <button class="btn btn-primary" id="levelActionBtn" onclick="addLevel()">Add Level</button>
     </div>
   </div>
@@ -676,6 +677,12 @@ let currentUser      = null; // Firebase user object
 let COUNTRIES        = {};
 let levels           = [];
 let records          = {};
+
+// Draft staging for list edits (admin)
+let draftLevels = null; // deep copy of levels while admin edits
+let draftDeletedLevelKeys = new Set();
+let draftIsDirty = false; // whether draft differs from live
+
 let currentLevelKey  = null;
 let currentLevelIdx  = -1;
 let addRecordTarget  = null;
@@ -1053,6 +1060,11 @@ async function loadAll() {
   renderPackPicker();
   renderVerifPackPicker();
   await buildLeaderboard();
+
+  // If admin panel is open, keep draft in sync with latest live data.
+  if (document.getElementById('adminOv') && document.getElementById('adminOv').classList.contains('open')) {
+    startDraftLevels();
+  }
 }
 
 function showPage(page) {
@@ -1388,6 +1400,8 @@ function openOverlay(id)  {
 function closeOverlay(id) {
   document.getElementById(id).classList.remove('open');
   if (id === 'adminOv') {
+    // Discard drafts when admin panel closes.
+    discardDraftLevels();
     clearAddLevelForm();
     clearAddPackForm();
   }
@@ -1418,6 +1432,8 @@ function getAttemptFieldsFromSub(sub) {
 
 function openAdminPanel() {
   if (!ensureAdminAccess()) return;
+  // Start a new draft session for list edits.
+  startDraftLevels();
   clearAddLevelForm();
   clearAddPackForm();
   adminTab('add');
@@ -1428,6 +1444,7 @@ function openAdminPanel() {
   openOverlay('adminOv');
   updatePointsPreview();
   updatePendingBadge();
+  updatePublishButtonVisibility();
 }
 
 function adminTab(tab) {
@@ -1443,6 +1460,7 @@ function adminTab(tab) {
   if (tab==='manage') renderManageTable();
   if (tab==='packs') renderPackTable();
   if (tab==='pending') renderPendingList();
+  updatePublishButtonVisibility();
 }
 
 function updatePointsPreview() {
@@ -1469,6 +1487,209 @@ function renderColorRow() {
     <div class="color-swatch ${c===pendingTagColor?'selected':''}" style="background:${c}"
       onclick="selectTagColor('${c}')"></div>`).join('');
 }
+
+// -----------------------------
+// Draft staging (admin list edits)
+// -----------------------------
+function deepCopyLevels(arr) {
+  return (arr || []).map(l => JSON.parse(JSON.stringify(l)));
+}
+
+function startDraftLevels() {
+  draftLevels = deepCopyLevels(levels);
+  // Ensure deterministic ordering by pos.
+  draftLevels.sort((a,b)=>(a.pos||9999)-(b.pos||9999));
+  draftDeletedLevelKeys = new Set();
+  draftIsDirty = false;
+  updatePublishButtonVisibility();
+}
+
+function discardDraftLevels() {
+  draftLevels = null;
+  draftDeletedLevelKeys = new Set();
+  draftIsDirty = false;
+  updatePublishButtonVisibility();
+}
+
+function updatePublishButtonVisibility() {
+  const btn = document.getElementById('publishChangesBtn');
+  if (!btn) return;
+  const show = !!(draftLevels && draftIsDirty && draftLevels.length >= 0);
+  btn.style.display = show ? 'inline-flex' : 'none';
+}
+
+function markDraftDirty() {
+  draftIsDirty = true;
+  updatePublishButtonVisibility();
+}
+
+function getDraftLevelsInOrder() {
+  if (!draftLevels) return [];
+  // Use pos as canonical order.
+  return draftLevels.slice().sort((a,b)=>(a.pos||9999)-(b.pos||9999));
+}
+
+function getDraftLevelAtPos(pos) {
+  const ordered = getDraftLevelsInOrder();
+  return ordered[pos - 1] || null;
+}
+
+function rebalanceDraftPositions() {
+  const ordered = getDraftLevelsInOrder();
+  ordered.forEach((l, i) => {
+    l.pos = i + 1;
+  });
+  draftLevels = ordered; // keep internal order consistent
+}
+
+function findDraftIndexByKey(key) {
+  if (!draftLevels) return -1;
+  return draftLevels.findIndex(l => l._key === key);
+}
+
+function getLiveLevelsByKey() {
+  const map = new Map();
+  levels.forEach((l,i)=>map.set(l._key,l));
+  return map;
+}
+
+function formatClassicChangesLines(changeLines) {
+  return changeLines.join('\n');
+}
+
+function computeClassicChangesFromDraft() {
+  if (!draftLevels) return [];
+
+  const liveByKey = getLiveLevelsByKey();
+  const liveOrdered = levels.slice().sort((a,b)=>(a.pos||9999)-(b.pos||9999));
+  const draftOrdered = getDraftLevelsInOrder();
+
+  const livePosByKey = new Map(liveOrdered.map((l,i)=>[l._key, i+1]));
+  const draftPosByKey = new Map(draftOrdered.map((l,i)=>[l._key, i+1]));
+
+  const removed = Array.from(livePosByKey.keys()).filter(k => !draftPosByKey.has(k));
+  const added = Array.from(draftPosByKey.keys()).filter(k => !livePosByKey.has(k));
+
+  const lines = [];
+
+  // Removed
+  removed.forEach(k => {
+    const name = liveByKey.get(k)?.name || k;
+    lines.push(`${name} has been removed from the list.`);
+  });
+
+  function getAboveBelowForKey(key) {
+    const pos = draftPosByKey.get(key);
+    const above = pos > 1 ? draftOrdered[pos - 2] : null;
+    const below = pos < draftOrdered.length ? draftOrdered[pos] : null;
+    return {
+      aboveName: above ? above.name : null,
+      belowName: below ? below.name : null,
+      pos
+    };
+  }
+
+  // For each level in draft, if it was added OR moved OR edited position.
+  // We treat moved when livePos differs.
+  draftOrdered.forEach(l => {
+    const lp = livePosByKey.get(l._key);
+    const dp = draftPosByKey.get(l._key);
+    if (!lp) return; // added already handled below in placement message style
+    if (lp === dp) return;
+  });
+
+  // Placement lines for all levels that are not removed and either added or moved.
+  draftOrdered.forEach(l => {
+    if (removed.includes(l._key)) return;
+    const lp = livePosByKey.get(l._key);
+    const dp = draftPosByKey.get(l._key);
+    const movedOrAdded = (lp === undefined) || (lp !== dp);
+    if (!movedOrAdded) return;
+
+    const info = getAboveBelowForKey(l._key);
+    const above = info.aboveName;
+    const below = info.belowName;
+    const posStr = `#${dp}`;
+    if (lp === undefined) {
+      lines.push(`${l.name} has been placed at ${posStr}, above ${above || 'the start'} and below ${below || 'the end'}`.replace('above the start', 'above nothing').replace('below the end', 'below nothing'));
+    } else {
+      lines.push(`${l.name} has been moved from #${lp} to #${dp}, above ${above || 'the start'} and below ${below || 'the end'}`.replace('above the start', 'above nothing').replace('below the end', 'below nothing'));
+    }
+  });
+
+  return lines;
+}
+
+async function publishDraftChanges() {
+  if (!ensureAdminAccess()) return;
+  if (!draftLevels || !draftIsDirty) return;
+
+  const now = Date.now();
+
+  // Compute webhook lines.
+  const lines = computeClassicChangesFromDraft();
+  const payload = {
+    username: 'CLL Classic Changes',
+    content: 'Classic Changes\n' + lines.join('\n')
+  };
+
+  // Apply removals + final ordering.
+  // 1) Remove deleted levels from DB.
+  const liveKeys = new Set(levels.map(l=>l._key));
+  const draftKeys = new Set(draftLevels.map(l=>l._key));
+  const removedKeys = Array.from(liveKeys).filter(k=>!draftKeys.has(k));
+
+  // 2) Push final pos for draft levels and upsert fields for edited ones.
+  // For simplicity we rewrite whole level objects for keys present in draft.
+  const updates = {};
+  rebalanceDraftPositions();
+
+  draftLevels.forEach(l => {
+    const key = l._key;
+    updates[`levels/${key}`] = {
+      name: l.name,
+      creator: l.creator || '',
+      verifier: l.verifier || '',
+      publisher: l.publisher || '',
+      levelId: l.levelId || '',
+      password: l.password || '',
+      verif: l.verif || '',
+      showcase: l.showcase || '',
+      minPct: l.minPct || 55,
+      tags: l.tags || [],
+      packs: l.packs || {},
+      pos: l.pos
+    };
+  });
+
+  // Execute DB mutations.
+  // Remove first (and records).
+  await Promise.all(removedKeys.map(async key => {
+    await dbRemove(`levels/${key}`);
+    await dbRemove(`records/${key}`);
+  }));
+
+  await dbUpdate(updates);
+
+  // Send webhook.
+  // Discord webhooks accept either {content:...} or embeds; we send classic text only.
+  await sendWebhook({ content: 'Classic Changes\n' + lines.join('\n') });
+
+
+  // Refresh.
+  await loadAll();
+  discardDraftLevels();
+  showToast('Changes published.');
+  // Keep admin UI open.
+  if (currentAdminTab === 'manage') renderManageTable();
+  if (currentAdminTab === 'packs') renderPackTable();
+  if (currentAdminTab === 'pending') renderPendingList();
+}
+
+// -----------------------------
+// End draft staging
+// -----------------------------
+
 
 function selectTagColor(c) {
   pendingTagColor = c;
@@ -1863,18 +2084,21 @@ function removePendingTag(i) {
 
 async function addLevel() {
   if (!ensureAdminAccess()) return;
+  if (!draftLevels) startDraftLevels();
+
   const name = document.getElementById('fn').value.trim();
   if (!name) { showFormMsg('aMsg','Level name is required.',true); return; }
 
   let pos = parseInt(document.getElementById('fpos').value);
-  if (isNaN(pos) || pos < 1) pos = levels.length + 1;
-  pos = Math.min(pos, levels.length + 1);
+  const baseLen = getDraftLevelsInOrder().length;
+  if (isNaN(pos) || pos < 1) pos = baseLen + 1;
+  pos = Math.min(pos, baseLen + 1);
 
-  const now = Date.now();
   const selectedPacks = Array.from(selectedPackIds).reduce((obj, packId) => {
     obj[packId] = true;
     return obj;
   }, {});
+
   const lvl = {
     name,
     creator:   document.getElementById('fc').value.trim(),
@@ -1890,101 +2114,47 @@ async function addLevel() {
     pos,
   };
 
+  const ordered = getDraftLevelsInOrder();
+
+  // Edit existing
   if (editLevelKey) {
-    const origIdx = levels.findIndex(l => l._key === editLevelKey);
-    if (origIdx < 0) { showFormMsg('aMsg','Unable to find the level to edit.',true); return; }
+    const idx = findDraftIndexByKey(editLevelKey);
+    if (idx < 0) { showFormMsg('aMsg','Unable to find the level to edit in draft.',true); return; }
 
-    const updatedLevel = { ...levels[origIdx], ...lvl };
-    const reordered = levels.slice();
-    reordered.splice(origIdx, 1);
-    reordered.splice(pos - 1, 0, updatedLevel);
+    // Update fields
+    draftLevels[idx] = { ...draftLevels[idx], ...lvl, _key: editLevelKey };
 
-    const updates = {
-      [`levels/${editLevelKey}/name`]: name,
-      [`levels/${editLevelKey}/creator`]: lvl.creator,
-      [`levels/${editLevelKey}/verifier`]: lvl.verifier,
-      [`levels/${editLevelKey}/publisher`]: lvl.publisher,
-      [`levels/${editLevelKey}/levelId`]: lvl.levelId,
-      [`levels/${editLevelKey}/password`]: lvl.password,
-      [`levels/${editLevelKey}/verif`]: lvl.verif,
-      [`levels/${editLevelKey}/showcase`]: lvl.showcase,
-      [`levels/${editLevelKey}/minPct`]: lvl.minPct,
-      [`levels/${editLevelKey}/tags`]: lvl.tags,
-      [`levels/${editLevelKey}/packs`]: lvl.packs,
-      [`levels/${editLevelKey}/pos`]: lvl.pos,
-    };
-    reordered.forEach((level, i) => {
-      const newPos = i + 1;
-      const oldPos = level.pos || (levels.findIndex(x => x._key === level._key) + 1);
-      if (newPos !== oldPos) updates[`levels/${level._key}/pos`] = newPos;
-    });
+    // Reinsert at position in ordered draft array
+    const without = ordered.filter(x => x._key !== editLevelKey);
+    const updated = draftLevels[idx];
+    without.splice(pos - 1, 0, updated);
+    draftLevels = without;
+    rebalanceDraftPositions();
 
-    await dbUpdate(updates);
-
-    // Auto-log history for shifted levels
-    const historyPushes = [];
-    reordered.forEach((level, i) => {
-      const newPos = i + 1;
-      const oldPos = level.pos || (levels.findIndex(x => x._key === level._key) + 1);
-      if (newPos !== oldPos && level._key !== editLevelKey) {
-        historyPushes.push(dbPush(`levels/${level._key}/posHistory`, {
-          pos: newPos,
-          change: newPos - oldPos,
-          cause: newPos > oldPos ? `${name} was placed above at #${pos}` : `${name} was moved below to #${pos}`,
-          ts: now
-        }));
-      }
-    });
-    // Log for the edited level itself
-    historyPushes.push(dbPush(`levels/${editLevelKey}/posHistory`, {
-      pos,
-      change: pos - (levels[origIdx].pos || (origIdx + 1)),
-      cause: 'Level edited / repositioned',
-      ts: now
-    }));
-    await Promise.all(historyPushes);
-
-    await loadAll();
-    clearAddLevelForm();
-    closeOverlay('adminOv');
-    showToast(`"${name}" updated!`);
+    // Mirror to live UI.
+    levels = getDraftLevelsInOrder();
+    renderManageTable();
+    renderSidebar();
+    markDraftDirty();
+    showToast(`Draft updated for "${name}".`);
     const newIdx = levels.findIndex(l => l._key === editLevelKey);
     if (newIdx >= 0) showLevel(newIdx);
     return;
   }
 
-  // New level -- shift down all levels at or below pos
-  const updates = {};
-  for (const l of levels) {
-    const lp = l.pos || (levels.indexOf(l) + 1);
-    if (lp >= pos) updates[`levels/${l._key}/pos`] = lp + 1;
-  }
-  if (Object.keys(updates).length) await dbUpdate(updates);
+  // Add new level into draft. We need a stable key.
+  const newKey = `DRAFT_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+  const newLevel = { ...lvl, _key: newKey, packs: selectedPacks, tags: pendingTags };
+  ordered.splice(pos - 1, 0, newLevel);
+  draftLevels = ordered;
+  rebalanceDraftPositions();
 
-  const ref = await dbPush('levels', lvl);
-  await dbPush(`levels/${ref.key}/posHistory`, { pos, change: 0, cause: `Placed at #${pos}`, ts: now });
-
-  // Auto-log history for all displaced levels
-  const historyPushes = [];
-  for (const l of levels) {
-    const lp = l.pos || (levels.indexOf(l) + 1);
-    if (lp >= pos) {
-      historyPushes.push(dbPush(`levels/${l._key}/posHistory`, {
-        pos: lp + 1,
-        change: 1,
-        cause: `${name} was placed above at #${pos}`,
-        ts: now
-      }));
-    }
-  }
-  await Promise.all(historyPushes);
-
-  await loadAll();
+  levels = getDraftLevelsInOrder();
+  renderManageTable();
+  renderSidebar();
+  markDraftDirty();
+  showToast(`Draft added "${name}" at #${pos}.`);
   clearAddLevelForm();
-  closeOverlay('adminOv');
-  showToast(`"${name}" added at #${pos}!`);
-  const newIdx = levels.findIndex(l => l._key === ref.key);
-  if (newIdx >= 0) showLevel(newIdx);
 }
 
 function clearAddLevelForm() {
@@ -2028,37 +2198,30 @@ function renderManageTable() {
 
 async function shiftLevel(idx, dir) {
   if (!ensureAdminAccess()) return;
+  if (!draftLevels) startDraftLevels();
+
+  const ordered = getDraftLevelsInOrder();
   const n = idx + dir;
-  if (n < 0 || n >= levels.length) return;
-  const a = levels[idx], b = levels[n];
-  const pa = a.pos||(idx+1), pb = b.pos||(n+1);
-  const now = Date.now();
-  const updates = {
-    [`levels/${a._key}/pos`]: pb,
-    [`levels/${b._key}/pos`]: pa,
-  };
-  await dbUpdate(updates);
+  if (n < 0 || n >= ordered.length) return;
+  const a = ordered[idx], b = ordered[n];
 
-  const newPosA = pb, newPosB = pa;
-  await Promise.all([
-    dbPush(`levels/${a._key}/posHistory`, {
-      pos: newPosA,
-      change: newPosA - pa,
-      cause: newPosA > pa ? `${b.name} was placed above at #${newPosB}` : `${b.name} was moved below to #${newPosB}`,
-      ts: now
-    }),
-    dbPush(`levels/${b._key}/posHistory`, {
-      pos: newPosB,
-      change: newPosB - pb,
-      cause: newPosB > pb ? `${a.name} was placed above at #${newPosA}` : `${a.name} was moved below to #${newPosA}`,
-      ts: now
-    }),
-  ]);
+  const nowA = a.pos || (idx+1);
+  const nowB = b.pos || (n+1);
 
-  [levels[idx].pos, levels[n].pos] = [pb, pa];
-  levels.sort((x,y) => (x.pos||9999)-(y.pos||9999));
+  // Swap positions in draft.
+  a.pos = nowB;
+  b.pos = nowA;
+
+  // Reorder internal array by pos.
+  rebalanceDraftPositions();
+
+  // Mirror to live UI (client sees changes immediately).
+  levels = getDraftLevelsInOrder();
   renderManageTable();
   renderSidebar();
+
+  markDraftDirty();
+
   if (currentLevelKey === a._key) showLevel(n);
   else if (currentLevelKey === b._key) showLevel(idx);
 }
@@ -2066,37 +2229,26 @@ async function shiftLevel(idx, dir) {
 async function removeLevel(idx) {
   if (!ensureAdminAccess()) return;
   const lvl = levels[idx];
-  if (!confirm(`Delete "${lvl.name}"?`)) return;
-  const now = Date.now();
-  const removedPos = lvl.pos || (idx + 1);
-  const oldPositions = new Map(levels.map((l, i) => [l._key, l.pos || (i + 1)]));
-  await dbRemove(`levels/${lvl._key}`);
-  await dbRemove(`records/${lvl._key}`);
-  delete records[lvl._key];
-  levels.splice(idx, 1);
-  const reindexUpdates = {};
-  const historyPushes = [];
-  levels.forEach((l, i) => {
-    const oldPos = oldPositions.get(l._key) || (i + 1);
-    const newPos = i + 1;
-    l.pos = newPos;
-    if (newPos !== oldPos) {
-      reindexUpdates[`levels/${l._key}/pos`] = newPos;
-      historyPushes.push(dbPush(`levels/${l._key}/posHistory`, {
-        pos: newPos,
-        change: newPos - oldPos,
-        cause: `${lvl.name} was removed from #${removedPos}`,
-        ts: now
-      }));
-    }
-  });
-  if (Object.keys(reindexUpdates).length) await dbUpdate(reindexUpdates);
-  if (historyPushes.length) await Promise.all(historyPushes);
-  levels.sort((a,b) => (a.pos||9999)-(b.pos||9999));
+  if (!lvl) return;
+  if (!confirm(`Remove "${lvl.name}" from the list (draft only)?`)) return;
+
+  if (!draftLevels) startDraftLevels();
+  draftDeletedLevelKeys.add(lvl._key);
+
+  // Remove from draft + rebalance.
+  draftLevels = draftLevels.filter(l => l._key !== lvl._key);
+  rebalanceDraftPositions();
+
+  // Mirror to live UI.
+  levels = getDraftLevelsInOrder();
   renderManageTable();
   renderSidebar();
+  markDraftDirty();
+
+  // Update leaderboard UI based on draft changes.
   await buildLeaderboard();
-  showToast(`"${lvl.name}" deleted.`);
+  showToast(`"${lvl.name}" removed (draft).`);
+
   if (currentLevelKey === lvl._key) {
     if (!levels.length) {
       document.getElementById('emptyEl').style.display = 'flex';
