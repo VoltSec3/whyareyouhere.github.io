@@ -1623,11 +1623,15 @@ function computeClassicChangesFromDraft() {
     const below = info.belowName;
     const posStr = `#${dp}`;
     if (lp === undefined) {
-      lines.push(`**${l.name}** has been placed at **${posStr}**, above **${below || 'the end'}** and below **${above || 'the start'}**`.replace('above the start', 'above nothing').replace('below the end', 'below nothing'));
+      const aboveText = above ? above : (dp === 1 ? 'at the top of the list' : 'nothing');
+      const belowText = below ? below : (dp === draftOrdered.length ? 'at the bottom of the list' : 'nothing');
+      lines.push(`**${l.name}** has been placed at **${posStr}**, above **${belowText}** and below **${aboveText}**`);
     } else {
       // Only report moves where position decreased (moved up), not cascading moves down
       if (dp < lp) {
-        lines.push(`**${l.name}** has been moved up from **#${lp}** to **#${dp}**, above **${below || 'the end'}** and below **${above || 'the start'}**`.replace('above the start', 'above nothing').replace('below the end', 'below nothing'));
+        const aboveText = above ? above : (dp === 1 ? 'at the top of the list' : 'nothing');
+        const belowText = below ? below : (dp === draftOrdered.length ? 'at the bottom of the list' : 'nothing');
+        lines.push(`**${l.name}** has been moved up from **#${lp}** to **#${dp}**, above **${belowText}** and below **${aboveText}**`);
       }
     }
   });
