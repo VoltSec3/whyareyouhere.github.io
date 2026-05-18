@@ -1587,7 +1587,8 @@ function computeClassicChangesFromDraft() {
   // Removed
   removed.forEach(k => {
     const name = liveByKey.get(k)?.name || k;
-    lines.push(`${name} has been removed from the list.`);
+    const pos = livePosByKey.get(k);
+    lines.push(`${name} has been removed from the list. **(#${pos})**`);
   });
 
   function getAboveBelowForKey(key) {
@@ -1623,15 +1624,23 @@ function computeClassicChangesFromDraft() {
     const below = info.belowName;
     const posStr = `#${dp}`;
     if (lp === undefined) {
-      const aboveText = above ? above : (dp === 1 ? 'at the top of the list' : 'nothing');
-      const belowText = below ? below : (dp === draftOrdered.length ? 'at the bottom of the list' : 'nothing');
-      lines.push(`**${l.name}** has been placed at **${posStr}**, above **${belowText}** and below **${aboveText}**`);
+      if (dp === 1) {
+        lines.push(`**${l.name}** has been placed at **${posStr}**, at the top of the list`);
+      } else if (dp === draftOrdered.length) {
+        lines.push(`**${l.name}** has been placed at **${posStr}**, at the bottom of the list`);
+      } else {
+        lines.push(`**${l.name}** has been placed at **${posStr}**, above **${below}** and below **${above}**`);
+      }
     } else {
       // Only report moves where position decreased (moved up), not cascading moves down
       if (dp < lp) {
-        const aboveText = above ? above : (dp === 1 ? 'at the top of the list' : 'nothing');
-        const belowText = below ? below : (dp === draftOrdered.length ? 'at the bottom of the list' : 'nothing');
-        lines.push(`**${l.name}** has been moved up from **#${lp}** to **#${dp}**, above **${belowText}** and below **${aboveText}**`);
+        if (dp === 1) {
+          lines.push(`**${l.name}** has been moved up from **#${lp}** to **#${dp}**, at the top of the list`);
+        } else if (dp === draftOrdered.length) {
+          lines.push(`**${l.name}** has been moved up from **#${lp}** to **#${dp}**, at the bottom of the list`);
+        } else {
+          lines.push(`**${l.name}** has been moved up from **#${lp}** to **#${dp}**, above **${below}** and below **${above}**`);
+        }
       }
     }
   });
