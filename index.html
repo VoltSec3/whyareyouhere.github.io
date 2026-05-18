@@ -1632,15 +1632,14 @@ function computeClassicChangesFromDraft() {
         lines.push(`**${l.name}** has been placed at **${posStr}**, above **${below}** and below **${above}**`);
       }
     } else {
-      // Only report moves where position decreased (moved up), not cascading moves down
-      if (dp < lp) {
-        if (dp === 1) {
-          lines.push(`**${l.name}** has been moved up from **#${lp}** to **#${dp}**, at the top of the list`);
-        } else if (dp === draftOrdered.length) {
-          lines.push(`**${l.name}** has been moved up from **#${lp}** to **#${dp}**, at the bottom of the list`);
-        } else {
-          lines.push(`**${l.name}** has been moved up from **#${lp}** to **#${dp}**, above **${below}** and below **${above}**`);
-        }
+      // Report all moves with direction
+      const direction = dp < lp ? 'up' : 'down';
+      if (dp === 1) {
+        lines.push(`**${l.name}** has been moved ${direction} from **#${lp}** to **#${dp}**, at the top of the list`);
+      } else if (dp === draftOrdered.length) {
+        lines.push(`**${l.name}** has been moved ${direction} from **#${lp}** to **#${dp}**, at the bottom of the list`);
+      } else {
+        lines.push(`**${l.name}** has been moved ${direction} from **#${lp}** to **#${dp}**, above **${below}** and below **${above}**`);
       }
     }
   });
