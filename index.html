@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>wasauTDS</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<style>
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+body{
+    font-family:'Inter',sans-serif;
+    background:#0e0e0e;
+    color:#ffffff;
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    overflow:hidden;
+}
+
+.site{
+    text-align:center;
+    opacity:0;
+    transform:translateY(40px);
+    animation:lefade .9s ease forwards;
+}
+
+.text{
+    font-size:72px;
+    font-weight:800;
+    letter-spacing:-3px;
+    margin-bottom:18px;
+}
+
+.lessertext{
+    font-size:18px;
+    color:#8d8d8d;
+    margin-bottom:38px;
+}
+
+.lesbuttons{
+    display:flex;
+    gap:14px;
+    justify-content:center;
+    flex-wrap:wrap;
+}
+
+.lebutton{
+    width:180px;
+    height:46px;
+    border:1px solid #2a2a2a;
+    background:#111111;
+    color:#ffffff;
+    text-decoration:none;
+    border-radius:6px;
+    font-size:14px;
+    font-weight:600;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    transition:.2s ease;
+}
+
+.lebutton:hover{
+
+    background:#171717;
+
+    border-color:#444444;
+
+    transform:translateY(-2px);
+}
+
+.lebutton:active{
+    transform:translateY(0);
+}
+
+.tuff{
+
+    margin-top:36px;
+    color:#555555;
+    font-size:13px;
+}
+
+@keyframes lefade{
+
+    from{
+        opacity:0;
+        transform:translateY(40px);
+    }
+
+    to{
+        opacity:1;
+        transform:translateY(0);
+    }
+}
+
+@media(max-width:700px){
+
+    .text{
+
+        font-size:54px;
+    }
+
+    .lessertext{
+
+        font-size:16px;
+        padding:0 20px;
+    }
+
+    .lesbuttons{
+
+        flex-direction:column;
+        align-items:center;
+    }
+
+    .lebutton{
+        width:260px;
+    }
+}
+
+</style>
+</head>
+<body>
+<div class="site">
+
+    <h1 class="text">wasauTDS</h1>
+
+    <p class="lessertext">
+        The premiere TDS macro.
+    </p>
+
+    <div class="lesbuttons">
+        <a href="https://github.com/VoltSec3/whyareyouhere.github.io/raw/refs/heads/main/wasauTDS.zip" class="lebutton">Download</a>
+        <a href="https://discord.gg/cpjKV2ZzRk" class="lebutton">Discord</a>
+    </div>
+
+    <div class="tuff">
+        Built by macroers, for macroers.
+    </div>
+
+</div>
+</body>
+</html>
