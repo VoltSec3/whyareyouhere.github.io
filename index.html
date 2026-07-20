@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html>
+<!--
+if ur reading this, hi!
+type "arcmage" :3
+-->
+<head>
+<title>arcmage's portfolio</title>
+<meta property="og:title" content="arcmage's portfolio">
+<meta property="og:description" content="check it out!">
+<!-- <meta property="og:image" content="https://files.catbox.moe/l0r811.png"> -->
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://voltsec.xyz/">
+<link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #0e0c14;
+    color: #e8e0f4;
+    font-family: 'Libre Baskerville', Georgia, serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  .gbg {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    background-image:
+      linear-gradient(rgba(155,135,212,0.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(155,135,212,0.06) 1px, transparent 1px);
+    background-size: 40px 40px;
+    animation: gbanim 35s linear infinite;
+  }
+
+  .gbfade {
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    background:
+      radial-gradient(ellipse 85% 55% at 50% 50%, transparent 15%, #0e0c14 82%),
+      linear-gradient(to bottom, #0e0c14 0%, transparent 10%, transparent 90%, #0e0c14 100%);
+  }
+
+  @keyframes gbanim {
+    0%   { transform: translateY(0); }
+    100% { transform: translateY(40px); }
+  }
+
+  .page {
+    position: relative;
+    z-index: 2;
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 72px 40px 88px;
+  }
+
+  .hero {
+    margin-bottom: 56px;
+    opacity: 0;
+    animation: fadeanim 0.8s ease 0.1s forwards;
+  }
+
+  .name {
+    font-size: clamp(44px, 8vw, 70px);
+    font-weight: 700;
+    font-style: italic;
+    line-height: 1;
+    letter-spacing: 0.01em;
+    color: #c4b4f0;
+    margin-bottom: 16px;
+  }
+
+  .role {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: #5a5075;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    margin-bottom: 24px;
+  }
+
+  .glowline {
+    width: 48px;
+    height: 1px;
+    background: linear-gradient(90deg, #9b87d4, transparent);
+    margin-bottom: 24px;
+  }
+
+  .quote {
+    font-size: 15px;
+    font-weight: 400;
+    font-style: italic;
+    color: #8b7fb0;
+    max-width: 400px;
+    line-height: 1.75;
+    border-left: 2px solid rgba(148,130,210,0.25);
+    padding-left: 18px;
+  }
+
+  .section {
+    margin-bottom: 48px;
+    opacity: 0;
+    animation: fadeanim 0.8s ease forwards;
+  }
+
+  .section:nth-child(2) { animation-delay: 0.22s; }
+  .section:nth-child(3) { animation-delay: 0.34s; }
+  .section:nth-child(4) { animation-delay: 0.46s; }
+
+  .sectionmain {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: #5a5075;
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .sectionmain::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, rgba(148,130,210,0.2), transparent);
+  }
+
+  .conv-wrap {
+    overflow: hidden;
+    mask-image: linear-gradient(90deg, transparent 0%, black 7%, black 93%, transparent 100%);
+    -webkit-mask-image: linear-gradient(90deg, transparent 0%, black 7%, black 93%, transparent 100%);
+  }
+
+  .conv-track {
+    display: flex;
+    gap: 8px;
+    width: max-content;
+    animation: conv 30s linear infinite;
+  }
+
+  @keyframes conv {
+    0%   { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+
+  .chip {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    padding: 6px 14px;
+    border-radius: 3px;
+    border: 1px solid rgba(148,130,210,0.18);
+    background: rgba(155,135,212,0.06);
+    color: #6b57a8;
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+    user-select: none;
+    cursor: default;
+  }
+
+  .ct-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .ct-link {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    padding: 8px 16px;
+    border-radius: 3px;
+    border: 1px solid rgba(148,130,210,0.18);
+    color: #5a5075;
+    letter-spacing: 0.1em;
+    text-decoration: none;
+    cursor: pointer;
+    transition: border-color 0.2s, color 0.2s, background 0.2s;
+  }
+
+  .ct-link:hover {
+    border-color: rgba(155,135,212,0.45);
+    color: #c4b4f0;
+    background: rgba(155,135,212,0.07);
+  }
+
+  .ct-link.primary {
+    border-color: rgba(155,135,212,0.3);
+    color: #9b87d4;
+  }
+
+  .footer-line {
+    margin-top: 64px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    opacity: 0;
+    animation: fadeanim 0.8s ease 0.6s forwards;
+  }
+
+  .footer-item {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    color: #2d2540;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .footer-sep { color: #201a30; }
+
+  @keyframes fadeanim {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+</style>
+</head>
+
+<div id="chudvid" style="
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.92);
+  z-index:999;
+  align-items:center;
+  justify-content:center;
+  flex-direction:column;
+">
+  <video controls autoplay style="
+    max-width:85%;
+    max-height:80%;
+    border:1px solid rgba(155,135,212,0.4);
+    box-shadow:0 0 40px rgba(155,135,212,0.25);
+  ">
+    <source src="https://files.catbox.moe/7n3s0r.mp4" type="video/mp4">
+  </video>
+
+  <div style="
+    margin-top:20px;
+    font-family:'DM Mono', monospace;
+    font-size:10px;
+    letter-spacing:.2em;
+    color:#5a5075;
+  ">
+    TOTAL SHARTY VICTORY
+  </div>
+</div>
+
+<body>
+
+<div class="gbg"></div>
+<div class="gbfade"></div>
+
+<div class="page">
+
+  <div class="hero section">
+    <div class="name">arcmage.js</div>
+    <div class="role">software engineer, developer, and hobbyist</div>
+    <div class="glowline"></div>
+    <div class="quote" id="quote">loading quote... via quoteapi</div>
+  </div>
+
+  <div class="section">
+    <div class="sectionmain">technologies</div>
+    <div class="conv-wrap">
+      <div class="conv-track" id="conv"></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="sectionmain">contact</div>
+    <div class="ct-row">
+      <div class="ct-link">phonesawyer@gmail.com</div>
+      <div class="ct-link">github.com/voltsec3</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="sectionmain">projects</div>
+    <div class="ct-row">
+      <a href="https://github.com/VoltSec3/whyareyouhere.github.io/tree/main" class="ct-link" target="_blank">this site</a>
+      <a href="https://github.com/VoltSec3/quoteapi" class="ct-link" target="_blank">quoteapi</a>
+    </div>
+  </div>
+
+ <!-- <div class="footer-line">
+    <div class="footer-item">ethical hacking only</div>
+    <div class="footer-sep">//</div>
+    <div class="footer-item">open to collaboration</div>
+    <div class="footer-sep">//</div>
+    <div class="footer-item">2026</div>
+  </div> -->
+  <!-- looked ugly lol -->
+
+</div>
+
+<script>
+  const tech = [ // techstack
+    'JavaScript', 'TypeScript', 'Python', 'C++', 'C#', 'Rust', 'Go', 'Java',
+    'Node.js', 'React', 'Vue', 'Svelte', 'Next.js', 'SQLite', 'AWS', 'Docker',
+    'Git', 'Linux', 'Tailwind CSS', 'Lua', 'LuaU', 'REST APIs', 'Blender', 'Unity'
+  ];
+  const conv = document.getElementById('conv');
+  [...tech, ...tech].forEach(s => {
+    const c = document.createElement('div');
+    c.className = 'chip';
+    c.textContent = s;
+    conv.appendChild(c);
+  });
+
+  async function loadquote() { // quotes logic
+    const quoteEl = document.getElementById('quote');
+    try {
+      const res = await fetch("https://quoteapi-pi.vercel.app/api/quote"); // was using a random deployment and not main, spent an hour debugging this btw
+      const data = await res.json();
+      quoteEl.textContent = `"${data.quote.text}" - ${data.quote.author}`;
+    } catch (error) {
+      quoteEl.textContent = "failed to fetch! sorry im a bad programmer >_< - arcmage"
+    }
+  }
+
+  loadquote(); // only took me 3 tries to call the fucking function i just made
+
+  let input = "";
+  document.addEventListener("keydown", (e) => {
+    input += e.key.toLowerCase();
+
+    if (input.length > 20) {
+      input = input.slice(-20);
+    }
+
+    if (input.includes("arcmage")) {
+      document.getElementById("chudvid").style.display = "flex";
+      input = "";
+    }
+  });
+
+  document.getElementById("chudvid").addEventListener("click", (e) => {
+    if (e.target.id === "chudvid") {
+      document.getElementById("chudvid").style.display = "none";
+    }
+  });
+
+</script>
+
+</body>
+</html>
