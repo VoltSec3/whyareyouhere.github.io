@@ -262,13 +262,14 @@
   async function loadquote() { // quotes logic
     const quoteEl = document.getElementById('quote');
     try {
-      const res = await fetch("https://quoteapi-q2q8z7m41-arcmage.vercel.app/api/quote");
+      const res = await fetch("https://quoteapi-pi.vercel.app/api/quote"); // was using a random deployment and not main, spent an hour debugging this btw
       const data = await res.json();
       quoteEl.textContent = `"${data.quote.text}" — ${data.quote.author}`;
     } catch (error) {
       quoteEl.textContent = "failed to fetch! sorry im a bad programmer >_< - arcmage"
     }
   }
+
   loadquote(); // only took me 3 tries to call the fucking function i just made
 </script>
 
