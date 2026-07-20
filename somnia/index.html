@@ -1,0 +1,2851 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta property="og:title" content="Somnia" />
+<meta property="og:description" content="the one and all dream journal solution. comes with analytics, and privacy-first design. no sign up, no nothing." />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://voltsec.xyz" />
+<meta property="og:image" content="https://voltsec.xyz/preview.png" />
+<meta property="og:site_name" content="Somnia" />
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Somnia">
+<meta name="twitter:description" content="Record dreams with advanced logging and analytics. Built with privacy first.">
+<meta name="twitter:image" content="https://voltsec.xyz/preview.png">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Somnia</title>
+<link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0e0c14;
+    --surface: #16121f;
+    --surface2: #1e1829;
+    --border: rgba(148, 130, 210, 0.15);
+    --border-hover: rgba(148, 130, 210, 0.35);
+    --purple: #9b87d4;
+    --purple-dim: #6b57a8;
+    --purple-bright: #c4b4f0;
+    --purple-faint: rgba(155, 135, 212, 0.08);
+    --pink-bright: #f0c4d8;
+    --text: #e8e0f4;
+    --text-muted: #8b7fb0;
+    --text-dim: #5a5075;
+    --text-title: #c4b4f0;
+    --green: #7fc9a0;
+    --font-serif: 'Libre Baskerville', Georgia, serif;
+    --font-mono: 'DM Mono', monospace;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-serif);
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    overscroll-behavior: none;
+  }
+
+  /* app shell */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 32px;
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    background: var(--bg);
+    z-index: 100;
+    gap: 12px;
+  }
+  .header-center {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .header-stat {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 0.08em;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+  }
+  .header-stat-value { color: var(--purple); }
+  .logo {
+    font-size: 20px;
+    letter-spacing: 0.12em;
+    color: var(--purple-bright);
+    font-weight: 400;
+    font-style: italic;
+    cursor: pointer;
+    transition: opacity 0.15s;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+  .logo:hover { opacity: 0.7; }
+  .logo-sub {
+    font-size: 10px;
+    letter-spacing: 0.3em;
+    color: var(--text-dim);
+    font-style: normal;
+    font-family: var(--font-mono);
+    margin-top: 3px;
+    display: block;
+  }
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+  .privacy-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--green);
+    background: rgba(127,201,160,0.08);
+    border: 1px solid rgba(127,201,160,0.2);
+    padding: 5px 12px;
+    border-radius: 20px;
+    letter-spacing: 0.05em;
+  }
+  .privacy-badge::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    background: var(--green);
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+  }
+  .music-toggle {
+    width: 32px;
+    height: 32px;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    background: transparent;
+    cursor: pointer;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+  .music-toggle:hover { border-color: var(--border-hover); color: var(--text-muted); }
+  .music-toggle.playing { border-color: var(--purple-dim); color: var(--purple-bright); background: var(--purple-faint); }
+  .music-toggle img { width: 20px; height: 20px; opacity: 0.5; transition: opacity 0.2s; }
+  .music-toggle.playing img { opacity: 1; }
+
+  /* layout */
+  .layout {
+    display: flex;
+    flex: 1;
+    height: calc(100vh - 61px);
+    height: calc(100dvh - 61px);
+    overflow: hidden;
+  }
+
+  /* sidebar */
+  .sidebar {
+    width: 268px;
+    min-width: 268px;
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.3s ease;
+    scrollbar-width: none;
+  }
+  .sidebar::-webkit-scrollbar { display: none; }
+  .sidebar-top { padding: 16px 20px; border-bottom: 1px solid var(--border); }
+  .nav-tabs {
+    display: flex;
+    gap: 2px;
+    border-bottom: 1px solid var(--border);
+  }
+  .nav-tab {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    padding: 10px 14px;
+    border: none;
+    background: none;
+    color: var(--text-dim);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: color 0.2s, border-color 0.2s;
+    position: relative;
+  }
+  .nav-tab:hover { color: var(--text-muted); }
+  .nav-tab.active { color: var(--purple-bright); border-bottom-color: var(--purple); }
+  .sidebar-section { padding: 0 20px; margin-bottom: 16px; }
+  .sidebar-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 10px;
+  }
+  .btn-new-sidebar {
+    display: block;
+    width: 100%;
+    background: var(--purple-faint);
+    border: 1px solid var(--border-hover);
+    color: var(--purple-bright);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    padding: 12px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+    text-align: center;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn-new-sidebar:hover { background: rgba(155,135,212,0.15); border-color: var(--purple); }
+  .search-input {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    padding: 8px 12px;
+    border-radius: 4px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .search-input:focus { border-color: var(--purple-dim); }
+  .search-input::placeholder { color: var(--text-dim); }
+  .sort-row { display: flex; gap: 5px; justify-content: center; }
+  .sort-btn {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.04em;
+    padding: 5px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    background: transparent;
+    transition: all 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .sort-btn:hover { border-color: var(--border-hover); color: var(--text-muted); }
+  .sort-btn.active { border-color: var(--purple-dim); color: var(--purple-bright); background: var(--purple-faint); }
+  .tag-filters { display: flex; flex-wrap: wrap; gap: 5px; }
+  .tag-pill {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.04em;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    background: transparent;
+    transition: all 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .tag-pill:hover { border-color: var(--border-hover); color: var(--text-muted); }
+  .tag-pill.active { border-color: var(--purple-dim); color: var(--purple-bright); background: var(--purple-faint); }
+  .dream-count {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    padding: 0 20px 10px;
+  }
+  .dream-list { overflow-y: auto; overflow-x: hidden; flex: 1; scrollbar-width: none; }
+  .dream-list::-webkit-scrollbar { display: none; }
+  .dream-item {
+    position: relative;
+    padding: 14px 20px;
+    cursor: pointer;
+    border-left: 2px solid transparent;
+    transition: background 0.2s, padding-left 0.2s, border-color 0.2s;
+    border-bottom: 1px solid var(--border);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .dream-item:hover { background: var(--surface); padding-left: 24px; }
+  .dream-item.active { border-left-color: var(--purple); background: var(--surface); }
+  .dream-item-inner { padding-right: 26px; }
+
+  .dream-item-date {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 0.08em;
+    margin-bottom: 4px;
+    position: relative;
+    display: block;
+    height: 1.2em;
+  }
+  .dream-item-date .rel-time,
+  .dream-item-date .abs-time {
+    position: absolute;
+    left: 0; top: 0;
+    transition: opacity 0.2s ease;
+    white-space: nowrap;
+  }
+  .dream-item-date .rel-time { opacity: 1; }
+  .dream-item-date .abs-time { opacity: 0; color: var(--purple-bright); font-size: 10px; }
+  .dream-item-date:hover .rel-time { opacity: 0; }
+  .dream-item-date:hover .abs-time { opacity: 1; }
+
+  .dream-item-title { font-size: 13px; color: var(--text-title); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 4px; }
+  .dream-item-preview { font-size: 12px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-style: italic; }
+  .dream-item-tags { display: flex; gap: 4px; margin-top: 6px; flex-wrap: wrap; }
+  .mini-tag { font-family: var(--font-mono); font-size: 9px; color: var(--purple-dim); background: var(--purple-faint); border-radius: 2px; padding: 1px 5px; }
+  .dream-item-close {
+    position: absolute;
+    right: 9px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 1px solid rgba(107,87,168,0.45);
+    background: rgba(107,87,168,0.12);
+    color: rgba(196,180,240,0.55);
+    font-size: 11px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s, background 0.15s, border-color 0.15s, color 0.15s;
+    font-family: var(--font-mono);
+    font-weight: 300;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .dream-item:hover .dream-item-close { opacity: 1; }
+  .dream-item-close:hover { background: rgba(107,87,168,0.22); border-color: rgba(155,135,212,0.6); color: var(--purple-bright); }
+  .empty-list { padding: 40px 20px; text-align: center; color: var(--text-dim); font-style: italic; font-size: 13px; }
+
+  /* main */
+  .main {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+  }
+
+  @keyframes fadeInContent {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .main-content { }
+  .main-content.animate { animation: fadeInContent 0.4s ease; }
+
+  /* grid canvas */
+  .grid-canvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
+
+  /* viewer */
+  .viewer { flex: 1; padding: 40px 48px; max-width: 760px; width: 100%; margin: 0 auto; position: relative; z-index: 1; }
+  .viewer-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; gap: 12px; flex-wrap: wrap; }
+  .meta-date {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    color: var(--text-dim);
+    position: relative;
+    display: inline-block;
+    cursor: default;
+    height: 1.3em;
+    min-width: 160px;
+  }
+  .meta-date .rel-time,
+  .meta-date .abs-time {
+    position: absolute;
+    left: 0; top: 0;
+    transition: opacity 0.2s ease;
+    white-space: nowrap;
+  }
+  .meta-date .rel-time { opacity: 1; }
+  .meta-date .abs-time { opacity: 0; color: var(--purple-bright); }
+  .meta-date:hover .rel-time { opacity: 0; }
+  .meta-date:hover .abs-time { opacity: 1; }
+
+  .viewer-top-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .btn-edit {
+    background: none;
+    border: 1px solid var(--border-hover);
+    color: var(--purple-bright);
+    padding: 9px 20px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn-edit:hover { background: var(--purple-faint); border-color: var(--purple); }
+  .btn-share {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    padding: 9px 16px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.15s;
+    -webkit-tap-highlight-color: transparent;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .btn-share:hover { border-color: var(--border-hover); color: var(--text); }
+  .view-star-systems { display: flex; gap: 36px; margin-bottom: 24px; flex-wrap: wrap; }
+  .view-star-system { display: flex; flex-direction: column; gap: 5px; }
+  .view-star-label { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--text-dim); }
+  .view-stars { display: flex; gap: 4px; }
+  .vstar { font-size: 15px; color: var(--purple-bright); opacity: 0.18; }
+  .vstar.on { opacity: 1; }
+  .vstar.level-1 { color: var(--purple); }
+  .vstar.level-2 { color: var(--purple-bright); }
+  .vstar.level-3 { color: #b19fff; }
+  .vstar.level-4 { color: #c4b4f0; }
+  .vstar.level-5 { color: #e8e0f4; }
+  .vstar-q { font-size: 15px; color: var(--pink-bright); opacity: 0.18; }
+  .vstar-q.on { opacity: 1; }
+  .vstar-q.level-1 { color: #f0c4d8; }
+  .vstar-q.level-2 { color: #ffb3ba; }
+  .vstar-q.level-3 { color: #ff9999; }
+  .vstar-q.level-4 { color: #ff7f7f; }
+  .vstar-q.level-5 { color: #ff4d4d; }
+  .view-star-hint { font-family: var(--font-mono); font-size: 9px; color: var(--text-dim); }
+  .view-title { font-size: 28px; line-height: 1.5; color: var(--text-title); white-space: pre-wrap; min-height: 40px; }
+  .view-title.untitled { color: var(--text-dim); font-style: italic; font-weight: 400; }
+  .view-body { font-family: var(--font-serif); font-size: 16px; line-height: 1.85; color: var(--text-muted); font-style: italic; white-space: pre-wrap; min-height: 80px; }
+  .view-body.empty { color: var(--text-dim); }
+  .view-tags-row { margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--border); display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .view-tags-label { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.2em; color: var(--text-dim); text-transform: uppercase; }
+  .view-tag { font-family: var(--font-mono); font-size: 11px; color: var(--purple-dim); background: var(--purple-faint); border-radius: 2px; padding: 1px 5px; }
+  .view-footer { margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--border); }
+  .btn-delete {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    padding: 9px 18px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn-delete:hover { border-color: var(--border-hover); color: var(--text); }
+
+  /* editor */
+  .editor { flex: 1; padding: 40px 48px; max-width: 760px; width: 100%; margin: 0 auto; position: relative; z-index: 1; }
+  .editor.editor-new { animation: fadeInContent 0.4s ease; }
+  .editor-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; gap: 12px; flex-wrap: wrap; }
+  .btn-cancel-edit {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    padding: 9px 18px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn-cancel-edit:hover { border-color: var(--border-hover); color: var(--text); }
+  .star-systems { display: flex; gap: 36px; margin-bottom: 24px; align-items: flex-start; flex-wrap: wrap; }
+  .star-system { display: flex; flex-direction: column; gap: 5px; }
+  .star-system-label { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--text-dim); }
+  .stars-row { display: flex; gap: 4px; }
+  .star-system-hint { font-family: var(--font-mono); font-size: 9px; color: var(--text-dim); letter-spacing: 0.05em; }
+  .star-lucid { font-size: 22px; cursor: pointer; opacity: 0.18; transition: all 0.2s ease; color: var(--purple-dim); user-select: none; -webkit-tap-highlight-color: transparent; }
+  .star-lucid.filled { opacity: 1; }
+  .star-lucid.filled.level-1 { color: var(--purple); }
+  .star-lucid.filled.level-2 { color: var(--purple-bright); }
+  .star-lucid.filled.level-3 { color: #b19fff; }
+  .star-lucid.filled.level-4 { color: #c4b4f0; }
+  .star-lucid.filled.level-5 { color: #e8e0f4; }
+  .star-lucid:hover { transform: scale(1.1); opacity: 0.8; }
+  .star-quality { font-size: 22px; cursor: pointer; opacity: 0.18; transition: all 0.2s ease; color: #d4a0a0; user-select: none; -webkit-tap-highlight-color: transparent; }
+  .star-quality.filled { opacity: 1; }
+  .star-quality.filled.level-1 { color: #f0c4d8; }
+  .star-quality.filled.level-2 { color: #ffb3ba; }
+  .star-quality.filled.level-3 { color: #ff9999; }
+  .star-quality.filled.level-4 { color: #ff7f7f; }
+  .star-quality.filled.level-5 { color: #ff4d4d; }
+  .star-quality:hover { transform: scale(1.1); opacity: 0.8; }
+  .title-input {
+    width: 100%;
+    background: none;
+    border: none;
+    font-family: var(--font-serif);
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text-title);
+    outline: none;
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 16px;
+    line-height: 1.3;
+  }
+  .title-input::placeholder { color: var(--text-dim); }
+  .body-input-wrap {
+    position: relative;
+    margin-bottom: 0;
+  }
+  .body-input {
+    width: 100%;
+    background: none;
+    border: none;
+    font-family: var(--font-serif);
+    font-size: 16px;
+    line-height: 1.85;
+    color: var(--text-muted);
+    outline: none;
+    resize: none;
+    min-height: 320px;
+    font-style: italic;
+    display: block;
+  }
+  .body-input::placeholder { color: var(--text-dim); font-style: italic; }
+  .body-char-count {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    color: var(--text-dim);
+    letter-spacing: 0.06em;
+    margin-top: 6px;
+    text-align: left;
+    transition: color 0.2s;
+    user-select: none;
+  }
+  .body-char-count.has-content { color: var(--purple-dim); }
+
+  .tags-row { margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--border); display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .tags-label { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.2em; color: var(--text-dim); text-transform: uppercase; }
+  .tag-editable {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--purple-dim);
+    background: var(--purple-faint);
+    border-radius: 2px;
+    padding: 3px 7px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .tag-editable:hover { background: rgba(155,135,212,0.3); color: var(--purple); transform: translateY(-1px); }
+  .tag-input {
+    background: none;
+    border: none;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text);
+    outline: none;
+    width: 90px;
+    padding: 3px 0;
+  }
+  .tag-input::placeholder { color: var(--text-dim); }
+  .editor-footer { margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--border); display: flex; align-items: center; gap: 12px; }
+  .btn-save {
+    background: var(--purple);
+    color: #0e0c14;
+    border: none;
+    padding: 11px 28px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn-save:hover { background: var(--purple-bright); }
+  .save-status { font-family: var(--font-mono); font-size: 11px; color: var(--green); opacity: 0; transition: opacity 0.3s; margin-left: auto; }
+  .save-status.show { opacity: 1; }
+
+  /* sleep notes */
+  .sleep-notes-section {
+    margin-top: 28px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+  }
+  .sleep-notes-label {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .sleep-notes-label::after {
+    content: 'pre-dream';
+    font-size: 8px;
+    color: var(--purple-dim);
+    letter-spacing: 0.15em;
+    background: var(--purple-faint);
+    border: 1px solid var(--border);
+    padding: 1px 6px;
+    border-radius: 2px;
+  }
+  .sleep-notes-input {
+    width: 100%;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-family: var(--font-serif);
+    font-size: 16px;
+    line-height: 1.85;
+    padding: 0;
+    outline: none;
+    resize: none;
+    min-height: 80px;
+    font-style: italic;
+    display: block;
+  }
+  .sleep-notes-input::placeholder { color: var(--text-dim); font-style: italic; }
+  /* view mode sleep notes */
+  .view-sleep-notes {
+    margin-top: 28px;
+    padding: 16px 20px;
+    background: rgba(155,135,212,0.04);
+    border: 1px solid var(--border);
+    border-left: 2px solid var(--purple-dim);
+    border-radius: 0 4px 4px 0;
+  }
+  .view-sleep-notes-label {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--purple-dim);
+    margin-bottom: 8px;
+  }
+  .view-sleep-notes-body {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 1.7;
+    color: var(--text-muted);
+    white-space: pre-wrap;
+  }
+
+  /* lucidity trend chart */
+  .trend-chart-wrap {
+    position: relative;
+    height: 140px;
+    margin-top: 8px;
+  }
+  .trend-svg { width: 100%; height: 100%; overflow: visible; }
+  .trend-area { fill: url(#lucAreaGrad); }
+  .trend-line { fill: none; stroke: var(--purple); stroke-width: 1.5; stroke-linejoin: round; stroke-linecap: round; }
+  .trend-dot {
+    fill: var(--bg);
+    stroke: var(--purple-bright);
+    stroke-width: 1.5;
+    transition: r 0.15s ease, stroke 0.15s;
+    cursor: pointer;
+  }
+  .trend-dot:hover { stroke: #fff; }
+  .trend-zero { stroke: var(--border); stroke-width: 1; stroke-dasharray: 3 3; }
+  .trend-label {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    fill: var(--text-dim);
+  }
+  .trend-avg-line { stroke: rgba(155,135,212,0.3); stroke-width: 1; stroke-dasharray: 4 4; }
+  .trend-avg-label { font-family: var(--font-mono); font-size: 8px; fill: var(--purple-dim); }
+  .analyzer { flex: 1; padding: 40px 48px; max-width: 900px; width: 100%; margin: 0 auto; position: relative; z-index: 1; }
+  .analyzer-header { margin-bottom: 32px; }
+  .analyzer-title { font-size: 24px; font-weight: 700; color: var(--text-title); margin-bottom: 8px; }
+  .analyzer-subtitle { font-size: 14px; color: var(--text-muted); font-style: italic; }
+  .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 32px; }
+  .chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 20px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+  }
+  .chart-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(155,135,212,0.1); border-color: var(--border-hover); }
+  .chart-title { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 16px; }
+  .chart-container { height: 200px; position: relative; }
+  .bar-chart { display: flex; align-items: flex-end; height: 160px; gap: 8px; padding: 0 4px; }
+  .bar {
+    flex: 1;
+    background: var(--purple-faint);
+    border: 1px solid var(--border);
+    border-radius: 2px 2px 0 0;
+    position: relative;
+    transition: background 0.2s, border-color 0.2s, transform 0.2s;
+    cursor: pointer;
+    min-height: 2px;
+  }
+  .bar:hover { background: var(--purple); border-color: var(--purple-bright); transform: scaleY(1.05); transform-origin: bottom; }
+  .bar-label { font-family: var(--font-mono); font-size: 9px; color: var(--text-dim); position: absolute; bottom: -20px; left: 50%; transform: translateX(-50%); white-space: nowrap; }
+  .bar-value { font-family: var(--font-mono); font-size: 10px; color: var(--purple-bright); position: absolute; top: -18px; left: 50%; transform: translateX(-50%); opacity: 0; transition: opacity 0.2s; }
+  .bar:hover .bar-value { opacity: 1; }
+  .stats-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 16px; margin-top: 24px; }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px;
+    text-align: center;
+    transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+  }
+  .stat-card:hover { transform: translateY(-4px); box-shadow: 0 12px 32px rgba(155,135,212,0.15); border-color: var(--purple-dim); }
+  .stat-value { font-size: 24px; font-weight: 700; color: var(--purple-bright); margin-bottom: 4px; }
+  .stat-label { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.08em; color: var(--text-dim); text-transform: uppercase; }
+
+  /* modals */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(10,8,18,0.88);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+    animation: fadeIn 0.18s ease;
+    padding: 20px;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  .modal {
+    background: #1a1528;
+    border: 1px solid rgba(155,135,212,0.28);
+    border-radius: 10px;
+    padding: 32px 32px 28px;
+    max-width: 340px;
+    width: 100%;
+    animation: slideUp 0.22s cubic-bezier(0.34,1.2,0.64,1);
+    box-shadow: 0 24px 64px rgba(0,0,0,0.5), 0 0 0 1px rgba(155,135,212,0.06) inset;
+    position: relative;
+    overflow: hidden;
+  }
+  .modal::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent 0%, rgba(155,135,212,0.5) 40%, rgba(196,180,240,0.7) 50%, rgba(155,135,212,0.5) 60%, transparent 100%);
+  }
+  @keyframes slideUp { from { opacity: 0; transform: translateY(16px) scale(0.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
+  .modal-title { font-family: var(--font-serif); font-size: 17px; font-weight: 700; color: var(--text); margin-bottom: 10px; line-height: 1.3; }
+  .modal-body { font-family: var(--font-serif); font-size: 14px; color: var(--text-muted); line-height: 1.7; font-style: italic; margin-bottom: 24px; }
+  .modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+  .btn-modal-cancel {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(148,130,210,0.2);
+    color: var(--text-muted);
+    padding: 10px 18px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn-modal-cancel:hover { border-color: var(--border-hover); color: var(--text); background: rgba(255,255,255,0.07); }
+  .btn-modal-confirm {
+    background: linear-gradient(135deg, var(--purple-dim), #7d65c0);
+    color: #e8e0f4;
+    border: none;
+    padding: 10px 18px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.15s;
+    -webkit-tap-highlight-color: transparent;
+    box-shadow: 0 2px 12px rgba(107,87,168,0.3);
+  }
+  .btn-modal-confirm:hover { background: linear-gradient(135deg, var(--purple), #9b87d4); color: #0e0c14; box-shadow: 0 4px 16px rgba(155,135,212,0.4); }
+
+  /* mobile bottom nav */
+  .mobile-nav {
+    display: none;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--bg);
+    border-top: 1px solid var(--border);
+    z-index: 200;
+    padding: 8px 0 max(8px, env(safe-area-inset-bottom));
+  }
+  .mobile-nav-inner {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    padding: 0 24px;
+    gap: 0;
+  }
+  .mobile-nav-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 8px 0;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-dim);
+    font-family: var(--font-mono);
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    transition: color 0.15s;
+    -webkit-tap-highlight-color: transparent;
+    width: 100%;
+  }
+  .mobile-nav-btn.active { color: var(--purple-bright); }
+  .mobile-nav-btn svg { width: 20px; height: 20px; }
+  .mobile-new-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(107,87,168,0.12);
+    border: 1px solid rgba(107,87,168,0.45);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(196,180,240,0.75);
+    font-size: 22px;
+    line-height: 1;
+    font-family: var(--font-mono);
+    font-weight: 300;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+    -webkit-tap-highlight-color: transparent;
+    box-shadow: none;
+  }
+  .mobile-new-btn:hover { background: rgba(107,87,168,0.22); border-color: rgba(155,135,212,0.6); color: var(--purple-bright); }
+
+  /* mobile back button in header */
+  .btn-back {
+    display: none;
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    padding: 7px 14px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.15s;
+    -webkit-tap-highlight-color: transparent;
+    white-space: nowrap;
+  }
+  .btn-back:hover { border-color: var(--border-hover); color: var(--text); }
+
+  /* mobile overlay for sidebar */
+  .sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(14,12,20,0.7);
+    z-index: 150;
+  }
+  .sidebar-overlay.visible { display: block; }
+
+  /* continuation */
+  .continuation-row { margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border); display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .continuation-label { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.2em; color: var(--text-dim); text-transform: uppercase; white-space: nowrap; }
+  .continuation-select { background: var(--surface); border: 1px solid var(--border); color: var(--text-muted); font-family: var(--font-mono); font-size: 11px; padding: 6px 10px; border-radius: 4px; outline: none; cursor: pointer; flex: 1; min-width: 0; transition: border-color 0.15s; appearance: none; -webkit-appearance: none; }
+  .continuation-select:focus { border-color: var(--purple-dim); }
+  .continuation-select option { background: var(--surface2); }
+  .view-continuation { margin-top: 0; margin-bottom: 20px; display: flex; flex-direction: column; gap: 6px; }
+  .view-continuation-link { display: inline-flex; align-items: center; gap: 7px; font-family: var(--font-mono); font-size: 11px; color: var(--purple-dim); cursor: pointer; transition: color 0.15s; width: fit-content; }
+  .view-continuation-link:hover { color: var(--purple-bright); }
+  .view-continuation-link .cont-arrow { font-size: 13px; }
+  .view-continuation-title { font-style: italic; color: var(--text-muted); }
+
+  /* milestone modal */
+  .milestone-modal { text-align: center; }
+  .milestone-glyph { font-size: 44px; margin-bottom: 14px; display: block; animation: obIconIn 0.5s cubic-bezier(0.34,1.56,0.64,1); }
+  .milestone-modal .modal-title { font-size: 21px; margin-bottom: 8px; }
+  .milestone-modal .modal-body { margin-bottom: 24px; font-size: 13px; }
+
+  /* milestone glyph on dream item */
+  .pin-marker { opacity: 0.7; font-size: 13px; margin-left: 6px; vertical-align: middle; }
+  .btn-pin {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    padding: 9px 18px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn-pin:hover { border-color: var(--border-hover); color: var(--text); }
+  .btn-pin.pinned { border-color: var(--purple-dim); color: var(--purple-bright); background: var(--purple-faint); }
+  .view-milestone { display: flex; align-items: center; justify-content: flex-start; gap: 8px; font-family: var(--font-mono); font-size: 10px; color: var(--purple-dim); letter-spacing: 0.15em; margin-bottom: 16px; }
+  .view-milestone-glyph { font-size: 20px; color: var(--purple-bright); }
+
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* ================================================================
+     ONBOARDING FLOW
+  ================================================================ */
+  .onboarding-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(10,8,18,0.92);
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    animation: fadeIn 0.4s ease;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+  .onboarding-card {
+    background: #1a1528;
+    border: 1px solid rgba(155,135,212,0.28);
+    border-radius: 10px;
+    max-width: 480px;
+    width: 100%;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 32px 80px rgba(0,0,0,0.55), 0 0 0 1px rgba(155,135,212,0.06) inset;
+  }
+  .onboarding-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent 0%, rgba(155,135,212,0.5) 40%, rgba(196,180,240,0.7) 50%, rgba(155,135,212,0.5) 60%, transparent 100%);
+    z-index: 1;
+  }
+  .onboarding-progress {
+    height: 2px;
+    background: var(--border);
+    position: relative;
+  }
+  .onboarding-progress-fill {
+    height: 100%;
+    background: var(--purple);
+    transition: width 0.4s cubic-bezier(0.4,0,0.2,1);
+    border-radius: 0 2px 2px 0;
+  }
+  .onboarding-body {
+    padding: 36px 36px 28px;
+  }
+  .onboarding-step-label {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--purple-dim);
+    margin-bottom: 16px;
+  }
+  .onboarding-icon {
+    font-size: 36px;
+    margin-bottom: 16px;
+    display: block;
+    animation: obIconIn 0.5s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  @keyframes obIconIn { from { transform: scale(0.5) rotate(-10deg); opacity: 0; } to { transform: scale(1) rotate(0deg); opacity: 1; } }
+  .onboarding-title {
+    font-family: var(--font-serif);
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text-title);
+    margin-bottom: 12px;
+    line-height: 1.3;
+  }
+  .onboarding-desc {
+    font-family: var(--font-serif);
+    font-size: 14px;
+    line-height: 1.8;
+    color: var(--text-muted);
+    font-style: italic;
+    margin-bottom: 24px;
+  }
+  .onboarding-spotlight {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px 20px;
+    margin-bottom: 24px;
+    position: relative;
+    overflow: hidden;
+  }
+  .onboarding-spotlight::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--purple), transparent);
+    animation: shimmerLine 2s infinite;
+  }
+  @keyframes shimmerLine {
+    0% { opacity: 0.3; } 50% { opacity: 1; } 100% { opacity: 0.3; }
+  }
+  .onboarding-spotlight-text {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    line-height: 1.6;
+  }
+  .onboarding-spotlight-text strong { color: var(--purple-bright); font-weight: 400; }
+
+  .ob-dream-editor {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .ob-input {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--font-serif);
+    font-size: 14px;
+    padding: 10px 14px;
+    border-radius: 4px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .ob-input:focus { border-color: var(--purple-dim); box-shadow: 0 0 0 3px rgba(155,135,212,0.1); }
+  .ob-input::placeholder { color: var(--text-dim); font-style: italic; }
+  .ob-textarea-wrap {
+    position: relative;
+  }
+  .ob-textarea {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--font-serif);
+    font-size: 13px;
+    line-height: 1.7;
+    padding: 10px 14px 26px 14px;
+    border-radius: 4px;
+    outline: none;
+    resize: none;
+    min-height: 90px;
+    font-style: italic;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    display: block;
+    width: 100%;
+  }
+  .ob-textarea:focus { border-color: var(--purple-dim); box-shadow: 0 0 0 3px rgba(155,135,212,0.1); }
+  .ob-textarea::placeholder { color: var(--text-dim); }
+  .ob-chars {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    color: var(--text-dim);
+    transition: color 0.2s;
+    position: absolute;
+    bottom: 8px;
+    left: 14px;
+    pointer-events: none;
+    letter-spacing: 0.04em;
+  }
+  .ob-chars.has-content { color: var(--purple-dim); }
+
+  .ob-tag-row {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+  .ob-quick-tag {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    padding: 4px 10px;
+    border-radius: 3px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .ob-quick-tag.selected { border-color: var(--purple-dim); color: var(--purple-bright); background: var(--purple-faint); }
+
+  .onboarding-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 4px;
+  }
+
+  .ob-stars-row { display: flex; gap: 6px; align-items: center; }
+  .ob-star { font-size: 20px; cursor: pointer; opacity: 0.18; transition: all 0.2s; color: var(--purple-dim); user-select: none; }
+  .ob-star.filled { opacity: 1; color: var(--purple-bright); }
+  .ob-star:hover { transform: scale(1.15); opacity: 0.7; }
+  .ob-field-label { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 6px; }
+  .ob-field { display: flex; flex-direction: column; gap: 4px; }
+
+  .ob-delete-demo {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+    transition: border-color 0.2s;
+  }
+  .ob-delete-demo:hover { border-color: var(--border-hover); }
+  .ob-delete-demo-text { flex: 1; }
+  .ob-delete-demo-title { font-family: var(--font-serif); font-size: 13px; color: var(--text-title); margin-bottom: 2px; }
+  .ob-delete-demo-body { font-family: var(--font-serif); font-size: 11px; color: var(--text-muted); font-style: italic; }
+  .ob-delete-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 1px solid rgba(107,87,168,0.45);
+    background: rgba(107,87,168,0.12);
+    color: rgba(196,180,240,0.55);
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.15s;
+    animation: pulseRing 2s infinite;
+  }
+  .ob-delete-btn:hover { background: rgba(107,87,168,0.3); border-color: var(--purple); color: var(--purple-bright); }
+  @keyframes pulseRing {
+    0% { box-shadow: 0 0 0 0 rgba(155,135,212,0.4); }
+    70% { box-shadow: 0 0 0 6px rgba(155,135,212,0); }
+    100% { box-shadow: 0 0 0 0 rgba(155,135,212,0); }
+  }
+  .ob-delete-done {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--green);
+    text-align: center;
+    padding: 20px 10px;
+    margin-bottom: 20px;
+    background: rgba(127,201,160,0.06);
+    border: 1px solid rgba(127,201,160,0.18);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    animation: fadeIn 0.3s ease;
+    letter-spacing: 0.04em;
+  }
+
+  .ob-skip {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-dim);
+    background: none;
+    border: none;
+    cursor: pointer;
+    letter-spacing: 0.05em;
+    transition: color 0.15s;
+    padding: 4px 0;
+  }
+  .ob-skip:hover { color: var(--text-muted); }
+  .ob-next {
+    background: var(--purple);
+    color: #0e0c14;
+    border: none;
+    padding: 11px 24px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background 0.15s, transform 0.1s;
+    -webkit-tap-highlight-color: transparent;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .ob-next:hover { background: var(--purple-bright); }
+  .ob-next:active { transform: scale(0.97); }
+  .ob-next:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .onboarding-body.step-exit {
+    animation: stepExit 0.2s ease forwards;
+  }
+  .onboarding-body.step-enter {
+    animation: stepEnter 0.3s ease forwards;
+  }
+  @keyframes stepExit { to { opacity: 0; transform: translateX(-20px); } }
+  @keyframes stepEnter { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+
+  /* ================================================================
+     UNSAVED CHANGES NAV CONFIRM MODAL
+  ================================================================ */
+  .nav-confirm-modal {
+    max-width: 400px;
+  }
+  .nav-confirm-detail {
+    background: rgba(155,135,212,0.06);
+    border: 1px solid rgba(155,135,212,0.18);
+    border-radius: 6px;
+    padding: 10px 14px;
+    margin: -8px 0 20px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--purple-dim);
+    letter-spacing: 0.05em;
+  }
+
+  /* ================================================================
+     SHARE CARD MODAL
+  ================================================================ */
+  .share-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(14,12,20,0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1500;
+    animation: fadeIn 0.2s ease;
+    padding: 20px;
+  }
+  .share-modal {
+    background: var(--surface2);
+    border: 1px solid var(--border-hover);
+    border-radius: 8px;
+    padding: 24px;
+    max-width: 520px;
+    width: 100%;
+    animation: slideUp 0.22s ease;
+  }
+  .share-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  .share-modal-title {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+  }
+  .share-close-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    width: 28px;
+    height: 28px;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    transition: all 0.15s;
+  }
+  .share-close-btn:hover { border-color: var(--border-hover); color: var(--text); }
+
+  .share-card {
+    width: 100%;
+    aspect-ratio: 16/9;
+    background: #0e0c14;
+    border-radius: 6px;
+    overflow: hidden;
+    position: relative;
+    margin-bottom: 16px;
+    border: 1px solid rgba(148,130,210,0.25);
+  }
+  .share-card-grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(155,135,212,0.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(155,135,212,0.06) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+  .share-card-glow {
+    position: absolute;
+    top: -60px; left: 50%;
+    transform: translateX(-50%);
+    width: 280px; height: 180px;
+    background: radial-gradient(ellipse, rgba(155,135,212,0.15), transparent 70%);
+    pointer-events: none;
+  }
+  .share-card-inner {
+    position: absolute;
+    inset: 0;
+    padding: 28px 32px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  .share-card-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+  }
+  .share-card-logo {
+    font-family: 'Libre Baskerville', serif;
+    font-style: italic;
+    font-size: 13px;
+    color: rgba(196,180,240,0.45);
+    letter-spacing: 0.12em;
+  }
+  .share-card-date {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    color: rgba(90,80,117,0.9);
+    letter-spacing: 0.1em;
+  }
+  .share-card-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 12px 0;
+  }
+  .share-card-title {
+    font-family: 'Libre Baskerville', serif;
+    font-size: clamp(14px, 2.5vw, 20px);
+    font-weight: 700;
+    color: #c4b4f0;
+    margin-bottom: 10px;
+    line-height: 1.3;
+    max-height: 3em;
+    overflow: hidden;
+  }
+  .share-card-text {
+    font-family: 'Libre Baskerville', serif;
+    font-size: clamp(10px, 1.5vw, 12px);
+    line-height: 1.75;
+    color: rgba(139,127,176,0.9);
+    font-style: italic;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .share-card-bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .share-card-star-group {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .share-card-star-row {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .share-card-star-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 7px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(90,80,117,0.75);
+  }
+  .share-card-stars {
+    display: flex;
+    gap: 2px;
+    font-size: 10px;
+  }
+  .share-card-tags {
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  .share-card-tag {
+    font-family: 'DM Mono', monospace;
+    font-size: 8px;
+    color: rgba(107,87,168,0.9);
+    background: rgba(155,135,212,0.08);
+    padding: 2px 6px;
+    border-radius: 2px;
+    border: 1px solid rgba(155,135,212,0.15);
+  }
+  .share-card-watermark {
+    font-family: 'DM Mono', monospace;
+    font-size: 8px;
+    color: rgba(90,80,117,0.6);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+  .share-instructions {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-dim);
+    text-align: center;
+    margin-bottom: 16px;
+    letter-spacing: 0.04em;
+    line-height: 1.6;
+  }
+  .share-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+  }
+  .btn-copy-card {
+    background: var(--purple);
+    color: #0e0c14;
+    border: none;
+    padding: 10px 20px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .btn-copy-card:hover { background: var(--purple-bright); }
+  .btn-copy-card.copied { background: var(--green); color: #0e0c14; }
+
+  .share-style-row {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 16px;
+  }
+  .share-style-btn {
+    flex: 1;
+    padding: 7px 10px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.04em;
+    border-radius: 4px;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    background: transparent;
+    transition: all 0.15s;
+    text-align: center;
+  }
+  .share-style-btn.active { border-color: var(--purple-dim); color: var(--purple-bright); background: var(--purple-faint); }
+  .share-style-btn:hover { border-color: var(--border-hover); color: var(--text-muted); }
+
+  .share-card.style-cosmic .share-card-grid {
+    background-image:
+      radial-gradient(circle at 20% 80%, rgba(155,135,212,0.05) 0%, transparent 60%),
+      radial-gradient(circle at 80% 20%, rgba(240,196,216,0.04) 0%, transparent 60%);
+    background-size: 100% 100%;
+  }
+  .share-card.style-cosmic { background: #0a0814; }
+  .share-card.style-mist { background: #11131e; }
+  .share-card.style-mist .share-card-grid {
+    background-image: none;
+    background: linear-gradient(135deg, rgba(155,135,212,0.03) 0%, transparent 100%);
+  }
+
+  /* ---- responsive ---- */
+  @media (max-width: 768px) {
+    .header { padding: 10px 16px; }
+    .header-center { display: none; }
+    .privacy-badge { display: none; }
+    .btn-back { display: block; }
+
+    .layout {
+      height: calc(100dvh - 57px);
+      position: relative;
+    }
+
+    .sidebar {
+      position: fixed;
+      top: 57px;
+      left: 0;
+      bottom: 0;
+      z-index: 160;
+      transform: translateX(-100%);
+      background: var(--bg);
+      width: 88vw;
+      max-width: 320px;
+      border-right: 1px solid var(--border-hover);
+      transition: transform 0.28s ease-out;
+      will-change: transform;
+    }
+    .sidebar.open { transform: translateX(0); }
+    .sidebar-overlay.visible {
+      display: block;
+      animation: overlayIn 0.28s ease-out forwards;
+    }
+    .sidebar-overlay.closing {
+      display: block;
+      animation: overlayOut 0.28s ease-out forwards;
+    }
+    @keyframes overlayIn  { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes overlayOut { from { opacity: 1; } to { opacity: 0; } }
+
+    .dream-item-close { opacity: 1; }
+    .sidebar .nav-tabs { display: none; }
+    .sidebar .sidebar-top { display: none; }
+
+    .main { width: 100%; }
+    .viewer { padding: 24px 20px 100px; }
+    .editor { padding: 24px 20px 100px; }
+    .analyzer { padding: 24px 20px 100px; }
+    .charts-grid { grid-template-columns: 1fr; }
+    .title-input { font-size: 22px; }
+    .view-title { font-size: 22px; }
+    .mobile-nav { display: block; }
+
+    .home-inner { padding: 40px 24px; }
+    .home-title { font-size: 48px !important; }
+
+    .onboarding-body { padding: 24px 20px 20px; }
+    .onboarding-title { font-size: 18px; }
+    .share-modal { padding: 16px; }
+    .share-card-inner { padding: 16px 18px; }
+  }
+
+  @media (max-width: 400px) {
+    .viewer { padding: 20px 16px 100px; }
+    .editor { padding: 20px 16px 100px; }
+  }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+(function() {
+
+const STORAGE_KEY = 'somnia_dreams_v1';
+const ONBOARDING_KEY = 'somnia_onboarding_done';
+
+function loadDreams() { try { const r = localStorage.getItem(STORAGE_KEY); return r ? JSON.parse(r) : []; } catch(e) { return []; } }
+function saveDreams(d) { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(d)); } catch(e) {} }
+function onboardingDone() { try { return !!localStorage.getItem(ONBOARDING_KEY); } catch(e) { return false; } }
+function markOnboardingDone() { try { localStorage.setItem(ONBOARDING_KEY, '1'); } catch(e) {} }
+
+function formatDate(iso) { return new Date(iso).toLocaleDateString('en-US', { weekday:'short', year:'numeric', month:'short', day:'numeric' }); }
+function formatTime(iso) { return new Date(iso).toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit' }); }
+
+function relativeTime(iso) {
+  const now = Date.now();
+  const then = new Date(iso).getTime();
+  const diff = now - then;
+  const mins = Math.floor(diff / 60000);
+  const hours = Math.floor(diff / 3600000);
+  const days = Math.floor(diff / 86400000);
+  const weeks = Math.floor(days / 7);
+  const months = Math.floor(days / 30.4);
+  const years = Math.floor(days / 365);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins} min${mins===1?'':'s'} ago`;
+  if (hours < 24) return `${hours} hour${hours===1?'':'s'} ago`;
+  if (days < 7) return `${days} day${days===1?'':'s'} ago`;
+  if (weeks < 5) return `${weeks} week${weeks===1?'':'s'} ago`;
+  if (months < 12) return `${months} month${months===1?'':'s'} ago`;
+  return `${years} year${years===1?'':'s'} ago`;
+}
+
+function newDream() { return { id: Date.now().toString(), title:'', body:'', sleepNotes:'', tags:[], lucidity:0, quality:-1, continuationOf: null, pinned: false, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }; }
+
+const ALL_TAGS = ['flying','water','chase','lucid','recurring','people','places','surreal','peaceful','dark'];
+const QUALITY_LABELS = ['', 'bad dream', 'ordinary', 'pleasant', 'vivid', 'blissful'];
+const SORT_OPTIONS = [{key:'date',label:'Date'},{key:'lucidity',label:'Lucidity'},{key:'quality',label:'Quality'}];
+const MILESTONES = [
+  { count: 1,   glyph: '✦', title: 'First dream recorded', body: 'The journey begins. Every great dreamer starts with a single entry.' },
+  { count: 10,  glyph: '◈', title: 'Ten dreams', body: 'A week of nights, give or take. Patterns are starting to form.' },
+  { count: 25,  glyph: '◉', title: 'Twenty-five dreams', body: 'You\'re building a real archive of your inner world.' },
+  { count: 50,  glyph: '⬡', title: 'Fifty dreams', body: 'Half a hundred. Your subconscious has a lot to say.' },
+  { count: 100, glyph: '✸', title: 'One hundred dreams', body: 'A century of dreams. This is something rare.' },
+  { count: 250, glyph: '❋', title: 'Two hundred and fifty dreams', body: 'A dedicated dreamer. The archive grows deep.' },
+  { count: 500, glyph: '✺', title: 'Five hundred dreams', body: 'Extraordinary. Your dream journal is a life\'s work.' },
+];
+const FLAVOR = [
+  { title: 'Somnia', body: 'The latin root <em>somnus</em> which means <strong>sleep</strong>. The root is used in medical disorders like <em>insomnia</em>, <em>somniphobia</em> or <em>somnambulism</em> (sleepwalking).' },
+  { title: '…?', body: '<em>The mind wanders far when the body is still.</em>' },
+  { title: 'hello!', body: 'welcome to somnia, a dream journal for the <strong>lucid</strong> and the <strong>curious.</strong> i wish you <strong>luck</strong> on your path, <ins>whatever it may be...</ins>' }
+];
+
+/* ================================================================
+   ONBOARDING STATE
+================================================================ */
+const OB_STEPS = [
+  {
+    icon: '🌙',
+    title: 'Welcome to Somnia',
+    desc: 'Your private dream journal. No account, no server. Everything stays on your device. Let\'s take 60 seconds to get you started.',
+    type: 'info',
+    spotlightHtml: '<strong>Privacy first.</strong> Dreams are personal. Somnia stores everything in your browser\'s local storage. Only you can ever read these.',
+    nextLabel: 'Let\'s go →'
+  },
+  {
+    icon: '✍️',
+    title: 'Record your first dream',
+    desc: 'Give it a title and write down what you remember. Even fragments are worth keeping.',
+    type: 'editor',
+    nextLabel: 'Looks good →'
+  },
+  {
+    icon: '★',
+    title: 'Rate it',
+    desc: 'Two quick ratings help you find patterns over time. How vivid the dream was, and how it felt.',
+    type: 'rating',
+    nextLabel: 'Got it →'
+  },
+  {
+    icon: '🏷️',
+    title: 'Tag what you saw',
+    desc: 'Tags let you filter and search dreams later. Add a few that match, or skip.',
+    type: 'tags',
+    nextLabel: 'Save my dream →'
+  },
+  {
+    icon: '🗑️',
+    title: 'How to delete a dream',
+    desc: 'That was a placeholder. Now delete it by hovering over a dream in the sidebar and clicking the × button, or use Delete inside the entry.',
+    type: 'delete',
+    nextLabel: 'Done!'
+  }
+];
+
+let ob = {
+  step: 0,
+  title: '',
+  body: '',
+  lucidity: 0,
+  tags: [],
+  obDreamId: null,
+  deleteClicked: false
+};
+
+function obRender() {
+  let el = document.getElementById('onboarding-overlay');
+  if (!el) { el = document.createElement('div'); el.id = 'onboarding-overlay'; el.className = 'onboarding-overlay'; document.body.appendChild(el); }
+  const step = OB_STEPS[ob.step];
+  const progress = ((ob.step + 1) / OB_STEPS.length) * 100;
+  const canNext = ob.step !== 4 || ob.deleteClicked;
+  el.innerHTML = `
+    <div class="onboarding-card">
+      <div class="onboarding-progress"><div class="onboarding-progress-fill" style="width:${progress}%"></div></div>
+      <div class="onboarding-body" id="ob-body">
+        <div class="onboarding-step-label">Step ${ob.step+1} of ${OB_STEPS.length}</div>
+        <span class="onboarding-icon">${step.icon}</span>
+        <div class="onboarding-title">${step.title}</div>
+        <div class="onboarding-desc">${step.desc}</div>
+        ${renderObStepContent(step)}
+        <div class="onboarding-actions">
+          <button class="ob-skip" onclick="obActions.skip()">Skip intro</button>
+          <button class="ob-next" id="ob-next-btn" onclick="obActions.next()" ${canNext?'':'disabled'}>${step.nextLabel}</button>
+        </div>
+      </div>
+    </div>
+  `;
+  if (step.type === 'editor') {
+    const ti = el.querySelector('#ob-title'); if (ti) ti.addEventListener('input', e => {
+      ob.title = e.target.value;
+    });
+    const ta = el.querySelector('#ob-body-ta'); if (ta) ta.addEventListener('input', e => {
+      ob.body = e.target.value;
+      const cc = el.querySelector('#ob-char-count');
+      if (cc) {
+        const len = e.target.value.length;
+        cc.textContent = len > 0 ? `${len} chars` : '';
+        cc.className = 'ob-chars' + (len > 0 ? ' has-content' : '');
+      }
+    });
+  }
+  if (step.type === 'rating') {
+    el.querySelectorAll('.ob-star').forEach(s => {
+      s.addEventListener('click', () => {
+        ob.lucidity = parseInt(s.dataset.v);
+        el.querySelectorAll('.ob-star').forEach(x => {
+          const v = parseInt(x.dataset.v);
+          x.classList.toggle('filled', v <= ob.lucidity);
+        });
+      });
+    });
+  }
+  if (step.type === 'tags') {
+    el.querySelectorAll('.ob-quick-tag').forEach(t => {
+      t.addEventListener('click', () => {
+        const tag = t.dataset.tag;
+        if (ob.tags.includes(tag)) { ob.tags = ob.tags.filter(x => x !== tag); t.classList.remove('selected'); }
+        else { ob.tags.push(tag); t.classList.add('selected'); }
+      });
+    });
+  }
+  if (step.type === 'delete') {
+    const dBtn = el.querySelector('#ob-delete-btn');
+    if (dBtn) dBtn.addEventListener('click', () => {
+      ob.deleteClicked = true;
+      if (ob.obDreamId) {
+        state.dreams = state.dreams.filter(d => d.id !== ob.obDreamId);
+        saveDreams(state.dreams);
+        ob.obDreamId = null;
+      }
+      const demoEl = el.querySelector('#ob-delete-demo');
+      if (demoEl) {
+        demoEl.style.transition = 'opacity 0.3s, transform 0.3s';
+        demoEl.style.opacity = '0';
+        demoEl.style.transform = 'translateX(20px)';
+        setTimeout(() => {
+          demoEl.outerHTML = `<div class="ob-delete-done"><span style="font-size:15px;">✓</span> Dream deleted. You can do this anytime.</div>`;
+        }, 300);
+      }
+      const nextBtn = el.querySelector('#ob-next-btn');
+      if (nextBtn) nextBtn.removeAttribute('disabled');
+    });
+  }
+}
+
+function renderObStepContent(step) {
+  if (step.type === 'info') {
+    return `<div class="onboarding-spotlight"><div class="onboarding-spotlight-text">${step.spotlightHtml}</div></div>`;
+  }
+  if (step.type === 'editor') {
+    const bodyLen = ob.body ? ob.body.length : 0;
+    return `
+      <div class="ob-dream-editor">
+        <div class="ob-field">
+          <div class="ob-field-label">Title</div>
+          <input class="ob-input" id="ob-title" type="text" placeholder="The dream where I could fly..." value="${esc(ob.title)}" />
+        </div>
+        <div class="ob-field">
+          <div class="ob-field-label">What happened?</div>
+          <div class="ob-textarea-wrap">
+            <textarea class="ob-textarea" id="ob-body-ta" placeholder="I was standing at the edge of a cliff, and the wind lifted me up...">${esc(ob.body)}</textarea>
+            <div class="ob-chars${bodyLen > 0 ? ' has-content' : ''}" id="ob-char-count">${bodyLen > 0 ? bodyLen + ' chars' : ''}</div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+  if (step.type === 'rating') {
+    return `
+      <div class="onboarding-spotlight">
+        <div class="ob-field">
+          <div class="ob-field-label">Lucidity: how aware were you it was a dream?</div>
+          <div class="ob-stars-row">
+            ${[1,2,3,4,5].map(i=>`<span class="ob-star${ob.lucidity>=i?' filled':''}" data-v="${i}">★</span>`).join('')}
+            <span style="font-family:var(--font-mono);font-size:10px;color:var(--text-dim);margin-left:6px;">${ob.lucidity===0?'tap to rate':`${ob.lucidity}/5`}</span>
+          </div>
+        </div>
+        <div style="height:1px;background:var(--border);margin:14px 0;"></div>
+        <div class="onboarding-spotlight-text">Both ratings are optional. You can skip any entry. The analytics tab shows your patterns over time.</div>
+      </div>
+    `;
+  }
+  if (step.type === 'tags') {
+    return `
+      <div class="ob-tag-row">
+        ${ALL_TAGS.map(t=>`<button class="ob-quick-tag${ob.tags.includes(t)?' selected':''}" data-tag="${t}">${t}</button>`).join('')}
+      </div>
+    `;
+  }
+  if (step.type === 'delete') {
+    const previewTitle = ob.title || 'My first dream';
+    const previewBody = ob.body || 'A fragment, hovering at the edge of memory...';
+    return `
+      <div id="ob-delete-demo" class="ob-delete-demo">
+        <div class="ob-delete-demo-text">
+          <div class="ob-delete-demo-title">${esc(previewTitle)}</div>
+          <div class="ob-delete-demo-body">${esc(previewBody.slice(0,60))}...</div>
+        </div>
+        <button class="ob-delete-btn" id="ob-delete-btn">×</button>
+      </div>
+    `;
+  }
+  return '';
+}
+
+const obActions = {
+  next() {
+    if (ob.step === 3) {
+      const d = newDream();
+      d.title = ob.title || 'My first dream';
+      d.body = ob.body || 'A fragment from the onboarding. Feel free to delete this.';
+      d.lucidity = ob.lucidity;
+      d.tags = [...ob.tags];
+      d.updatedAt = new Date().toISOString();
+      ob.obDreamId = d.id;
+      state.dreams.push(d);
+      saveDreams(state.dreams);
+    }
+    if (ob.step < OB_STEPS.length - 1) {
+      const body = document.getElementById('ob-body');
+      if (body) { body.classList.add('step-exit'); setTimeout(() => { ob.step++; obRender(); }, 180); }
+      else { ob.step++; obRender(); }
+    } else {
+      obActions.finish();
+    }
+  },
+  skip() { obActions.finish(); },
+  finish() {
+    markOnboardingDone();
+    const overlay = document.getElementById('onboarding-overlay');
+    if (overlay) { overlay.style.animation = 'none'; overlay.style.opacity='0'; overlay.style.transition='opacity 0.3s'; setTimeout(()=>{overlay.remove(); render();}, 300); }
+    else { render(); }
+  }
+};
+window.obActions = obActions;
+
+/* ================================================================
+   MAIN STATE
+================================================================ */
+let state = {
+  dreams: loadDreams(),
+  page: 'home',
+  prevPage: null,
+  currentId: null,
+  editing: null,
+  flavor: Math.floor(Math.random() * FLAVOR.length),
+  search: '', filterTag: '',
+  sortBy: 'date', sortDir: 'desc',
+  saveStatus: false,
+  confirmDeleteId: null,
+  milestone: null,
+  musicPlaying: false,
+  audioElement: null,
+  sidebarOpen: false,
+  navConfirm: null,
+  shareModalDreamId: null,
+  shareStyle: 'grid'
+};
+
+function getMilestoneForDream(dreamId) {
+  const byAge = [...state.dreams].sort((a,b) => new Date(a.createdAt) - new Date(b.createdAt));
+  const pos = byAge.findIndex(d => d.id === dreamId) + 1;
+  return MILESTONES.find(m => m.count === pos) || null;
+}
+
+function sortedDreams(list) {
+  return [...list].sort((a,b) => {
+    if (a.pinned && !b.pinned) return -1;
+    if (!a.pinned && b.pinned) return 1;
+    let va, vb;
+    if (state.sortBy==='date') { va=new Date(a.updatedAt).getTime(); vb=new Date(b.updatedAt).getTime(); }
+    else if (state.sortBy==='lucidity') { va=a.lucidity||0; vb=b.lucidity||0; }
+    else { va=a.quality<0?-1:a.quality; vb=b.quality<0?-1:b.quality; }
+    return state.sortDir==='desc'?vb-va:va-vb;
+  });
+}
+function filteredDreams() {
+  let list = [...state.dreams];
+  if (state.search.trim()) { const q=state.search.toLowerCase(); list=list.filter(d=>d.title.toLowerCase().includes(q)||d.body.toLowerCase().includes(q)||d.tags.some(t=>t.toLowerCase().includes(q))); }
+  if (state.filterTag) list=list.filter(d=>d.tags.includes(state.filterTag));
+  return sortedDreams(list);
+}
+function allUsedTags() { const s=new Set(); state.dreams.forEach(d=>d.tags.forEach(t=>s.add(t))); return Array.from(s); }
+function esc(s) { if(!s)return''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+/* ================================================================
+   EDITING? CHECK BEFORE NAV
+================================================================ */
+function isEditingWithContent() {
+  if (state.page !== 'edit' && state.page !== 'new') return false;
+  if (!state.editing) return false;
+  const title = document.querySelector('.title-input')?.value || state.editing.title || '';
+  const body = document.getElementById('dream-body')?.value || state.editing.body || '';
+  return !!(title.trim() || body.trim() || state.editing.tags.length > 0 || state.editing.lucidity > 0 || state.editing.quality >= 1);
+}
+
+/* ================================================================
+   GRID
+================================================================ */
+let gridRAF = null, gridCanvas = null, gridCtx = null, gridW = 0, gridH = 0, gridT = 0;
+let gridOffX = 0, gridOffY = 0, gridTargetOX = 0, gridTargetOY = 0;
+let gridResizeObs = null, gridMouseHandler = null;
+
+function gridDraw() {
+  if (!gridCanvas || !gridCtx) return;
+  gridRAF = requestAnimationFrame(gridDraw);
+  gridT += 0.003;
+  gridOffX += (gridTargetOX - gridOffX) * 0.05;
+  gridOffY += (gridTargetOY - gridOffY) * 0.05;
+  gridCtx.clearRect(0, 0, gridW, gridH);
+  const CELL = 52;
+  const driftX = (gridT * 10) % CELL;
+  const driftY = (gridT * 7) % CELL;
+  const baseX = -CELL + gridOffX * 0.5 - driftX;
+  const baseY = -CELL + gridOffY * 0.5 - driftY;
+  const cols = Math.ceil(gridW / CELL) + 3;
+  const rows = Math.ceil(gridH / CELL) + 3;
+  gridCtx.strokeStyle = 'rgba(155, 135, 212, 0.16)';
+  gridCtx.lineWidth = 0.5;
+  gridCtx.beginPath();
+  for (let c = 0; c <= cols; c++) { const x = Math.round(baseX + c * CELL) + 0.5; gridCtx.moveTo(x, 0); gridCtx.lineTo(x, gridH); }
+  for (let r = 0; r <= rows; r++) { const y = Math.round(baseY + r * CELL) + 0.5; gridCtx.moveTo(0, y); gridCtx.lineTo(gridW, y); }
+  gridCtx.stroke();
+}
+
+function startGrid() {
+  const canvas = document.getElementById('grid-canvas');
+  if (!canvas) return;
+  stopGrid();
+  gridCanvas = canvas;
+  gridCtx = canvas.getContext('2d');
+  function sizeCanvas() { const p = canvas.parentElement; if (!p) return; gridW = canvas.width = p.clientWidth; gridH = canvas.height = p.clientHeight; }
+  sizeCanvas();
+  gridResizeObs = new ResizeObserver(sizeCanvas);
+  gridResizeObs.observe(canvas.parentElement);
+  const mainEl = canvas.parentElement;
+  gridMouseHandler = (e) => {
+    const r = mainEl.getBoundingClientRect();
+    gridTargetOX = ((e.clientX - r.left) / r.width - 0.5) * 24;
+    gridTargetOY = ((e.clientY - r.top) / r.height - 0.5) * 16;
+  };
+  mainEl.addEventListener('mousemove', gridMouseHandler);
+  gridDraw();
+}
+function stopGrid() {
+  if (gridRAF) { cancelAnimationFrame(gridRAF); gridRAF = null; }
+  if (gridResizeObs) { gridResizeObs.disconnect(); gridResizeObs = null; }
+  if (gridCanvas && gridMouseHandler) { gridCanvas.parentElement && gridCanvas.parentElement.removeEventListener('mousemove', gridMouseHandler); gridMouseHandler = null; }
+  gridCanvas = null; gridCtx = null;
+}
+
+/* ================================================================
+   RENDER
+================================================================ */
+function render() {
+  const app = document.getElementById('app');
+  const dreams = filteredDreams();
+  const usedTags = allUsedTags();
+  const isMobile = window.innerWidth <= 768;
+  const showBack = isMobile && state.page !== 'home';
+  const shouldAnimate = state.page !== state.prevPage;
+  state.prevPage = state.page;
+  const dreamsTabActive = state.sidebarOpen || (state.page === 'view' || state.page === 'edit' || state.page === 'new');
+  const analyticsTabActive = state.page === 'analyzer' && !state.sidebarOpen;
+
+  let mainContent = '';
+  if (state.page === 'home') mainContent = renderHomeMain();
+  else if (state.page === 'view') mainContent = renderViewer(state.editing);
+  else if (state.page === 'analyzer') mainContent = renderAnalyzer();
+  else mainContent = renderEditor(state.editing);
+
+  app.innerHTML = `
+    <header class="header">
+      <div style="display:flex;align-items:center;gap:12px;">
+        ${showBack ? `<button class="btn-back" onclick="actions.goBack()">← Back</button>` : ''}
+        <div class="logo" onclick="actions.goHome()">Somnia<span class="logo-sub">dream journal</span></div>
+      </div>
+      <div class="header-center">
+        <div class="header-stat">Total: <span class="header-stat-value">${state.dreams.length}</span></div>
+        <div class="header-stat">Lucid: <span class="header-stat-value">${state.dreams.filter(d=>d.tags.includes('lucid')).length}</span></div>
+        <div class="header-stat">This month: <span class="header-stat-value">${state.dreams.filter(d=>{const m=new Date(),c=new Date(d.createdAt);return c.getFullYear()===m.getFullYear()&&c.getMonth()===m.getMonth();}).length}</span></div>
+      </div>
+      <div class="header-right">
+        <button class="music-toggle${state.musicPlaying?' playing':''}" id="music-toggle" onclick="actions.toggleMusic()" title="Toggle music">
+          <img src="hp.png" alt="Music" />
+        </button>
+        <div class="privacy-badge">private and secure</div>
+      </div>
+    </header>
+
+    <div class="layout">
+      <div class="sidebar-overlay${state.sidebarOpen?' visible':''}" onclick="actions.closeSidebar()"></div>
+      <aside class="sidebar" id="sidebar">
+        <div class="nav-tabs">
+          <button class="nav-tab ${state.page!=='analyzer'?'active':''}" onclick="actions.goHome()">Dreams</button>
+          <button class="nav-tab ${state.page==='analyzer'?'active':''}" onclick="actions.goAnalyzer()">Analytics</button>
+        </div>
+        <div class="sidebar-top">
+          <button class="btn-new-sidebar" onclick="actions.newEntry()">+ Record a Dream</button>
+        </div>
+
+        <div class="sidebar-section" style="margin-top:16px;">
+          <div class="sidebar-label">Search</div>
+          <input class="search-input" type="text" placeholder="Search dreams..." value="${esc(state.search)}" oninput="actions.setSearch(this.value)" />
+        </div>
+
+        <div class="sidebar-section" style="margin-bottom:16px;">
+          <div class="sort-row">
+            ${SORT_OPTIONS.map(o=>`<button class="sort-btn ${state.sortBy===o.key?'active':''}" onclick="actions.setSort('${o.key}')">${o.label}</button>`).join('')}
+          </div>
+        </div>
+
+        ${usedTags.length?`<div class="sidebar-section"><div class="sidebar-label">Tags</div><div class="tag-filters"><button class="tag-pill ${!state.filterTag?'active':''}" onclick="actions.setTag('')">all</button>${usedTags.map(t=>`<button class="tag-pill ${state.filterTag===t?'active':''}" onclick="actions.setTag('${esc(t)}')">${esc(t)}</button>`).join('')}</div></div>`:''}
+
+        ${renderDreamListHTML(dreams)}
+      </aside>
+
+      <main class="main" id="main-panel">
+        <canvas class="grid-canvas" id="grid-canvas"></canvas>
+        <div class="main-content${shouldAnimate?" animate":""}">
+          ${mainContent}
+        </div>
+      </main>
+    </div>
+
+    <nav class="mobile-nav">
+      <div class="mobile-nav-inner">
+        <button class="mobile-nav-btn ${dreamsTabActive?'active':''}" onclick="actions.toggleSidebar()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+          Dreams
+        </button>
+        <button class="mobile-new-btn" onclick="actions.newEntry()" title="New dream">+</button>
+        <button class="mobile-nav-btn ${analyticsTabActive?'active':''}" onclick="actions.goAnalyzer()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3 18l4-8 4 6 4-4 4 6"/></svg>
+          Analytics
+        </button>
+      </div>
+    </nav>
+
+    ${renderModals()}
+  `;
+
+  if (state.shareModalDreamId) {
+    renderShareModal();
+  }
+
+  requestAnimationFrame(() => {
+    startGrid();
+    if (state.sidebarOpen) {
+      const sidebar = document.getElementById('sidebar');
+      if (sidebar && !sidebar.classList.contains('open')) {
+        sidebar.style.transition = 'none';
+        sidebar.classList.add('open');
+        requestAnimationFrame(() => { sidebar.style.transition = ''; });
+      }
+      initSidebarDrag();
+    }
+  });
+
+  if ((state.page==='edit'||state.page==='new') && state.editing) {
+    const ta = document.getElementById('dream-body');
+    if (ta) { ta.style.height='auto'; ta.style.height=ta.scrollHeight+'px'; }
+    if (state.saveStatus) { const el=document.getElementById('save-status'); if(el)el.classList.add('show'); }
+    updateStarDisplay('lucidity', state.editing.lucidity);
+    updateStarDisplay('quality', state.editing.quality);
+    updateCharCount();
+  }
+}
+
+function updateCharCount() {
+  const ta = document.getElementById('dream-body');
+  const cc = document.getElementById('body-char-count');
+  if (!ta || !cc) return;
+  const len = ta.value.length;
+  cc.textContent = len > 0 ? `${len} char${len===1?'':'s'}` : '';
+  cc.className = 'body-char-count' + (len > 0 ? ' has-content' : '');
+}
+
+/* ================================================================
+   HOME
+================================================================ */
+function renderHomeMain() {
+  const f = FLAVOR[state.flavor];
+  return `
+    <div class="home-inner" style="position:relative;z-index:1;flex:1;display:flex;align-items:center;justify-content:center;padding:60px 48px;min-height:100%;overflow:hidden;">
+      <img src="somniatextbg.webp" alt="" draggable="false" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:480px;max-width:80%;opacity:0.22;filter:saturate(0) sepia(1) hue-rotate(220deg) saturate(3) brightness(0.65);pointer-events:none;mix-blend-mode:screen;" />
+      <div style="position:relative;z-index:2;text-align:center;max-width:420px;">
+        <div class="home-title" style="font-family:var(--font-serif);font-size:64px;font-weight:400;font-style:italic;color:var(--purple-bright);letter-spacing:0.06em;margin-bottom:40px;line-height:1;text-shadow:0 0 60px rgba(155,135,212,0.2);">Somnia</div>
+        <div style="border-left:2px solid var(--border-hover);padding-left:20px;text-align:left;">
+          <div style="font-family:var(--font-mono);font-size:10px;letter-spacing:0.25em;color:var(--purple);text-transform:uppercase;margin-bottom:10px;">${esc(f.title)}</div>
+          <div style="font-size:13px;line-height:1.8;color:var(--text-muted);font-style:italic;">${f.body}</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/* ================================================================
+   VIEWER
+================================================================ */
+function renderViewer(d) {
+  if (!d) return '';
+  const lucHint = d.lucidity === 0 ? 'unrated' : `${d.lucidity}/5`;
+  const qHint = d.quality < 1 ? 'unrated' : QUALITY_LABELS[d.quality] || 'unrated';
+  const parent = d.continuationOf ? state.dreams.find(x => x.id === d.continuationOf) : null;
+  const child = state.dreams.find(x => x.continuationOf === d.id);
+  const relDate = relativeTime(d.createdAt);
+  const absDate = formatDate(d.createdAt) + ' · ' + formatTime(d.createdAt);
+  return `
+    <div class="viewer">
+      <div class="viewer-top">
+        <div class="meta-date">
+          <span class="rel-time">${relDate}${d.pinned?' 🖈':''}</span>
+          <span class="abs-time">${absDate}${d.pinned?' 🖈':''}</span>
+        </div>
+        <div class="viewer-top-actions">
+          <button class="btn-share" onclick="actions.openShare('${d.id}')">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+            Share
+          </button>
+          <button class="btn-edit" onclick="actions.startEdit()">Edit Dream</button>
+        </div>
+      </div>
+      <div class="view-star-systems">
+        <div class="view-star-system">
+          <div class="view-star-label">Lucidity</div>
+          <div class="view-stars">${[1,2,3,4,5].map(i=>`<span class="vstar level-${i} ${d.lucidity>=i?'on':''}">★</span>`).join('')}</div>
+          <div class="view-star-hint">${lucHint}</div>
+        </div>
+        <div class="view-star-system">
+          <div class="view-star-label">Dream quality</div>
+          <div class="view-stars">${[1,2,3,4,5].map(i=>`<span class="vstar-q level-${i} ${d.quality>=i?'on':''}">★</span>`).join('')}</div>
+          <div class="view-star-hint">${qHint}</div>
+        </div>
+      </div>
+      ${(m=>m?`<div class="view-milestone"><span class="view-milestone-glyph">${m.glyph}</span>${m.title}</div>`:''  )(getMilestoneForDream(d.id))}
+      ${(parent||child) ? `<div class="view-continuation">
+        ${parent ? `<div class="view-continuation-link" onclick="actions.select('${parent.id}')"><span class="cont-arrow">↩</span><span>continued from</span><span class="view-continuation-title">${esc(parent.title||'Untitled')}</span></div>` : ''}
+        ${child  ? `<div class="view-continuation-link" onclick="actions.select('${child.id}')"><span class="cont-arrow">→</span><span>continued in</span><span class="view-continuation-title">${esc(child.title||'Untitled')}</span></div>` : ''}
+      </div>` : ''}
+      <div class="view-title ${!d.title?'untitled':''}">${d.title?esc(d.title):'Untitled'}</div>
+      <div style="height:1px;background:var(--border);margin:20px 0;"></div>
+      <div class="view-body ${!d.body?'empty':''}">${d.body?esc(d.body):'No description recorded.'}</div>
+      ${d.sleepNotes ? `<div class="view-sleep-notes"><div class="view-sleep-notes-label">Sleep Notes</div><div class="view-sleep-notes-body">${esc(d.sleepNotes)}</div></div>` : ''}
+      ${d.tags.length?`<div class="view-tags-row"><span class="view-tags-label">Tags</span>${d.tags.map(t=>`<span class="view-tag">${esc(t)}</span>`).join('')}</div>`:''}
+      <div class="view-footer" style="display:flex;align-items:center;gap:10px;">
+        <button class="btn-delete" onclick="actions.confirmDelete('${d.id}')">Delete</button>
+        <button class="btn-pin${d.pinned?' pinned':''}" onclick="actions.togglePin('${d.id}')">${d.pinned?'🖈 Pinned':'🖈 Pin'}</button>
+      </div>
+    </div>
+  `;
+}
+
+/* ================================================================
+   EDITOR
+================================================================ */
+function renderEditor(d) {
+  if (!d) return '';
+  const isNew = state.page === 'new';
+  const lucHint = d.lucidity === 0 ? 'unrated' : `${d.lucidity}/5`;
+  const qHint = d.quality < 1 ? 'unrated' : QUALITY_LABELS[d.quality] || 'unrated';
+  const bodyLen = (d.body || '').length;
+  return `
+    <div class="editor${isNew ? ' editor-new' : ''}">
+      <div class="editor-top">
+        <div class="meta-date" style="cursor:default;">
+          <span class="rel-time">${isNew ? 'New entry' : relativeTime(d.createdAt)}</span>
+          ${!isNew ? `<span class="abs-time">${formatDate(d.createdAt)} · ${formatTime(d.createdAt)}</span>` : ''}
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          ${!isNew?`<button class="btn-cancel-edit" onclick="actions.cancelEdit()">Cancel</button>`:''}
+        </div>
+      </div>
+      <div class="star-systems">
+        <div class="star-system">
+          <div class="star-system-label">Lucidity</div>
+          <div class="stars-row" id="lucidity-stars">${[1,2,3,4,5].map(i=>`<span class="star-lucid" data-rating="${i}" onclick="actions.setLucidity(${i})">★</span>`).join('')}</div>
+          <div class="star-system-hint" id="lucidity-hint">${lucHint}</div>
+        </div>
+        <div class="star-system">
+          <div class="star-system-label">Dream quality</div>
+          <div class="stars-row" id="quality-stars">${[1,2,3,4,5].map(i=>`<span class="star-quality" data-rating="${i}" onclick="actions.setQuality(${i})">★</span>`).join('')}</div>
+          <div class="star-system-hint" id="quality-hint">${qHint}</div>
+        </div>
+      </div>
+      <input class="title-input" type="text" placeholder="Give this dream a name..." value="${esc(d.title)}" oninput="actions.setTitle(this.value)" />
+      <div class="body-input-wrap">
+        <textarea id="dream-body" class="body-input" placeholder="Describe everything you remember... the light, the feeling, the atmosphere..." oninput="actions.setBody(this.value);this.style.height='auto';this.style.height=this.scrollHeight+'px';updateCharCount()">${esc(d.body)}</textarea>
+        <div class="body-char-count${bodyLen > 0 ? ' has-content' : ''}" id="body-char-count">${bodyLen > 0 ? bodyLen + ' char' + (bodyLen===1?'':'s') : ''}</div>
+      </div>
+      <div class="sleep-notes-section">
+        <div class="sleep-notes-label">Sleep Notes</div>
+        <textarea class="sleep-notes-input" placeholder="What you did before bed, thoughts before sleep, intentions, mood, substances, how tired you were..." oninput="actions.setSleepNotes(this.value)">${esc(d.sleepNotes||'')}</textarea>
+      </div>
+      <div class="tags-row">
+        <span class="tags-label">Tags</span>
+        ${d.tags.map(t=>`<span class="tag-editable" onclick="actions.removeTag('${esc(t)}')" title="Click to remove">${esc(t)}</span>`).join('')}
+        <input class="tag-input" type="text" placeholder="+ add tag" id="tag-input" onkeydown="if(event.key==='Enter'||event.key===','){event.preventDefault();actions.addTag(this.value);this.value='';}"/>
+      </div>
+      <div style="margin-top:12px;display:flex;flex-wrap:wrap;gap:6px;">
+        ${ALL_TAGS.filter(t=>!d.tags.includes(t)).map(t=>`<button class="tag-pill" onclick="actions.quickTag('${t}')">${t}</button>`).join('')}
+      </div>
+      <div class="continuation-row">
+        <span class="continuation-label">Continues</span>
+        <select class="continuation-select" onchange="actions.setContinuation(this.value)">
+          <option value="">none</option>
+          ${state.dreams.filter(x => x.id !== d.id).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt)).map(x=>`<option value="${x.id}" ${d.continuationOf===x.id?'selected':''}>${formatDate(x.createdAt)}: ${esc(x.title||'Untitled')}</option>`).join('')}
+        </select>
+      </div>
+      <div class="editor-footer">
+        <button class="btn-save" onclick="actions.save()">Save Dream</button>
+        <span id="save-status" class="save-status">Saved ✓</span>
+      </div>
+    </div>
+  `;
+}
+
+/* ================================================================
+   ANALYZER
+================================================================ */
+function renderAnalyzer() {
+  const dreams = state.dreams;
+  if (dreams.length === 0) {
+    return `<div class="analyzer"><div class="analyzer-header"><div class="analyzer-title">Dream Analytics</div><div class="analyzer-subtitle">No dreams recorded yet. Start journaling to see your patterns.</div></div></div>`;
+  }
+  const lucidityData = [0,0,0,0,0], qualityData = [0,0,0,0,0];
+  const tagCounts = {};
+  dreams.forEach(d => {
+    if (d.lucidity >= 1 && d.lucidity <= 5) lucidityData[d.lucidity - 1]++;
+    if (d.quality >= 1 && d.quality <= 5) qualityData[d.quality - 1]++;
+    d.tags.forEach(tag => { tagCounts[tag] = (tagCounts[tag] || 0) + 1; });
+  });
+  const ratedLucidDreams = dreams.filter(d => d.lucidity > 0);
+  const ratedQualityDreams = dreams.filter(d => d.quality >= 1);
+  const avgLucidity = ratedLucidDreams.length ? (ratedLucidDreams.reduce((s,d) => s + d.lucidity, 0) / ratedLucidDreams.length) : 0;
+  const avgQuality = ratedQualityDreams.length ? (ratedQualityDreams.reduce((s,d) => s + d.quality, 0) / ratedQualityDreams.length) : 0;
+  const maxLuc = Math.max(...lucidityData, 1), maxQual = Math.max(...qualityData, 1);
+
+  const trendDreams = [...dreams]
+    .sort((a,b) => new Date(a.createdAt) - new Date(b.createdAt))
+    .filter(d => d.lucidity > 0)
+    .slice(-40);
+  const trendSVG = buildLucidityTrendSVG(trendDreams, avgLucidity);
+
+  return `
+    <div class="analyzer">
+      <div class="analyzer-header"><div class="analyzer-title">Dream Analytics</div><div class="analyzer-subtitle">See your data, understand your dreams.</div></div>
+
+      ${trendDreams.length >= 2 ? `
+      <div class="chart-card" style="margin-bottom:24px;">
+        <div class="chart-title">Lucidity Over Time</div>
+        <div class="trend-chart-wrap">${trendSVG}</div>
+      </div>` : ''}
+
+      <div class="charts-grid">
+        <div class="chart-card"><div class="chart-title">Lucidity Distribution</div><div class="chart-container"><div class="bar-chart">${lucidityData.map((count, i) => `<div class="bar" style="height:${Math.round((count/maxLuc)*100)}%"><div class="bar-value">${count}</div><div class="bar-label">${i+1}</div></div>`).join('')}</div></div></div>
+        <div class="chart-card"><div class="chart-title">Quality Distribution</div><div class="chart-container"><div class="bar-chart">${qualityData.map((count, i) => `<div class="bar" style="height:${Math.round((count/maxQual)*100)}%"><div class="bar-value">${count}</div><div class="bar-label">${QUALITY_LABELS[i+1]}</div></div>`).join('')}</div></div></div>
+      </div>
+      <div class="stats-summary">
+        <div class="stat-card"><div class="stat-value">${dreams.length}</div><div class="stat-label">Total Dreams</div></div>
+        <div class="stat-card"><div class="stat-value">${avgLucidity.toFixed(1)}</div><div class="stat-label">Avg Lucidity</div></div>
+        <div class="stat-card"><div class="stat-value">${avgQuality.toFixed(1)}</div><div class="stat-label">Avg Quality</div></div>
+        <div class="stat-card"><div class="stat-value">${Object.keys(tagCounts).length}</div><div class="stat-label">Unique Tags</div></div>
+        <div class="stat-card"><div class="stat-value">${dreams.filter(d=>d.tags.includes('lucid')).length}</div><div class="stat-label">Lucid Dreams</div></div>
+      </div>
+    </div>
+  `;
+}
+
+function buildLucidityTrendSVG(trendDreams, avgLucidity) {
+  if (trendDreams.length < 2) return '';
+
+  const W = 800, H = 140;
+  const padL = 28, padR = 16, padT = 16, padB = 24;
+  const chartW = W - padL - padR;
+  const chartH = H - padT - padB;
+
+  const n = trendDreams.length;
+  const xs = trendDreams.map((_, i) => padL + (i / (n - 1)) * chartW);
+  const yScale = v => padT + chartH - ((v - 1) / 4) * chartH;
+  const ys = trendDreams.map(d => yScale(d.lucidity));
+
+  function smoothPath(pts) {
+    if (pts.length < 2) return '';
+    let d = `M ${pts[0][0]},${pts[0][1]}`;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p0 = pts[Math.max(i - 1, 0)];
+      const p1 = pts[i];
+      const p2 = pts[i + 1];
+      const p3 = pts[Math.min(i + 2, pts.length - 1)];
+      const t = 0.35;
+      const cp1x = p1[0] + (p2[0] - p0[0]) * t;
+      const cp1y = p1[1] + (p2[1] - p0[1]) * t;
+      const cp2x = p2[0] - (p3[0] - p1[0]) * t;
+      const cp2y = p2[1] - (p3[1] - p1[1]) * t;
+      d += ` C ${cp1x},${cp1y} ${cp2x},${cp2y} ${p2[0]},${p2[1]}`;
+    }
+    return d;
+  }
+
+  const pts = xs.map((x, i) => [x, ys[i]]);
+  const linePath = smoothPath(pts);
+  const baseY = padT + chartH;
+  const areaPath = linePath + ` L ${xs[n-1]},${baseY} L ${xs[0]},${baseY} Z`;
+  const avgY = yScale(avgLucidity);
+
+  const yTicks = [1,2,3,4,5].map(v => {
+    const ty = yScale(v);
+    return `<text class="trend-label" x="${padL - 6}" y="${ty + 3}" text-anchor="end">${v}</text>
+    <line x1="${padL}" y1="${ty}" x2="${padL + chartW}" y2="${ty}" class="trend-zero" />`;
+  }).join('');
+
+  const xLabels = [0, Math.floor((n-1)/2), n-1].map(i => {
+    const d = trendDreams[i];
+    const label = new Date(d.createdAt).toLocaleDateString('en-US', { month:'short', day:'numeric' });
+    return `<text class="trend-label" x="${xs[i]}" y="${H - 4}" text-anchor="middle">${label}</text>`;
+  }).join('');
+
+  const dots = pts.map(([x,y], i) => {
+    const d = trendDreams[i];
+    const title = `${d.title||'Untitled'} - ${d.lucidity}/5`;
+    return `<circle class="trend-dot" cx="${x}" cy="${y}" r="3" onclick="actions.select('${d.id}')"><title>${esc(title)}</title></circle>`;
+  }).join('');
+
+  const maWindow = Math.min(5, Math.floor(n / 2));
+  const maPts = trendDreams.map((_, i) => {
+    const start = Math.max(0, i - Math.floor(maWindow/2));
+    const end   = Math.min(n, start + maWindow);
+    const slice = trendDreams.slice(start, end);
+    const ma = slice.reduce((s,d) => s + d.lucidity, 0) / slice.length;
+    return [xs[i], yScale(ma)];
+  });
+  const maPath = smoothPath(maPts);
+
+  return `
+    <svg class="trend-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+      <defs>
+        <linearGradient id="lucAreaGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#9b87d4" stop-opacity="0.18"/>
+          <stop offset="100%" stop-color="#9b87d4" stop-opacity="0"/>
+        </linearGradient>
+      </defs>
+      ${yTicks}
+      <path d="${areaPath}" class="trend-area"/>
+      <line x1="${padL}" y1="${avgY}" x2="${padL+chartW}" y2="${avgY}" class="trend-avg-line"/>
+      <text class="trend-avg-label" x="${padL+chartW+3}" y="${avgY+3}">avg</text>
+      <path d="${linePath}" class="trend-line"/>
+      <path d="${maPath}" fill="none" stroke="rgba(196,180,240,0.4)" stroke-width="1" stroke-dasharray="3 2" stroke-linejoin="round" stroke-linecap="round"/>
+      ${dots}
+      ${xLabels}
+    </svg>
+  `;
+}
+
+/* ================================================================
+   MODALS
+================================================================ */
+function renderModals() {
+  let html = '';
+  if (state.navConfirm) html += renderNavConfirmModal();
+  else if (state.milestone) html += renderMilestoneModal();
+  else if (state.confirmDeleteId) html += renderDeleteModal();
+  return html;
+}
+
+function renderNavConfirmModal() {
+  const titleEl = document.querySelector('.title-input');
+  const draftTitle = (titleEl ? titleEl.value : state.editing?.title) || 'Untitled dream';
+  return `
+    <div class="modal-overlay" onclick="">
+      <div class="modal nav-confirm-modal" onclick="event.stopPropagation()">
+        <div class="modal-title">Unsaved changes</div>
+        <div class="modal-body">You're currently editing a dream. Discard changes and continue, or go back to keep editing?</div>
+        <div class="nav-confirm-detail">Draft: ${esc(draftTitle.slice(0,48))}${draftTitle.length>48?'…':''}</div>
+        <div class="modal-actions">
+          <button class="btn-modal-cancel" onclick="actions.navConfirmDiscard()">Discard &amp; go</button>
+          <button class="btn-modal-confirm" onclick="actions.navConfirmCancel()">Keep editing</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderMilestoneModal() {
+  const m = state.milestone;
+  return `
+    <div class="modal-overlay" onclick="actions.dismissMilestone()">
+      <div class="modal milestone-modal" onclick="event.stopPropagation()">
+        <div class="milestone-glyph">${m.glyph}</div>
+        <div class="modal-title">${m.title}</div>
+        <div class="modal-body">${m.body}</div>
+        <div class="modal-actions" style="justify-content:center;">
+          <button class="btn-modal-confirm" onclick="actions.dismissMilestone()">Continue</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderDeleteModal() {
+  const d = state.dreams.find(x=>x.id===state.confirmDeleteId);
+  const label = d && d.title ? `"${esc(d.title)}"` : 'this dream';
+  return `
+    <div class="modal-overlay" onclick="actions.cancelDelete()">
+      <div class="modal" onclick="event.stopPropagation()">
+        <div class="modal-title">Delete this dream?</div>
+        <div class="modal-body">You are about to delete ${label}. This cannot be undone and the memory will be gone.</div>
+        <div class="modal-actions">
+          <button class="btn-modal-cancel" onclick="actions.cancelDelete()">Keep it</button>
+          <button class="btn-modal-confirm" onclick="actions.executeDelete()">Delete</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/* ================================================================
+   SHARE MODAL
+================================================================ */
+function renderShareModal() {
+  const existing = document.getElementById('share-modal-root');
+  if (existing) existing.remove();
+  const d = state.dreams.find(x => x.id === state.shareModalDreamId);
+  if (!d) return;
+  const el = document.createElement('div');
+  el.id = 'share-modal-root';
+  el.className = 'share-modal-overlay';
+  el.innerHTML = buildShareModalHTML(d, state.shareStyle);
+  el.addEventListener('click', e => { if (e.target === el) actions.closeShare(); });
+  document.body.appendChild(el);
+}
+
+function buildShareModalHTML(d, style) {
+  const lucStars = [1,2,3,4,5].map(i => `<span style="color:${d.lucidity>=i?'#c4b4f0':'rgba(196,180,240,0.15)'}">★</span>`).join('');
+  const qStars = [1,2,3,4,5].map(i => `<span style="color:${d.quality>=i?'#ffb3ba':'rgba(255,179,186,0.15)'}">★</span>`).join('');
+  const tagsHtml = d.tags.slice(0,4).map(t=>`<span class="share-card-tag">${esc(t)}</span>`).join('');
+  const bodyPreview = (d.body || '').slice(0,180) + (d.body && d.body.length > 180 ? '…' : '');
+
+  return `
+    <div class="share-modal">
+      <div class="share-modal-header">
+        <div class="share-modal-title">Share this dream</div>
+        <button class="share-close-btn" onclick="actions.closeShare()">×</button>
+      </div>
+
+      <div class="share-style-row">
+        <button class="share-style-btn ${style==='grid'?'active':''}" onclick="actions.setShareStyle('grid')">Grid</button>
+        <button class="share-style-btn ${style==='cosmic'?'active':''}" onclick="actions.setShareStyle('cosmic')">Cosmic</button>
+        <button class="share-style-btn ${style==='mist'?'active':''}" onclick="actions.setShareStyle('mist')">Mist</button>
+      </div>
+
+      <div class="share-card style-${style}" id="share-card-el">
+        ${style==='grid' ? '<div class="share-card-grid"></div>' : ''}
+        ${style==='cosmic' ? '<div class="share-card-grid"></div><div class="share-card-glow"></div>' : ''}
+        ${style==='mist' ? '<div class="share-card-grid"></div>' : ''}
+        <div class="share-card-inner">
+          <div class="share-card-top">
+            <div class="share-card-logo">Somnia</div>
+            <div class="share-card-date">${formatDate(d.createdAt)}</div>
+          </div>
+          <div class="share-card-body">
+            <div class="share-card-title">${esc(d.title || 'Untitled')}</div>
+            ${bodyPreview ? `<div class="share-card-text">${esc(bodyPreview)}</div>` : ''}
+          </div>
+          <div class="share-card-bottom">
+            <div class="share-card-star-group">
+              <div class="share-card-star-row">
+                <div class="share-card-stars">${lucStars}</div>
+                <span class="share-card-star-label">Lucidity</span>
+              </div>
+              <div class="share-card-star-row">
+                <div class="share-card-stars">${qStars}</div>
+                <span class="share-card-star-label">Quality</span>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
+              ${tagsHtml ? `<div class="share-card-tags">${tagsHtml}</div>` : ''}
+              <div class="share-card-watermark">somnia · dream journal</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="share-instructions">
+        Screenshot this card to share your dream, or copy to clipboard<br/>
+        <span style="color:rgba(90,80,117,0.7);">Your dream text stays private. Only what you share is shared.</span>
+      </div>
+
+      <div class="share-actions">
+        <button class="btn-share" onclick="actions.closeShare()">Close</button>
+        <button class="btn-copy-card" id="copy-card-btn" onclick="actions.copyShareCard()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+          Copy as image
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+/* ================================================================
+   DREAM LIST
+================================================================ */
+function renderDreamListHTML(dreams) {
+  return `
+    <div class="dream-count" id="dream-count">${dreams.length} ${dreams.length===1?'dream':'dreams'}</div>
+    <div class="dream-list" id="dream-list">
+      ${dreams.length===0
+        ?`<div class="empty-list">${state.search||state.filterTag?'No matches found.':'No dreams recorded yet.'}</div>`
+        :dreams.map(d=>`
+          <div class="dream-item ${state.currentId===d.id&&state.page!=='home'?'active':''}" onclick="actions.select('${d.id}')">
+            <div class="dream-item-inner">
+              <div class="dream-item-date">
+                <span class="rel-time">${relativeTime(d.updatedAt)}${d.pinned?` <span class="pin-marker">🖈</span>`:''}</span>
+                <span class="abs-time">${formatDate(d.updatedAt)}</span>
+              </div>
+              <div class="dream-item-title">${(m=>m?`<span class="milestone-marker" title="${m.title}">${m.glyph} </span>`:''  )(getMilestoneForDream(d.id))}${esc(d.title)||'<em style="color:var(--text-dim)">Untitled</em>'}</div>
+              ${d.body?`<div class="dream-item-preview">${esc(d.body.slice(0,80))}...</div>`:''}
+              ${d.tags.length?`<div class="dream-item-tags">${d.tags.map(t=>`<span class="mini-tag">${esc(t)}</span>`).join('')}</div>`:''}
+            </div>
+            <button class="dream-item-close" onclick="event.stopPropagation();actions.confirmDelete('${d.id}')" title="Delete">×</button>
+          </div>`).join('')}
+    </div>
+  `;
+}
+
+function patchDreamList() {
+  const dreams = filteredDreams();
+  const countEl = document.getElementById('dream-count');
+  const listEl = document.getElementById('dream-list');
+  if (!countEl || !listEl) { render(); return; }
+  countEl.textContent = `${dreams.length} ${dreams.length===1?'dream':'dreams'}`;
+  listEl.innerHTML = dreams.length===0
+    ? `<div class="empty-list">${state.search||state.filterTag?'No matches found.':'No dreams recorded yet.'}</div>`
+    : dreams.map(d=>`
+        <div class="dream-item ${state.currentId===d.id&&state.page!=='home'?'active':''}" onclick="actions.select('${d.id}')">
+          <div class="dream-item-inner">
+            <div class="dream-item-date">
+              <span class="rel-time">${relativeTime(d.updatedAt)}${d.pinned?` <span class="pin-marker">🖈</span>`:''}</span>
+              <span class="abs-time">${formatDate(d.updatedAt)}</span>
+            </div>
+            <div class="dream-item-title">${(m=>m?`<span class="milestone-marker" title="${m.title}">${m.glyph}</span>`:''  )(getMilestoneForDream(d.id))}${esc(d.title)||'<em style="color:var(--text-dim)">Untitled</em>'}</div>
+            ${d.body?`<div class="dream-item-preview">${esc(d.body.slice(0,80))}...</div>`:''}
+            ${d.tags.length?`<div class="dream-item-tags">${d.tags.map(t=>`<span class="mini-tag">${esc(t)}</span>`).join('')}</div>`:''}
+          </div>
+          <button class="dream-item-close" onclick="event.stopPropagation();actions.confirmDelete('${d.id}')" title="Delete">×</button>
+        </div>`).join('');
+}
+
+/* ================================================================
+   TAG / STAR HELPERS
+================================================================ */
+function addTagWithAnimation(tag) {
+  if (!state.editing) return;
+  const tagsRow = document.querySelector('.tags-row');
+  if (!tagsRow) return;
+  const tagInput = tagsRow.querySelector('.tag-input');
+  const el = document.createElement('span');
+  el.className = 'tag-editable';
+  el.setAttribute('onclick', `actions.removeTag('${esc(tag)}')`);
+  el.setAttribute('title', 'Click to remove');
+  el.style.opacity = '0';
+  el.style.transition = 'opacity 0.3s ease, transform 0.2s ease';
+  el.textContent = tag;
+  tagsRow.insertBefore(el, tagInput || null);
+  requestAnimationFrame(() => { el.style.opacity = '1'; el.style.transform = 'translateY(-1px)'; });
+  updateQuickTagButtons();
+}
+
+function removeTagWithAnimation(tag) {
+  if (!state.editing) return;
+  document.querySelectorAll('.tag-editable').forEach(el => {
+    if (el.textContent === tag) {
+      el.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
+      el.style.opacity = '0'; el.style.transform = 'translateY(2px)';
+      setTimeout(() => { el.remove(); updateQuickTagButtons(); }, 200);
+    }
+  });
+}
+
+function updateQuickTagButtons() {
+  if (!state.editing) return;
+  const footer = document.querySelector('.editor-footer');
+  if (!footer) return;
+  const container = footer.previousElementSibling;
+  if (container) container.innerHTML = ALL_TAGS.filter(t=>!state.editing.tags.includes(t)).map(t=>`<button class="tag-pill" onclick="actions.quickTag('${t}')">${t}</button>`).join('');
+}
+
+function updateStarDisplay(type, rating) {
+  const container = document.getElementById(`${type}-stars`);
+  if (!container) return;
+  const selector = type === 'lucidity' ? '.star-lucid' : '.star-quality';
+  container.querySelectorAll(selector).forEach(star => {
+    const val = parseInt(star.dataset.rating);
+    star.classList.remove('filled', 'level-1', 'level-2', 'level-3', 'level-4', 'level-5');
+    if (rating >= val) star.classList.add('filled', `level-${val}`);
+  });
+}
+function updateHint(type, hint) { const el = document.getElementById(`${type}-hint`); if (el) el.textContent = hint; }
+
+window.updateCharCount = updateCharCount;
+
+/* ================================================================
+   SIDEBAR DRAG (mobile)
+================================================================ */
+function initSidebarDrag() {
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.querySelector('.sidebar-overlay');
+  if (!sidebar || !state.sidebarOpen) return;
+  let startX = 0, startY = 0, dragX = 0, locked = false, didDrag = false;
+  const sidebarW = sidebar.offsetWidth;
+  function onTouchStart(e) { startX = e.touches[0].clientX; startY = e.touches[0].clientY; dragX = 0; locked = false; didDrag = false; sidebar.style.transition = 'none'; if (overlay) overlay.style.transition = 'none'; }
+  function onTouchMove(e) {
+    if (locked) return;
+    const dx = e.touches[0].clientX - startX, dy = e.touches[0].clientY - startY;
+    if (!didDrag) { if (Math.abs(dy) > Math.abs(dx)) { locked = true; return; } if (Math.abs(dx) < 4) return; didDrag = true; }
+    if (dx > 0) return;
+    dragX = dx;
+    sidebar.style.transform = `translateX(${dragX}px)`;
+    const progress = Math.min(Math.abs(dragX) / sidebarW, 1);
+    if (overlay) overlay.style.opacity = 1 - progress;
+    e.preventDefault();
+  }
+  function onTouchEnd() {
+    if (!didDrag) return;
+    sidebar.style.transition = 'transform 0.28s ease-out';
+    if (overlay) overlay.style.transition = 'opacity 0.28s ease-out';
+    if (Math.abs(dragX) > sidebarW * 0.3) {
+      sidebar.style.transform = `translateX(-100%)`;
+      if (overlay) overlay.style.opacity = '0';
+      setTimeout(() => { state.sidebarOpen = false; render(); }, 280);
+    } else {
+      sidebar.style.transform = 'translateX(0)';
+      if (overlay) overlay.style.opacity = '1';
+      setTimeout(() => { sidebar.style.transition = ''; sidebar.style.transform = ''; if (overlay) { overlay.style.transition = ''; overlay.style.opacity = ''; } }, 280);
+    }
+  }
+  sidebar.addEventListener('touchstart', onTouchStart, { passive: true });
+  sidebar.addEventListener('touchmove', onTouchMove, { passive: false });
+  sidebar.addEventListener('touchend', onTouchEnd);
+}
+
+/* ================================================================
+   ACTIONS
+================================================================ */
+const actions = {
+  toggleMusic() {
+    if (!state.audioElement) { state.audioElement = new Audio('files/music.mp3'); state.audioElement.loop = true; state.audioElement.volume = 0.3; }
+    if (state.musicPlaying) { state.audioElement.pause(); state.musicPlaying = false; }
+    else { state.audioElement.play().catch(e => {}); state.musicPlaying = true; }
+    const btn = document.getElementById('music-toggle');
+    if (btn) btn.classList.toggle('playing', state.musicPlaying);
+  },
+
+  toggleSidebar() {
+    if (state.sidebarOpen) { actions._animateCloseSidebar(); }
+    else {
+      state.sidebarOpen = true; render();
+      requestAnimationFrame(() => {
+        const sidebar = document.getElementById('sidebar');
+        if (sidebar) { sidebar.classList.remove('open'); requestAnimationFrame(() => { sidebar.classList.add('open'); initSidebarDrag(); }); }
+      });
+    }
+  },
+  closeSidebar() { if (state.sidebarOpen) actions._animateCloseSidebar(); },
+  _animateCloseSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.querySelector('.sidebar-overlay');
+    if (!sidebar) { state.sidebarOpen = false; render(); return; }
+    sidebar.classList.remove('open');
+    if (overlay) { overlay.classList.remove('visible'); overlay.classList.add('closing'); }
+    setTimeout(() => { state.sidebarOpen = false; render(); }, 280);
+  },
+
+  goAnalyzer() {
+    if (isEditingWithContent()) { state.navConfirm = { action: () => actions.goAnalyzer() }; render(); return; }
+    state.page='analyzer'; state.currentId=null; state.editing=null; state.sidebarOpen=false; render();
+  },
+  goHome() {
+    if (isEditingWithContent()) { state.navConfirm = { action: () => actions.goHome() }; render(); return; }
+    state.page='home'; state.currentId=null; state.editing=null; state.sidebarOpen=false; render();
+  },
+  goBack() {
+    if (state.page==='edit') { actions.cancelEdit(); return; }
+    if (state.page==='new' && !isEditingWithContent()) { actions._discardNew(); }
+    else if (state.page==='new') { state.navConfirm = { action: () => { actions._discardNew(); actions.goHome(); } }; render(); return; }
+    actions.goHome();
+  },
+
+  navConfirmDiscard() {
+    const fn = state.navConfirm?.action;
+    state.navConfirm = null;
+    if (state.editing && state.page === 'new') {
+      state.dreams = state.dreams.filter(x => x.id !== state.editing.id);
+      saveDreams(state.dreams);
+    }
+    state.editing = null;
+    if (fn) fn();
+    else render();
+  },
+  navConfirmCancel() {
+    state.navConfirm = null;
+    render();
+  },
+
+  _discardNew() {
+    if (!state.editing) return;
+    state.dreams = state.dreams.filter(x => x.id !== state.editing.id);
+    saveDreams(state.dreams);
+    state.editing = null;
+  },
+
+  openShare(id) { state.shareModalDreamId = id; renderShareModal(); },
+  closeShare() {
+    state.shareModalDreamId = null;
+    const el = document.getElementById('share-modal-root');
+    if (el) { el.style.opacity = '0'; el.style.transition = 'opacity 0.2s'; setTimeout(() => el.remove(), 200); }
+  },
+  setShareStyle(s) {
+    state.shareStyle = s;
+    const el = document.getElementById('share-modal-root');
+    if (el) {
+      const d = state.dreams.find(x => x.id === state.shareModalDreamId);
+      if (d) el.innerHTML = buildShareModalHTML(d, s);
+    }
+  },
+  copyShareCard() {
+    const btn = document.getElementById('copy-card-btn');
+    if (btn) {
+      const d = state.dreams.find(x => x.id === state.shareModalDreamId);
+      if (d) {
+        const text = `✦ ${d.title || 'Untitled'}\n${formatDate(d.createdAt)}\n\n${(d.body||'').slice(0,300)}${d.body && d.body.length > 300 ? '…' : ''}\n\n— recorded in Somnia`;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(() => {
+            btn.classList.add('copied');
+            btn.textContent = '✓ Copied text!';
+            setTimeout(() => { btn.classList.remove('copied'); btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Copy as image`; }, 2000);
+          });
+        }
+      }
+    }
+  },
+
+  _dreamHasContent(d) {
+    if (!d) return false;
+    const title = document.querySelector('.title-input')?.value || d.title || '';
+    const body = document.getElementById('dream-body')?.value || d.body || '';
+    return title.trim() || body.trim() || d.tags.length > 0 || d.lucidity > 0 || d.quality >= 1;
+  },
+  newEntry() {
+    if (isEditingWithContent()) { state.navConfirm = { action: () => actions.newEntry() }; render(); return; }
+    const d = newDream();
+    state.currentId=d.id; state.editing=d; state.page='new'; state.saveStatus=false; state.sidebarOpen=false; render();
+  },
+  select(id) {
+    if (isEditingWithContent()) { state.navConfirm = { action: () => actions.select(id) }; render(); return; }
+    if (state.page==='new' && state.editing) { actions._discardNew(); }
+    const d = state.dreams.find(x=>x.id===id); if(!d)return;
+    state.currentId=id; state.editing=JSON.parse(JSON.stringify(d));
+    state.page='view'; state.saveStatus=false; state.sidebarOpen=false; render();
+  },
+  startEdit() { state.page='edit'; render(); },
+  cancelEdit() {
+    const saved = state.dreams.find(d=>d.id===state.currentId);
+    if (saved) state.editing=JSON.parse(JSON.stringify(saved));
+    state.page='view'; render();
+  },
+  setTitle(v) { if(state.editing) state.editing.title=v; },
+  setBody(v) { if(state.editing) state.editing.body=v; },
+  setSleepNotes(v) { if(state.editing) state.editing.sleepNotes=v; },
+  setContinuation(id) { if(state.editing) state.editing.continuationOf = id || null; },
+  togglePin(id) {
+    const d = state.dreams.find(x => x.id === id);
+    if (!d) return;
+    d.pinned = !d.pinned;
+    if (state.editing && state.editing.id === id) state.editing.pinned = d.pinned;
+    saveDreams(state.dreams); render();
+  },
+  dismissMilestone() { state.milestone = null; render(); },
+  setLucidity(n) {
+    if (!state.editing) return;
+    state.editing.lucidity = state.editing.lucidity === n ? 0 : n;
+    updateStarDisplay('lucidity', state.editing.lucidity);
+    updateHint('lucidity', state.editing.lucidity === 0 ? 'unrated' : `${state.editing.lucidity}/5`);
+  },
+  setQuality(n) {
+    if (!state.editing) return;
+    state.editing.quality = state.editing.quality === n ? -1 : n;
+    updateStarDisplay('quality', state.editing.quality);
+    updateHint('quality', state.editing.quality < 1 ? 'unrated' : QUALITY_LABELS[state.editing.quality] || 'unrated');
+  },
+  addTag(raw) {
+    if (!state.editing) return;
+    const tag = raw.trim().toLowerCase().replace(/[^a-z0-9-]/g,'');
+    if (tag && !state.editing.tags.includes(tag)) { state.editing.tags.push(tag); addTagWithAnimation(tag); }
+  },
+  quickTag(t) {
+    if (!state.editing || state.editing.tags.includes(t)) return;
+    state.editing.tags.push(t); addTagWithAnimation(t);
+  },
+  removeTag(t) {
+    if (!state.editing) return;
+    state.editing.tags = state.editing.tags.filter(x=>x!==t);
+    removeTagWithAnimation(t);
+  },
+  save() {
+    if (!state.editing) return;
+    const title = document.querySelector('.title-input')?.value || '';
+    const body = document.getElementById('dream-body')?.value || '';
+    const sleepNotes = document.querySelector('.sleep-notes-input')?.value || '';
+    state.editing.title=title; state.editing.body=body; state.editing.sleepNotes=sleepNotes;
+    if (!title.trim() && !body.trim() && !state.editing.tags.length && !state.editing.lucidity && state.editing.quality < 1) {
+      state.dreams = state.dreams.filter(x => x.id !== state.editing.id);
+      state.currentId=null; state.editing=null; state.page='home';
+      saveDreams(state.dreams); render(); return;
+    }
+    state.editing.updatedAt=new Date().toISOString();
+    const idx = state.dreams.findIndex(d=>d.id===state.editing.id);
+    if (idx>=0) {
+      state.dreams[idx]=JSON.parse(JSON.stringify(state.editing));
+    } else {
+      state.dreams.push(JSON.parse(JSON.stringify(state.editing)));
+      const milestone = MILESTONES.find(m => m.count === state.dreams.length);
+      if (milestone) state.milestone = milestone;
+    }
+    saveDreams(state.dreams); state.saveStatus=true; state.page='view';
+    render();
+    setTimeout(()=>{state.saveStatus=false;},2000);
+  },
+  confirmDelete(id) { state.confirmDeleteId=id; render(); },
+  cancelDelete() { state.confirmDeleteId=null; render(); },
+  executeDelete() {
+    const id = state.confirmDeleteId;
+    state.dreams = state.dreams.filter(d=>d.id!==id);
+    if (state.currentId===id) { state.currentId=null; state.editing=null; state.page='home'; }
+    state.confirmDeleteId=null; saveDreams(state.dreams); render();
+  },
+  setSearch(v) { state.search=v; patchDreamList(); },
+  setTag(t) { state.filterTag=state.filterTag===t?'':t; patchDreamList(); },
+  setSort(key) {
+    if (state.sortBy===key) { state.sortDir=state.sortDir==='desc'?'asc':'desc'; }
+    else { state.sortBy=key; state.sortDir='desc'; }
+    patchDreamList();
+  }
+};
+
+window.actions = actions;
+
+/* ================================================================
+   BOOT
+================================================================ */
+render();
+
+if (!onboardingDone()) {
+  requestAnimationFrame(() => { obRender(); });
+}
+
+})();
+</script>
+</body>
+</html>
