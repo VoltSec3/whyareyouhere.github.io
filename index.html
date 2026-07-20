@@ -318,7 +318,7 @@ type "arcmage" :3
     try {
       const res = await fetch("https://quoteapi-pi.vercel.app/api/quote"); // was using a random deployment and not main, spent an hour debugging this btw
       const data = await res.json();
-      quoteEl.textContent = `"${data.quote.text}" — ${data.quote.author}`;
+      quoteEl.textContent = `"${data.quote.text}" - ${data.quote.author}`;
     } catch (error) {
       quoteEl.textContent = "failed to fetch! sorry im a bad programmer >_< - arcmage"
     }
