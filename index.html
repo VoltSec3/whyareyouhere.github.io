@@ -1,5 +1,9 @@
 <!DOCTYPE html>
 <html>
+<!--
+if ur reading this, hi!
+type "arcmage" :3
+-->
 <head>
 <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
@@ -69,6 +73,10 @@
     letter-spacing: 0.22em;
     text-transform: uppercase;
     margin-bottom: 24px;
+  }
+
+  .role + .role { /* woah! sibling selector */
+    margin-top: -22px;
   }
 
   .glowline {
@@ -205,6 +213,37 @@
   }
 </style>
 </head>
+
+<div id="chudvid" style="
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.92);
+  z-index:999;
+  align-items:center;
+  justify-content:center;
+  flex-direction:column;
+">
+  <video controls autoplay style="
+    max-width:85%;
+    max-height:80%;
+    border:1px solid rgba(155,135,212,0.4);
+    box-shadow:0 0 40px rgba(155,135,212,0.25);
+  ">
+    <source src="https://files.catbox.moe/7n3s0r.mp4" type="video/mp4">
+  </video>
+
+  <div style="
+    margin-top:20px;
+    font-family:'DM Mono', monospace;
+    font-size:10px;
+    letter-spacing:.2em;
+    color:#5a5075;
+  ">
+    TOTAL SHARTY VICTORY
+  </div>
+</div>
+
 <body>
 
 <div class="gbg"></div>
@@ -215,6 +254,7 @@
   <div class="hero section">
     <div class="name">arcmage.js</div>
     <div class="role">software engineer, developer, and hobbyist</div>
+    <div class="role" id="latetext"></div>
     <div class="glowline"></div>
     <div class="quote" id="quote">loading quote... via quoteapi</div>
   </div>
@@ -231,6 +271,14 @@
     <div class="ct-row">
       <div class="ct-link">phonesawyer@gmail.com</div>
       <div class="ct-link">github.com/voltsec</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="sectionmain">projects</div>
+    <div class="ct-row">
+      <a href="https://github.com/VoltSec3/whyareyouhere.github.io/tree/main" class="ct-link" target="_blank">this site</a>
+      <a href="https://github.com/VoltSec3/quoteapi" class="ct-link" target="_blank">quoteapi</a>
     </div>
   </div>
 
@@ -271,6 +319,41 @@
   }
 
   loadquote(); // only took me 3 tries to call the fucking function i just made
+
+  let input = "";
+  document.addEventListener("keydown", (e) => {
+    input += e.key.toLowerCase();
+
+    if (input.length > 20) {
+      input = input.slice(-20);
+    }
+
+    if (input.includes("arcmage")) {
+      document.getElementById("chudvid").style.display = "flex";
+      input = "";
+    }
+  });
+
+  document.getElementById("chudvid").addEventListener("click", (e) => {
+    if (e.target.id === "chudvid") {
+      document.getElementById("chudvid").style.display = "none";
+    }
+  });
+
+  function late() {
+      const hr = new Date().getHours();
+      const latetext = document.getElementById("latetext");
+
+      if (hr >= 1 && hr < 6) {
+        if (hr === 3) {
+          latetext.textContent = "YOU SHOULDNT BE HERE. GO BACK BEFORE ITS TOO LATE.";
+        } else {
+          latetext.textContent = "its getting late. you should go to sleep.";
+        }
+      }
+  }
+
+  late();
 </script>
 
 </body>
