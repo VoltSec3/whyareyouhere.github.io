@@ -13,7 +13,7 @@
     overflow-x: hidden;
   }
 
-  .grid-bg {
+  .gbg {
     position: fixed;
     inset: 0;
     z-index: 0;
@@ -21,10 +21,10 @@
       linear-gradient(rgba(155,135,212,0.06) 1px, transparent 1px),
       linear-gradient(90deg, rgba(155,135,212,0.06) 1px, transparent 1px);
     background-size: 40px 40px;
-    animation: gridDrift 35s linear infinite;
+    animation: gbanim 35s linear infinite;
   }
 
-  .grid-fade {
+  .gbfade {
     position: fixed;
     inset: 0;
     z-index: 1;
@@ -33,7 +33,7 @@
       linear-gradient(to bottom, #0e0c14 0%, transparent 10%, transparent 90%, #0e0c14 100%);
   }
 
-  @keyframes gridDrift {
+  @keyframes gbanim {
     0%   { transform: translateY(0); }
     100% { transform: translateY(40px); }
   }
@@ -49,7 +49,7 @@
   .hero {
     margin-bottom: 56px;
     opacity: 0;
-    animation: fadeUp 0.8s ease 0.1s forwards;
+    animation: fadeanim 0.8s ease 0.1s forwards;
   }
 
   .name {
@@ -71,14 +71,14 @@
     margin-bottom: 24px;
   }
 
-  .glow-line {
+  .glowline {
     width: 48px;
     height: 1px;
     background: linear-gradient(90deg, #9b87d4, transparent);
     margin-bottom: 24px;
   }
 
-  .tagline {
+  .quote {
     font-size: 15px;
     font-weight: 400;
     font-style: italic;
@@ -92,14 +92,14 @@
   .section {
     margin-bottom: 48px;
     opacity: 0;
-    animation: fadeUp 0.8s ease forwards;
+    animation: fadeanim 0.8s ease forwards;
   }
 
   .section:nth-child(2) { animation-delay: 0.22s; }
   .section:nth-child(3) { animation-delay: 0.34s; }
   .section:nth-child(4) { animation-delay: 0.46s; }
 
-  .section-label {
+  .sectionmain {
     font-family: 'DM Mono', monospace;
     font-size: 9px;
     letter-spacing: 0.3em;
@@ -111,27 +111,27 @@
     gap: 14px;
   }
 
-  .section-label::after {
+  .sectionmain::after {
     content: '';
     flex: 1;
     height: 1px;
     background: linear-gradient(90deg, rgba(148,130,210,0.2), transparent);
   }
 
-  .conveyor-wrap {
+  .conv-wrap {
     overflow: hidden;
     mask-image: linear-gradient(90deg, transparent 0%, black 7%, black 93%, transparent 100%);
     -webkit-mask-image: linear-gradient(90deg, transparent 0%, black 7%, black 93%, transparent 100%);
   }
 
-  .conveyor-track {
+  .conv-track {
     display: flex;
     gap: 8px;
     width: max-content;
-    animation: conveyor 30s linear infinite;
+    animation: conv 30s linear infinite;
   }
 
-  @keyframes conveyor {
+  @keyframes conv {
     0%   { transform: translateX(0); }
     100% { transform: translateX(-50%); }
   }
@@ -150,13 +150,13 @@
     cursor: default;
   }
 
-  .contact-row {
+  .ct-row {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
   }
 
-  .contact-link {
+  .ct-link {
     font-family: 'DM Mono', monospace;
     font-size: 10px;
     padding: 8px 16px;
@@ -169,13 +169,13 @@
     transition: border-color 0.2s, color 0.2s, background 0.2s;
   }
 
-  .contact-link:hover {
+  .ct-link:hover {
     border-color: rgba(155,135,212,0.45);
     color: #c4b4f0;
     background: rgba(155,135,212,0.07);
   }
 
-  .contact-link.primary {
+  .ct-link.primary {
     border-color: rgba(155,135,212,0.3);
     color: #9b87d4;
   }
@@ -186,7 +186,7 @@
     align-items: center;
     gap: 16px;
     opacity: 0;
-    animation: fadeUp 0.8s ease 0.6s forwards;
+    animation: fadeanim 0.8s ease 0.6s forwards;
   }
 
   .footer-item {
@@ -199,7 +199,7 @@
 
   .footer-sep { color: #201a30; }
 
-  @keyframes fadeUp {
+  @keyframes fadeanim {
     from { opacity: 0; transform: translateY(14px); }
     to   { opacity: 1; transform: translateY(0); }
   }
@@ -207,56 +207,69 @@
 </head>
 <body>
 
-<div class="grid-bg"></div>
-<div class="grid-fade"></div>
+<div class="gbg"></div>
+<div class="gbfade"></div>
 
 <div class="page">
 
   <div class="hero section">
     <div class="name">arcmage.js</div>
-    <div class="role">cybersecurity student</div>
-    <div class="glow-line"></div>
-    <div class="tagline">Into cybersecurity, CTFs, and figuring out how systems break so they can be safer, one bug at a time.</div>
+    <div class="role">software engineer, developer, and hobbyist</div>
+    <div class="glowline"></div>
+    <div class="quote" id="quote">loading quote... via quoteapi</div>
   </div>
 
   <div class="section">
-    <div class="section-label">Focus Areas</div>
-    <div class="conveyor-wrap">
-      <div class="conveyor-track" id="track"></div>
+    <div class="sectionmain">technologies</div>
+    <div class="conv-wrap">
+      <div class="conv-track" id="conv"></div>
     </div>
   </div>
 
   <div class="section">
-    <div class="section-label">Contact</div>
-    <div class="contact-row">
-      <div class="contact-link primary">phonesawyer@gmail.com</div>
-      <div class="contact-link">github.com/voltsec</div>
+    <div class="sectionmain">contact</div>
+    <div class="ct-row">
+      <div class="ct-link">phonesawyer@gmail.com</div>
+      <div class="ct-link">github.com/voltsec</div>
     </div>
   </div>
 
-  <div class="footer-line">
+ <!-- <div class="footer-line">
     <div class="footer-item">ethical hacking only</div>
-    <div class="footer-sep">·</div>
+    <div class="footer-sep">//</div>
     <div class="footer-item">open to collaboration</div>
-    <div class="footer-sep">·</div>
+    <div class="footer-sep">//</div>
     <div class="footer-item">2026</div>
-  </div>
+  </div> -->
+  <!-- looked ugly lol -->
 
 </div>
 
 <script>
-  const skills = [
-    'Web Pentesting', 'Network Security', 'CTF Challenges', 'Linux',
-    'OSINT', 'SQL Injection', 'Cryptography', 'Nmap', 'Wireshark',
-    'Burp Suite', 'Python Scripting', 'Reverse Engineering', 'Metasploit', 'Bash'
+  const tech = [ // techstack
+    'JavaScript', 'TypeScript', 'Python', 'C++', 'C#', 'Rust', 'Go', 'Java',
+    'Node.js', 'React', 'Vue', 'Svelte', 'Next.js', 'SQLite', 'AWS', 'Docker',
+    'Git', 'Linux', 'Tailwind CSS', 'Lua', 'LuaU', 'REST APIs', 'Blender', 'Unity'
   ];
-  const track = document.getElementById('track');
-  [...skills, ...skills].forEach(s => {
+  const conv = document.getElementById('conv');
+  [...tech, ...tech].forEach(s => {
     const c = document.createElement('div');
     c.className = 'chip';
     c.textContent = s;
-    track.appendChild(c);
+    conv.appendChild(c);
   });
+
+  async function loadquote() { // quotes logic
+    const quoteEl = document.getElementById('quote');
+    try {
+      const res = await fetch("https://quoteapi-q2q8z7m41-arcmage.vercel.app/api/quote");
+      const data = await res.json();
+      quoteEl.textContent = `"${data.quote.text}" — ${data.quote.author}`;
+    } catch (error) {
+      quoteEl.textContent = "failed to fetch! sorry im a bad programmer >_< - arcmage"
+    }
+  }
+  loadquote(); // only took me 3 tries to call the fucking function i just made
 </script>
 
 </body>
