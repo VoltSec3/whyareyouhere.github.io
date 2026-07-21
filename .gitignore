@@ -7,3 +7,5 @@ node_modules/
 # ignore logs / info
 *.log
 updates.md
+# ignore src for vite
+RebuiltVite
