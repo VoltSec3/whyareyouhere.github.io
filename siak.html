@@ -1,0 +1,1252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fembody Build Guide</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <nav class="nav" id="nav">
+    <div class="nav-inner">
+      <a href="#home" class="nav-logo">Fembody</a>
+      <button class="nav-toggle" id="navToggle" aria-label="Menu">☰</button>
+      <ul class="nav-links" id="navLinks">
+        <li><a href="#home">Overview</a></li>
+        <li><a href="#workout">Workout</a></li>
+        <li><a href="#exercises">Exercises</a></li>
+        <li><a href="#nutrition">Nutrition</a></li>
+        <li><a href="#progress">Progress</a></li>
+        <li><a href="#meals">Meals</a></li>
+        <li><a href="#tips">Tips</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main>
+
+    <!-- HOME -->
+    <section id="home" class="section">
+      <div class="container">
+        <h1>Fembody Build Guide</h1>
+        <p class="subtitle">Personalized for you — lean, toned, balanced.</p>
+
+        <div class="stats-grid">
+          <div class="stat-card"><span class="stat-label">Height</span><span class="stat-value">5'3" (160 cm)</span></div>
+          <div class="stat-card"><span class="stat-label">Weight</span><span class="stat-value">105 lb (47.6 kg)</span></div>
+          <div class="stat-card"><span class="stat-label">Age</span><span class="stat-value">15</span></div>
+          <div class="stat-card"><span class="stat-label">Equipment</span><span class="stat-value">Bodyweight / DBs</span></div>
+        </div>
+
+        <div class="card">
+          <h2>The Aesthetic Target</h2>
+          <p>A lean, toned, subtly feminine physique — proportions over maximum muscle size.</p>
+          <div class="target-grid">
+            <div class="target-item"><strong>Waist</strong><span>Tight, flat, defined core & posture</span></div>
+            <div class="target-item"><strong>Glutes</strong><span>Rounded, lifted, firm — main focus</span></div>
+            <div class="target-item"><strong>Thighs</strong><span>Lean, defined, athletic</span></div>
+            <div class="target-item"><strong>Hamstrings</strong><span>Visible definition, smooth transition</span></div>
+            <div class="target-item"><strong>Upper Body</strong><span>Toned shoulders & back, good posture</span></div>
+            <div class="target-item"><strong>Overall</strong><span>Lean, soft but athletic, balanced</span></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Schedule</h2>
+          <div class="schedule-row">
+            <div class="schedule-day active-day">Mon</div>
+            <div class="schedule-day">Tue <small>cardio</small></div>
+            <div class="schedule-day active-day">Wed</div>
+            <div class="schedule-day">Thu</div>
+            <div class="schedule-day active-day">Fri</div>
+            <div class="schedule-day">Sat <small>cardio</small></div>
+            <div class="schedule-day">Sun</div>
+          </div>
+          <ul class="info-list">
+            <li><strong>4 rounds</strong> per workout · <strong>60 sec</strong> rest between rounds</li>
+            <li><strong>35–45 min</strong> per session · <strong>15–20 sec</strong> between exercises</li>
+            <li>Warm up 5–10 min before every session</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- WORKOUT -->
+    <section id="workout" class="section section-alt">
+      <div class="container">
+        <h2>Workout</h2>
+        <p class="section-desc">Complete every exercise in order = 1 round. Repeat 4 times.</p>
+
+        <div class="tabs">
+          <button class="tab active" data-tier="tier1">Tier 1 — Weighted</button>
+          <button class="tab" data-tier="tier2">Tier 2 — Bodyweight</button>
+        </div>
+
+        <!-- Tier 1 Workout Table -->
+        <div class="tier-panel active" id="tier1">
+          <table class="workout-table">
+            <thead>
+              <tr><th>Exercise</th><th>Reps</th><th>Weight</th><th>Focus</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Goblet Squat</td><td>15</td><td>10 lbs</td><td>Quads, glutes</td></tr>
+              <tr><td>Hip Thrust</td><td>30</td><td>20–30 lbs</td><td>Glute growth</td></tr>
+              <tr><td>Romanian Deadlift</td><td>10</td><td>25 lbs</td><td>Hamstrings & glutes</td></tr>
+              <tr><td>Reverse Lunge</td><td>10/leg</td><td>10 lbs</td><td>Quads & glutes</td></tr>
+              <tr><td>Sumo Squat</td><td>15</td><td>10 lbs</td><td>Inner thighs</td></tr>
+              <tr><td>Bent Over Row</td><td>12</td><td>10 lbs</td><td>Upper back</td></tr>
+              <tr><td>Superman</td><td>12</td><td>Bodyweight</td><td>Lower back</td></tr>
+              <tr><td>Deadbug</td><td>12/leg</td><td>Bodyweight</td><td>Core</td></tr>
+              <tr><td>Svend Press</td><td>12</td><td>10 lbs</td><td>Chest & posture</td></tr>
+              <tr><td>Tuck Crunch</td><td>15</td><td>Bodyweight</td><td>Abdominals</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Tier 2 Workout Table -->
+        <div class="tier-panel" id="tier2">
+          <table class="workout-table">
+            <thead>
+              <tr><th>Exercise</th><th>Reps</th><th>Focus</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Assisted Single-Leg Squat</td><td>8/leg</td><td>Quads</td></tr>
+              <tr><td>Single-Leg Hip Thrust</td><td>15/leg</td><td>Glutes</td></tr>
+              <tr><td>Single-Leg Romanian Deadlift</td><td>10/leg</td><td>Hamstrings</td></tr>
+              <tr><td>Reverse Lunge</td><td>12/leg</td><td>Quads</td></tr>
+              <tr><td>Wall Sit</td><td>45 sec</td><td>Thigh endurance</td></tr>
+              <tr><td>Doorway Row</td><td>12</td><td>Upper back</td></tr>
+              <tr><td>Superman</td><td>12</td><td>Lower back</td></tr>
+              <tr><td>Deadbug</td><td>12/leg</td><td>Core</td></tr>
+              <tr><td>Isometric Chest Squeeze</td><td>10 × 10 sec</td><td>Chest</td></tr>
+              <tr><td>Tuck Crunch</td><td>15</td><td>Core</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Warm-up & Cool-down Quick Reference -->
+        <div class="card">
+          <h3>Warm-Up & Cool-Down Quick Routine</h3>
+          <div class="routine-box">
+            <h4>Warm-Up (5–10 Min before workout)</h4>
+            <ul class="routine-list">
+              <li>1 minute brisk walking or marching in place</li>
+              <li>10 bodyweight squats</li>
+              <li>10 glute bridges</li>
+              <li>10 arm circles forward & 10 backward</li>
+              <li>10 hip circles</li>
+              <li>10 leg swings each leg</li>
+            </ul>
+            <p style="margin-top:8px; font-size:0.82rem; color:var(--text-muted);"><em>Goal: Get warm and primed, not tired.</em></p>
+          </div>
+          <div class="routine-box">
+            <h4>Cool-Down (5 Min after workout)</h4>
+            <p style="font-size:0.88rem; margin-top:4px;">Static stretch hamstrings, quads, hip flexors, glutes, chest, and shoulders. Hold each stretch for 20–30 seconds.</p>
+          </div>
+        </div>
+
+        <!-- Finishers -->
+        <div class="card finishers-card">
+          <button class="accordion-header" data-target="thighFinisher">
+            Optional Thigh Finisher <span class="chevron">›</span>
+          </button>
+          <div class="accordion-body" id="thighFinisher">
+            <p>After workout, 2–3× per week. Two rounds, 30 sec rest between.</p>
+            <ul>
+              <li>Bodyweight Squats × 20</li>
+              <li>Walking Lunges × 15 each leg</li>
+              <li>Wall Sit × 45 seconds</li>
+              <li>Glute Bridge × 20</li>
+            </ul>
+          </div>
+
+          <button class="accordion-header" data-target="gluteFinisher">
+            Optional Glute Finisher <span class="chevron">›</span>
+          </button>
+          <div class="accordion-body" id="gluteFinisher">
+            <p>Repeat twice after your workout.</p>
+            <ul>
+              <li>Glute Bridge Hold — 45 sec</li>
+              <li>Frog Pumps — 30 reps</li>
+              <li>Fire Hydrants — 15 each side</li>
+              <li>Donkey Kicks — 15 each side</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- EXERCISES (Dynamic based on selected Tier) -->
+    <section id="exercises" class="section">
+      <div class="container">
+        <h2>Exercise Breakdown & Tips</h2>
+        <p class="section-desc">Selecting a tier updates both the workout table and exercise breakdown tips below.</p>
+
+        <!-- Tier Switcher for Exercise Tips -->
+        <div class="tabs">
+          <button class="tab active" data-tier="tier1">Tier 1 — Weighted Tips</button>
+          <button class="tab" data-tier="tier2">Tier 2 — Bodyweight Tips</button>
+        </div>
+
+        <!-- Tier 1 Exercise Breakdown -->
+        <div class="tier-panel tier1-panel active" id="tier1-exercises">
+          <div class="card highlight-card">
+            <h3>Tier 1: Weighted Exercise Cues</h3>
+            <p>Focus on controlled tempo, proper core bracing, and controlled movement when handling dumbbells.</p>
+          </div>
+
+          <div class="accordion-list">
+            <div class="accordion-item">
+              <button class="accordion-header" data-target="ex1_t1">1. Goblet Squat <span class="chevron">›</span></button>
+              <div class="accordion-body" id="ex1_t1">
+                <p><strong>Purpose:</strong> Quads, glutes, core stability under load.</p>
+                <ul>
+                  <li>Hold 10 lb dumbbell vertically against chest with elbows tucked in.</li>
+                  <li>Feet shoulder-width apart, toes slightly turned outward.</li>
+                  <li>Brace core, sit hips back, and lower hips until thighs are parallel to floor.</li>
+                  <li>Ensure knees track directly over toes. Drive up through heels and squeeze glutes at the top.</li>
+                </ul>
+                <p><strong>Tempo:</strong> Lower 3s · Pause 1s · Lift 1–2s</p>
+              </div>
+            </div>
+
+            <div class="accordion-item">
+              <button class="accordion-header" data-target="ex2_t1">2. Hip Thrust <span class="badge">Priority</span> <span class="chevron">›</span></button>
+              <div class="accordion-body" id="ex2_t1">
+                <p><strong>Purpose:</strong> Primary movement for glute max growth and hip extension strength.</p>
+                <ul>
+                  <li>Upper back resting against couch or bench, feet shoulder-width, chin tucked down.</li>
+                  <li>Place 20–30 lb dumbbell securely across hip crease.</li>
+                  <li>Keep ribs down and core braced; drive hips up by squeezing glutes at the top for 2 seconds.</li>
+                  <li>Push the floor away through your heels — avoid hyperextending your lower back.</li>
+                </ul>
+                <p><strong>Avoid:</strong> Looking up at ceiling, arching lower back, bouncing weight at bottom.</p>
+              </div>
+            </div>
+
+            <div class="accordion-item">
+              <button class="accordion-header" data-target="ex3_t1">3. Romanian Deadlift <span class="chevron">›</span></button>
+              <div class="accordion-body" id="ex3_t1">
+                <p><strong>Purpose:</strong> Hamstrings, glute-ham tie-in, and hip hinge mastery.</p>
+                <ul>
+                  <li>Hold dumbbells in front of thighs with slight bend in knees.</li>
+                  <li>Hinge at hips, pushing your glutes straight backward while keeping dumbbells close to shins.</li>
+                  <li>Lower until you feel a full stretch in hamstrings (around mid-shin height).</li>
+                  <li>Drive hips forward to stand tall and squeeze glutes. Keep spine neutral.</li>
+                </ul>
+                <p><strong>Form Rule:</strong> Never round your back. Keep shoulder blades pulled back.</p>
+              </div>
+            </div>
+
+            <div class="accordion-item">
+              <button class="accordion-header" data-target="ex4_t1">4. Reverse Lunge <span class="chevron">›</span></button>
+              <div class="accordion-body" id="ex4_t1">
+                <p><strong>Purpose:</strong> Quads, glutes, unilateral balance, and hip stability.</p>
+                <ul>
+                  <li>Hold 10 lb dumbbells at sides or at chest height.</li>
+                  <li>Step backward with one leg and lower back knee until both knees reach ~90°.</li>
+                  <li>Keep torso upright, push firmly through front heel to return to standing. Alternate legs.</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="accordion-item">
+              <button class="accordion-header" data-target="ex5_t1">5. Sumo Squat <span class="chevron">›</span></button>
+              <div class="accordion-body" id="ex5_t1">
+                <p><strong>Purpose:</strong> Inner thighs (adductors), glutes, and quad shaping.</p>
+                <ul>
+                  <li>Take wide stance with toes pointed outward at a 45° angle.</li>
+                  <li>Hold 10 lb dumbbell hanging down between legs or at chest.</li>
+                  <li>Lower hips straight down while pushing knees out in line with toes.</li>
+                  <li>Drive through heels to stand and squeeze inner thighs and glutes at peak.</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="accordion-item">
+              <button class="accordion-header" data-target="ex6_t1">6. Bent Over Row <span class="chevron">›</span></button>
+              <div class="accordion-body" id="ex6_t1">
+                <p><strong>Purpose:</strong> Upper back strength, rear shoulders, and posture support.</p>
+                <ul>
+                  <li>Hinge at hips with flat back (~45° torso angle). Let dumbbells hang below shoulders.</li>
+                  <li>Pull elbows toward hips, driving back and squeezing shoulder blades together.</li>
+                  <li>Lower dumbbells slowly under control. Avoid shrugging shoulders toward ears.</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="accordion-item">
+              <button class="accordion-header" data-target="ex7_t1">7. Superman <span class="chevron">›</span></button>
+              <div class="accordion-body" id="ex7_t1">
+                <p><strong>Purpose:</strong> Lower back endurance, glutes, and spinal posture alignment.</p>
+                <ul>
+                  <li>Lie face down on mat with arms extended overhead.</li>
+                  <li>Squeeze lower back and glutes to lift chest, arms, and legs slightly off floor.</li>
+                  <li>Hold peak contraction for 2–3 seconds, then lower slowly.</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="accordion-item">
+              <button class="accordion-header" data-target="ex8_t1">8. Deadbug <span class="chevron">›</span></button>
+              <div class="accordion-body" id="ex8_t1">
+                <p><strong>Purpose:</strong> Deep core bracing, lower abs, and pelvic stability.</p>
+                <ul>
+                  <li>Lie on back with lower back pressed firmly into floor, arms extended up, knees at 90°.</li>
+                  <li>Slowly extend opposite arm and leg toward floor while exhaling.</li>
+                  <li>Return to center and alternate sides. Never let lower back arch off floor.</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="accordion-item">
+              <button class="accordion-header" data-target="ex9_t1">9. Svend Press <span class="chevron">›</span></button>
+              <div class="accordion-body" id="ex9_t1">
+                <p><strong>Purpose:</strong> Inner chest engagement, shoulder positioning, posture support.</p>
+                <ul>
+                  <li>Pinch one 10 lb dumbbell flat between open palms at chest height.</li>
+                  <li>Press dumbbell straight out forward while actively squeezing hands together.</li>
+                  <li>Pause 1 second with arms extended, then slowly pull back to chest.</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="accordion-item">
+              <button class="accordion-header" data-target="ex10_t1">10. Tuck Crunch <span class="chevron">›</span></button>
+              <div class="accordion-body" id="ex10_t1">
+                <p><strong>Purpose:</strong> Abdominal contraction and core control.</p>
+                <ul>
+                  <li>Lie on back, lift shoulders slightly off floor while bringing knees toward chest.</li>
+                  <li>Squeeze abs hard at top for 1 second, exhale completely.</li>
+                  <li>Lower legs and upper body under control without letting heels slam down.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tier 2 Exercise Breakdown -->
+        <div class="tier-panel tier2-panel" id="tier2-exercises">
+          <div class="card highlight-card">
+            <h3>Tier 2: Bodyweight Exercise Cues</h3>
+            <p>Focus on movement mechanics, balance, time under tension, and mastering form before adding external load.</p>
+          </div>
+
+          <div class="accordion-list">
+            <div class="accordion-item">
+              <button class="accordion-header" data-target="ex1_t2">1. Assisted Single-Leg Squat <span class="chevron">›</span></button>
+              <div class="accordion-body" id="ex1_t2">
+                <p><strong>Purpose:</strong> Unilateral quad strength, knee stability, and balance foundation.</p>
+                <ul>
+                  <li>Lightly hold onto a doorframe, pole, or sturdy chair for balance assistance.</li>
+                  <li>Stand on one leg, extend other leg forward or bend knee behind.</li>
+                  <li>Sit hips back and lower down to parallel with control, keeping weight in front heel.</li>
+                  <li>Drive through heel to return to standing position. 8 reps per leg.</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="accordion-item">
+              <button class="accordion-header" data-target="ex2_t2">2. Single-Leg Hip Thrust <span class="badge">Priority</span> <span class="chevron">›</span></button>
+              <div class="accordion-body" id="ex2_t2">
+                <p><strong>Purpose:</strong> Targeted glute max activation and single-leg hip extension strength.</p>
+                <ul>
+                  <li>Upper back resting against couch or bench, lift one foot off floor (knee bent 90°).</li>
+                  <li>Keep chin tucked down toward chest and ribs locked in.</li>
+                  <li>Drive through working heel, lift hips until torso and thigh align.</li>
+                  <li>Squeeze working glute hard at top for 2 seconds before lowering under control.</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="accordion-item">
+              <button class="accordion-header" data-target="ex3_t2">3. Single-Leg Romanian Deadlift <span class="chevron">›</span></button>
+              <div class="accordion-body" id="ex3_t2">
+                <p><strong>Purpose:</strong> Single-leg hamstring strength, glute activation, and ankle stability.</p>
+                <ul>
+                  <li>Stand tall on one leg with a slight knee bend.</li>
+                  <li>Hinge forward at hips while extending non-working leg straight back behind you.</li>
+                  <li>Keep hips square to the floor (don't rotate open) and maintain a flat spine.</li>
+                  <li>Squeeze hamstring and glute to pull yourself back upright.</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="accordion-item">
+              <button class="accordion-header" data-target="ex4_t2">4. Reverse Lunge <span class="chevron">›</span></button>
+              <div class="accordion-body" id="ex4_t2">
+                <p><strong>Purpose:</strong> Quads, glutes, and balance foundation.</p>
+                <ul>
+                  <li>Stand tall with hands on hips or together at chest for balance.</li>
+                  <li>Step backward with one foot, bending both knees to 90° angles.</li>
+                  <li>Keep front knee aligned over ankle. Drive through front heel to return to start.</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="accordion-item">
+              <button class="accordion-header" data-target="ex5_t2">5. Wall Sit <span class="chevron">›</span></button>
+              <div class="accordion-body" id="ex5_t2">
+                <p><strong>Purpose:</strong> Isometric thigh endurance and quad strength.</p>
+                <ul>
+                  <li>Press your back flat against a wall and slide down until knees are bent at 90°.</li>
+                  <li>Thighs should be parallel to the floor, feet flat and shoulder-width apart.</li>
+                  <li>Hold position for 45 seconds while breathing steadily. Keep core engaged.</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="accordion-item">
+              <button class="accordion-header" data-target="ex6_t2">6. Doorway Row <span class="chevron">›</span></button>
+              <div class="accordion-body" id="ex6_t2">
+                <p><strong>Purpose:</strong> Bodyweight upper back activation and posture correction.</p>
+                <ul>
+                  <li>Stand in a doorway, grip the frame firmly with hands at chest height.</li>
+                  <li>Lean back until arms are straight and body is at a slight angle.</li>
+                  <li>Pull your chest toward the frame by driving elbows back and squeezing shoulder blades together.</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="accordion-item">
+              <button class="accordion-header" data-target="ex7_t2">7. Superman <span class="chevron">›</span></button>
+              <div class="accordion-body" id="ex7_t2">
+                <p><strong>Purpose:</strong> Posterior chain strengthening (lower back, glutes, upper back).</p>
+                <ul>
+                  <li>Lie face down with arms extended overhead.</li>
+                  <li>Simultaneously lift chest, arms, and legs a few inches off the ground.</li>
+                  <li>Hold for 2–3 seconds at peak extension, squeeze glutes, then lower slowly.</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="accordion-item">
+              <button class="accordion-header" data-target="ex8_t2">8. Deadbug <span class="chevron">›</span></button>
+              <div class="accordion-body" id="ex8_t2">
+                <p><strong>Purpose:</strong> Deep core stability, pelvis control, and anti-extension strength.</p>
+                <ul>
+                  <li>Lie flat on back, push lower back into floor, arms straight up, knees bent 90°.</li>
+                  <li>Slowly lower opposite arm and leg toward floor as you exhale.</li>
+                  <li>Only go as low as you can keep your lower back flat against the floor. Return and alternate.</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="accordion-item">
+              <button class="accordion-header" data-target="ex9_t2">9. Isometric Chest Squeeze <span class="chevron">›</span></button>
+              <div class="accordion-body" id="ex9_t2">
+                <p><strong>Purpose:</strong> Chest tension, posture awareness, shoulder stability without weights.</p>
+                <ul>
+                  <li>Press palms together firmly directly in front of chest (prayer position).</li>
+                  <li>Squeeze palms against each other with maximum effort for 10 seconds.</li>
+                  <li>Relax briefly, then repeat for 10 total reps. Keep shoulders relaxed away from ears.</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="accordion-item">
+              <button class="accordion-header" data-target="ex10_t2">10. Tuck Crunch <span class="chevron">›</span></button>
+              <div class="accordion-body" id="ex10_t2">
+                <p><strong>Purpose:</strong> Core strength and abdominal contraction.</p>
+                <ul>
+                  <li>Lie flat on back. Bring knees in toward chest as you curl upper back off floor.</li>
+                  <li>Exhale and squeeze abs hard for 1 second at top of crunch.</li>
+                  <li>Slowly uncurl and return to starting position with control.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- NUTRITION -->
+    <section id="nutrition" class="section section-alt">
+      <div class="container">
+        <h2>Nutrition</h2>
+        <p class="section-desc">You're 15 and still growing — eat enough, don't cut aggressively.</p>
+
+        <div class="nutrition-grid">
+          <div class="card">
+            <h3>Daily Calories</h3>
+            <div class="calorie-row">
+              <span>Workout Days</span>
+              <strong>1,950 – 2,050</strong>
+            </div>
+            <div class="calorie-row">
+              <span>Rest Days</span>
+              <strong>1,800 – 1,900</strong>
+            </div>
+            <div class="calorie-row muted">
+              <span>BMR</span>
+              <strong>~1,406</strong>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3>Protein Goal</h3>
+            <p class="big-number">85 – 105g</p>
+            <p>Include protein every meal: chicken, eggs, yogurt, fish, tofu, beans.</p>
+          </div>
+
+          <div class="card">
+            <h3>Hydration</h3>
+            <p class="big-number">70 – 90 oz</p>
+            <p>2 – 2.7 L daily. More if hot or sweating heavily.</p>
+          </div>
+        </div>
+
+        <div class="tabs nutrition-tabs">
+          <button class="tab active" data-nut="carbs">Carbs</button>
+          <button class="tab" data-nut="fats">Fats</button>
+          <button class="tab" data-nut="veggies">Veggies</button>
+          <button class="tab" data-nut="limit">Limit</button>
+        </div>
+
+        <div class="nut-panel active" id="carbs">
+          <div class="card">
+            <p>Carbs fuel workouts and recovery. Eat 1–3 hours before training.</p>
+            <div class="tag-list">
+              <span class="tag">Rice</span><span class="tag">Potatoes</span><span class="tag">Oats</span>
+              <span class="tag">Bread</span><span class="tag">Pasta</span><span class="tag">Fruit</span>
+            </div>
+            <p><strong>Pre-workout:</strong> Banana & yogurt, oatmeal, PB toast, rice & chicken</p>
+            <p><strong>Post-workout:</strong> Protein + carbs — chicken & rice, yogurt & fruit, eggs & toast</p>
+          </div>
+        </div>
+        <div class="nut-panel" id="fats">
+          <div class="card">
+            <p>Healthy fats support hormones and overall health.</p>
+            <div class="tag-list">
+              <span class="tag">Avocado</span><span class="tag">Olive oil</span><span class="tag">Nuts</span>
+              <span class="tag">Peanut butter</span><span class="tag">Seeds</span>
+            </div>
+          </div>
+        </div>
+        <div class="nut-panel" id="veggies">
+          <div class="card">
+            <p>Eat vegetables at lunch and dinner.</p>
+            <div class="tag-list">
+              <span class="tag">Broccoli</span><span class="tag">Spinach</span><span class="tag">Green beans</span>
+              <span class="tag">Carrots</span><span class="tag">Bell peppers</span><span class="tag">Cucumbers</span>
+            </div>
+          </div>
+        </div>
+        <div class="nut-panel" id="limit">
+          <div class="card">
+            <p>Keep these occasional — no need to ban anything.</p>
+            <div class="tag-list">
+              <span class="tag">Sugary drinks</span><span class="tag">Candy</span><span class="tag">Chips</span>
+              <span class="tag">Fried food</span><span class="tag">Fast food</span><span class="tag">Energy drinks</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Cardio</h3>
+          <p>2–3 sessions per week, 20–30 min, moderate intensity. Walking, cycling, swimming, dancing — pick what you enjoy.</p>
+        </div>
+
+        <div class="card">
+          <h3>Daily Core Routine <small>(~5 min, optional)</small></h3>
+          <ul class="info-list">
+            <li>Deadbug × 12</li>
+            <li>Bird Dog × 10 each side</li>
+            <li>Side Plank × 30 sec each side</li>
+            <li>Hollow Hold × 20 sec</li>
+            <li>Stomach Vacuums × 5 slow breaths</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <h3>Sleep</h3>
+          <p class="big-number">8 – 10 hours</p>
+          <p>Essential for recovery, growth, hormones, and performance.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- PROGRESS -->
+    <section id="progress" class="section">
+      <div class="container">
+        <h2>4-Week Progression</h2>
+
+        <div class="week-selector">
+          <button class="week-btn active" data-week="1">Week 1</button>
+          <button class="week-btn" data-week="2">Week 2</button>
+          <button class="week-btn" data-week="3">Week 3</button>
+          <button class="week-btn" data-week="4">Week 4</button>
+        </div>
+
+        <div class="week-panel active" id="week1">
+          <div class="card">
+            <h3>Learn</h3>
+            <p>4 rounds all three days. Focus on perfect technique. Move slowly. Practice consistency.</p>
+          </div>
+        </div>
+        <div class="week-panel" id="week2">
+          <div class="card">
+            <h3>Improve</h3>
+            <p>Complete all workouts. If final reps feel easy:</p>
+            <ul>
+              <li>Hip Thrust +2 reps</li>
+              <li>Goblet Squat +2 reps</li>
+              <li>Wall Sit +10 sec (bodyweight)</li>
+            </ul>
+          </div>
+        </div>
+        <div class="week-panel" id="week3">
+          <div class="card">
+            <h3>Increase Volume</h3>
+            <ul>
+              <li>Hip Thrust +2 reps</li>
+              <li>Reverse Lunge +2 reps per leg</li>
+              <li>Crunch +2 reps</li>
+              <li>Deadbug +2 reps per side</li>
+            </ul>
+            <p>Keep same weights unless everything feels very easy.</p>
+          </div>
+        </div>
+        <div class="week-panel" id="week4">
+          <div class="card">
+            <h3>Deload</h3>
+            <p>Mon & Wed: 3 rounds. Fri: return to 4 rounds with good form.</p>
+            <p>Take progress pictures this week.</p>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Progress Tracking</h3>
+          <p>Every 2 weeks, record:</p>
+          <ul class="checklist" id="trackingChecklist">
+            <li><label><input type="checkbox"> Waist measurement</label></li>
+            <li><label><input type="checkbox"> Hip measurement</label></li>
+            <li><label><input type="checkbox"> Thigh measurement</label></li>
+            <li><label><input type="checkbox"> Body weight (optional)</label></li>
+            <li><label><input type="checkbox"> Front photo</label></li>
+            <li><label><input type="checkbox"> Side photo</label></li>
+            <li><label><input type="checkbox"> Back photo</label></li>
+          </ul>
+          <button class="btn-secondary" id="resetTracking">Reset checklist</button>
+        </div>
+
+        <div class="card">
+          <h3>What to Expect</h3>
+          <div class="timeline">
+            <div class="timeline-item"><strong>Weeks 1–2</strong><span>Better coordination, posture, less soreness</span></div>
+            <div class="timeline-item"><strong>Weeks 3–4</strong><span>Stronger glutes, firmer thighs, better core</span></div>
+            <div class="timeline-item"><strong>Months 2–3</strong><span>Visible definition, better composition, confidence</span></div>
+          </div>
+        </div>
+
+        <div class="card highlight-card">
+          <h3>Remember</h3>
+          <p>You're still growing. Priority: get stronger, eat well, sleep well — not weight loss. Consistency beats perfection.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- MEALS -->
+    <section id="meals" class="section section-alt">
+      <div class="container">
+        <h2>Simple Weekly Meal Plan</h2>
+
+        <!-- Macro Summary Banner -->
+        <div class="macro-banner">
+          <h3>Weekly Nutrition Goal</h3>
+          <div class="macro-stats">
+            <span class="macro-tag">~1,900 Calories</span>
+            <span class="macro-tag">95g Protein</span>
+            <span class="macro-tag">238g Carbs</span>
+            <span class="macro-tag">63g Fat</span>
+          </div>
+        </div>
+
+        <!-- Day Tabs Filter -->
+        <div class="tabs">
+          <button class="tab active" data-day="all">All Days</button>
+          <button class="tab" data-day="monday">Monday</button>
+          <button class="tab" data-day="tuesday">Tuesday</button>
+          <button class="tab" data-day="wednesday">Wednesday</button>
+          <button class="tab" data-day="thursday">Thursday</button>
+          <button class="tab" data-day="friday">Friday</button>
+          <button class="tab" data-day="saturday">Saturday</button>
+          <button class="tab" data-day="sunday">Sunday</button>
+        </div>
+
+        <!-- Meal Schedule Cards -->
+        <div class="day-meals-container">
+
+          <!-- Monday -->
+          <div class="day-meal-card" data-day="monday">
+            <div class="day-header">
+              <h3>Monday</h3>
+              <span class="badge-workout">Workout Day</span>
+            </div>
+            <div class="meal-items-grid">
+              <div class="meal-box">
+                <h4>Breakfast</h4>
+                <ul>
+                  <li>2 Eggs</li>
+                  <li>2 Slices Toast</li>
+                  <li>Apple</li>
+                </ul>
+              </div>
+              <div class="meal-box">
+                <h4>Lunch</h4>
+                <ul>
+                  <li>Chicken Breast</li>
+                  <li>Rice</li>
+                  <li>Broccoli</li>
+                </ul>
+              </div>
+              <div class="meal-box">
+                <h4>Snack</h4>
+                <ul>
+                  <li>Greek Yogurt</li>
+                </ul>
+              </div>
+              <div class="meal-box">
+                <h4>Dinner</h4>
+                <ul>
+                  <li>Chicken Breast</li>
+                  <li>Potatoes</li>
+                  <li>Broccoli</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tuesday -->
+          <div class="day-meal-card" data-day="tuesday">
+            <div class="day-header">
+              <h3>Tuesday</h3>
+              <span class="badge-rest">Rest Day</span>
+            </div>
+            <div class="meal-items-grid">
+              <div class="meal-box">
+                <h4>Breakfast</h4>
+                <ul>
+                  <li>Greek Yogurt</li>
+                  <li>Apple</li>
+                </ul>
+              </div>
+              <div class="meal-box">
+                <h4>Lunch</h4>
+                <ul>
+                  <li>Peanut Butter Sandwich</li>
+                  <li>Apple</li>
+                </ul>
+              </div>
+              <div class="meal-box">
+                <h4>Snack</h4>
+                <ul>
+                  <li>Cottage Cheese</li>
+                </ul>
+              </div>
+              <div class="meal-box">
+                <h4>Dinner</h4>
+                <ul>
+                  <li>Chicken Breast</li>
+                  <li>Rice</li>
+                  <li>Mixed Vegetables</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- Wednesday -->
+          <div class="day-meal-card" data-day="wednesday">
+            <div class="day-header">
+              <h3>Wednesday</h3>
+              <span class="badge-workout">Workout Day</span>
+            </div>
+            <div class="meal-items-grid">
+              <div class="meal-box">
+                <h4>Breakfast</h4>
+                <ul>
+                  <li>2 Eggs</li>
+                  <li>Toast</li>
+                  <li>Orange</li>
+                </ul>
+              </div>
+              <div class="meal-box">
+                <h4>Lunch</h4>
+                <ul>
+                  <li>Chicken Breast</li>
+                  <li>Rice</li>
+                </ul>
+              </div>
+              <div class="meal-box">
+                <h4>Snack</h4>
+                <ul>
+                  <li>Greek Yogurt</li>
+                </ul>
+              </div>
+              <div class="meal-box">
+                <h4>Dinner</h4>
+                <ul>
+                  <li>Chicken Breast</li>
+                  <li>Potatoes</li>
+                  <li>Broccoli</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- Thursday -->
+          <div class="day-meal-card" data-day="thursday">
+            <div class="day-header">
+              <h3>Thursday</h3>
+              <span class="badge-rest">Rest Day</span>
+            </div>
+            <div class="meal-items-grid">
+              <div class="meal-box">
+                <h4>Breakfast</h4>
+                <ul>
+                  <li>2 Eggs</li>
+                  <li>Toast</li>
+                </ul>
+              </div>
+              <div class="meal-box">
+                <h4>Lunch</h4>
+                <ul>
+                  <li>Tuna Sandwich</li>
+                </ul>
+              </div>
+              <div class="meal-box">
+                <h4>Snack</h4>
+                <ul>
+                  <li>Apple</li>
+                </ul>
+              </div>
+              <div class="meal-box">
+                <h4>Dinner</h4>
+                <ul>
+                  <li>Chicken Breast</li>
+                  <li>Rice</li>
+                  <li>Mixed Vegetables</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- Friday -->
+          <div class="day-meal-card" data-day="friday">
+            <div class="day-header">
+              <h3>Friday</h3>
+              <span class="badge-workout">Workout Day</span>
+            </div>
+            <div class="meal-items-grid">
+              <div class="meal-box">
+                <h4>Breakfast</h4>
+                <ul>
+                  <li>Greek Yogurt</li>
+                  <li>Apple</li>
+                </ul>
+              </div>
+              <div class="meal-box">
+                <h4>Lunch</h4>
+                <ul>
+                  <li>Chicken Breast</li>
+                  <li>Rice</li>
+                </ul>
+              </div>
+              <div class="meal-box">
+                <h4>Snack</h4>
+                <ul>
+                  <li>Cottage Cheese</li>
+                </ul>
+              </div>
+              <div class="meal-box">
+                <h4>Dinner</h4>
+                <ul>
+                  <li>Chicken Breast</li>
+                  <li>Potatoes</li>
+                  <li>Broccoli</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- Saturday -->
+          <div class="day-meal-card" data-day="saturday">
+            <div class="day-header">
+              <h3>Saturday</h3>
+              <span class="badge-rest">Rest Day</span>
+            </div>
+            <div class="meal-items-grid">
+              <div class="meal-box">
+                <h4>Breakfast</h4>
+                <ul>
+                  <li>2 Eggs</li>
+                  <li>Toast</li>
+                </ul>
+              </div>
+              <div class="meal-box">
+                <h4>Lunch</h4>
+                <ul>
+                  <li>Chicken Breast</li>
+                  <li>Rice</li>
+                </ul>
+              </div>
+              <div class="meal-box">
+                <h4>Snack</h4>
+                <ul>
+                  <li>Greek Yogurt</li>
+                </ul>
+              </div>
+              <div class="meal-box">
+                <h4>Dinner</h4>
+                <ul>
+                  <li>Chicken Breast</li>
+                  <li>Potatoes</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sunday -->
+          <div class="day-meal-card" data-day="sunday">
+            <div class="day-header">
+              <h3>Sunday</h3>
+              <span class="badge-rest">Rest Day</span>
+            </div>
+            <div class="meal-items-grid">
+              <div class="meal-box">
+                <h4>Breakfast</h4>
+                <ul>
+                  <li>2 Eggs</li>
+                  <li>Toast</li>
+                  <li>Apple</li>
+                </ul>
+              </div>
+              <div class="meal-box">
+                <h4>Lunch</h4>
+                <ul>
+                  <li>Tuna Sandwich</li>
+                </ul>
+              </div>
+              <div class="meal-box">
+                <h4>Snack</h4>
+                <ul>
+                  <li>Greek Yogurt</li>
+                </ul>
+              </div>
+              <div class="meal-box">
+                <h4>Dinner</h4>
+                <ul>
+                  <li>Chicken Breast</li>
+                  <li>Rice</li>
+                  <li>Broccoli</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Categorized Grocery List -->
+        <div class="card">
+          <div class="card-header-row">
+            <h3>Grocery List</h3>
+            <button class="btn-secondary" id="copyList">Copy list</button>
+          </div>
+
+          <div class="grocery-grid" id="shoppingList">
+            <div class="grocery-category">
+              <h4>Protein</h4>
+              <ul class="checklist">
+                <li><label><input type="checkbox"> Chicken Breast</label></li>
+                <li><label><input type="checkbox"> Eggs</label></li>
+                <li><label><input type="checkbox"> Greek Yogurt</label></li>
+                <li><label><input type="checkbox"> Cottage Cheese</label></li>
+                <li><label><input type="checkbox"> Canned Tuna</label></li>
+              </ul>
+            </div>
+
+            <div class="grocery-category">
+              <h4>Carbs</h4>
+              <ul class="checklist">
+                <li><label><input type="checkbox"> Rice</label></li>
+                <li><label><input type="checkbox"> Potatoes</label></li>
+                <li><label><input type="checkbox"> Whole Wheat Bread</label></li>
+              </ul>
+            </div>
+
+            <div class="grocery-category">
+              <h4>Fruit</h4>
+              <ul class="checklist">
+                <li><label><input type="checkbox"> Apples</label></li>
+                <li><label><input type="checkbox"> Oranges</label></li>
+              </ul>
+            </div>
+
+            <div class="grocery-category">
+              <h4>Vegetables</h4>
+              <ul class="checklist">
+                <li><label><input type="checkbox"> Broccoli</label></li>
+                <li><label><input type="checkbox"> Frozen Mixed Vegetables</label></li>
+              </ul>
+            </div>
+
+            <div class="grocery-category">
+              <h4>Extras</h4>
+              <ul class="checklist">
+                <li><label><input type="checkbox"> Peanut Butter</label></li>
+                <li><label><input type="checkbox"> Olive Oil</label></li>
+                <li><label><input type="checkbox"> Salt & Pepper</label></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- Meal Prep & Cooking Card -->
+        <div class="card">
+          <h3>Meal Prep Strategy</h3>
+          <p><strong>Cook once every 3–4 days:</strong></p>
+          <ul class="info-list" style="margin-bottom:12px;">
+            <li>4–5 lb chicken breast</li>
+            <li>Big pot of rice</li>
+            <li>Tray of baked potatoes</li>
+            <li>Steam broccoli or microwave frozen vegetables</li>
+          </ul>
+          <p>Store everything in containers. Then each meal takes about <strong>5 minutes</strong> to put together!</p>
+        </div>
+
+        <div class="card">
+          <h3>Easy Cooking Methods</h3>
+          <div class="cooking-grid">
+            <div class="cooking-item">
+              <h4>Eggs</h4>
+              <ul>
+                <li>Scrambled</li>
+                <li>Fried</li>
+                <li>Hard-boiled</li>
+              </ul>
+            </div>
+            <div class="cooking-item">
+              <h4>Chicken</h4>
+              <ul>
+                <li>Bake</li>
+                <li>Pan-fry</li>
+                <li>Air fry</li>
+              </ul>
+            </div>
+            <div class="cooking-item">
+              <h4>Rice</h4>
+              <ul>
+                <li>Rice cooker</li>
+                <li>Microwave packets</li>
+                <li>Pot on stove</li>
+              </ul>
+            </div>
+            <div class="cooking-item">
+              <h4>Potatoes</h4>
+              <ul>
+                <li>Microwave (6–8 min)</li>
+                <li>Bake</li>
+                <li>Air fry</li>
+              </ul>
+            </div>
+            <div class="cooking-item">
+              <h4>Vegetables</h4>
+              <ul>
+                <li>Steam in microwave</li>
+                <li>Frozen steamable bags</li>
+                <li>Boil</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="card highlight-card">
+          <h3>Consistency Key</h3>
+          <p>Keep it simple. You don't need fancy recipes—consistently eating enough protein and balanced meals will do far more for your progress than constantly changing what you eat.</p>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- TIPS & PHILOSOPHY -->
+    <section id="tips" class="section">
+      <div class="container">
+        <h2>Expert Tips & Guidance</h2>
+
+        <!-- Equipment Strategy: Bodyweight vs Weighted -->
+        <div class="card">
+          <h3>Equipment Strategy: Bodyweight vs. Adjustable Dumbbells</h3>
+          <p>For your goals, starting with bodyweight for <strong>4–8 weeks</strong> and then getting adjustable dumbbells is a smart approach.</p>
+
+          <div style="margin-top:14px;">
+            <h4>Why start with bodyweight?</h4>
+            <p>At the beginning, your biggest gains come from learning how to move well, not from lifting heavy.</p>
+            <p><strong>You'll learn:</strong></p>
+            <ul class="info-list" style="margin-bottom:12px;">
+              <li>Proper squat technique</li>
+              <li>Hip hinge for Romanian deadlifts</li>
+              <li>Glute activation</li>
+              <li>Core bracing</li>
+              <li>Balance and coordination</li>
+            </ul>
+            <p>By the time you get weights, you'll be able to use them more effectively and with better form.</p>
+          </div>
+
+          <h4 style="margin-top:16px;">Weighted vs. Bodyweight Comparison</h4>
+          <div class="comparison-grid">
+            <div class="comp-card">
+              <h4>Bodyweight</h4>
+              <div class="pro-con-section pros">
+                <h5>Pros</h5>
+                <ul>
+                  <li>Free</li>
+                  <li>Safer for beginners</li>
+                  <li>Easier to recover from</li>
+                  <li>Great for learning technique</li>
+                  <li>Improves balance and coordination</li>
+                </ul>
+              </div>
+              <div class="pro-con-section cons">
+                <h5>Cons</h5>
+                <ul>
+                  <li>Harder to progressively increase resistance</li>
+                  <li>Some exercises become too easy over time</li>
+                  <li>Eventually you'll plateau</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="comp-card">
+              <h4>Adjustable Dumbbells</h4>
+              <div class="pro-con-section pros">
+                <h5>Pros</h5>
+                <ul>
+                  <li>Easy to make exercises harder as you get stronger</li>
+                  <li>Better for building strength & muscle long-term</li>
+                  <li>One set works for many different exercises</li>
+                </ul>
+              </div>
+              <div class="pro-con-section cons">
+                <h5>Cons</h5>
+                <ul>
+                  <li>Cost more upfront</li>
+                  <li>Require paying more attention to form</li>
+                  <li>Heavier weights increase injury risk if technique slips</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <h4 style="margin-top:16px;">My Recommendation (8-Week Roadmap)</h4>
+          <div class="timeline" style="margin-top:10px;">
+            <div class="timeline-item">
+              <strong>Weeks 1–4: Foundation</strong>
+              <span>Follow the bodyweight routine exactly. Focus on smooth, controlled reps. Don't rush.</span>
+            </div>
+            <div class="timeline-item">
+              <strong>Weeks 5–8: Progression</strong>
+              <span>If exercises feel easy and your form is solid, get adjustable dumbbells. Start light and add weight gradually.</span>
+            </div>
+          </div>
+          <p style="margin-top:12px; font-size:0.88rem; color:var(--text-muted);"><em>This gives you time to build a solid foundation before adding resistance.</em></p>
+        </div>
+
+        <!-- Mindset & Reframe -->
+        <div class="card highlight-card">
+          <h3>Reframing Bodyweight Training</h3>
+          <p>I wouldn't think of bodyweight as something that's "less effective." It's an excellent way to build strength, coordination, and confidence—especially as a beginner.</p>
+          <p>Adjustable weights aren't a replacement for good technique; they're the next step once you can perform the movements well and need more resistance to keep progressing. That progression will likely set you up better than jumping straight into weighted training.</p>
+        </div>
+
+        <!-- Detailed Warmup & Cooldown -->
+        <div class="card">
+          <h3>Warm-Up & Cool-Down Protocols</h3>
+          <div class="routine-box">
+            <h4>Warm-Up (5–10 Minutes before every workout)</h4>
+            <ul class="routine-list">
+              <li>1 minute brisk walking or marching in place</li>
+              <li>10 bodyweight squats</li>
+              <li>10 glute bridges</li>
+              <li>10 arm circles forward</li>
+              <li>10 arm circles backward</li>
+              <li>10 hip circles</li>
+              <li>10 leg swings each leg</li>
+            </ul>
+            <p style="margin-top:8px; font-size:0.85rem; color:var(--text-muted);"><strong>Goal:</strong> Get warm, not tired.</p>
+          </div>
+
+          <div class="routine-box" style="margin-top:12px;">
+            <h4>Cool-Down (5 Minutes post-workout)</h4>
+            <p>Stretch hamstrings, quads, hip flexors, glutes, chest, and shoulders.</p>
+            <p><strong>Hold each stretch for about 20–30 seconds.</strong></p>
+          </div>
+        </div>
+
+        <!-- Form & Progressive Overload -->
+        <div class="card">
+          <h3>Focus on Form & Progressive Overload</h3>
+          <p><strong>Quality beats quantity.</strong></p>
+          <p>For each rep: move slowly, control the lowering phase, don't bounce, keep your core engaged, and stop if you lose good technique.</p>
+          
+          <h4 style="margin-top:14px;">When an exercise starts feeling easy:</h4>
+          <ol style="margin:8px 0 8px 20px; font-size:0.88rem; color:var(--text-muted);">
+            <li>Add 1–2 reps.</li>
+            <li>Slow the movement down.</li>
+            <li>Add a pause at the hardest part.</li>
+            <li>Then increase the weight (once you have adjustable dumbbells).</li>
+          </ol>
+        </div>
+
+        <!-- Tracking, Nutrition & Recovery -->
+        <div class="card">
+          <h3>Tracking, Nutrition & Recovery Rules</h3>
+          
+          <h4 style="margin-top:8px;">Track Your Progress</h4>
+          <p>Keep a simple notebook or notes app. Write down:</p>
+          <ul class="info-list" style="margin-bottom:10px;">
+            <li>Workout completed (Yes/No)</li>
+            <li>Reps</li>
+            <li>Weight used (if any)</li>
+            <li>How hard it felt (1–10 scale)</li>
+          </ul>
+          <p style="font-size:0.88rem; color:var(--text-muted);">Looking back after a month can be really motivating.</p>
+
+          <h4 style="margin-top:14px;">Eat Consistently</h4>
+          <p>Try not to skip meals. Aim for protein at each meal, carbs to fuel workouts, and plenty of water. At 15, your body is still growing, so giving it enough fuel is important for both your workouts and your overall health.</p>
+
+          <h4 style="margin-top:14px;">Recovery</h4>
+          <p>Your muscles grow and adapt while you recover, not during the workout.</p>
+          <p>Prioritize: <strong>8–10 hours of sleep</strong>, rest days, and staying hydrated.</p>
+        </div>
+
+        <!-- Photos & Comparison -->
+        <div class="card">
+          <h3>Mindset & Progress Photos</h3>
+          
+          <h4>Don't Compare Yourself</h4>
+          <p>Bodies change at different rates. Instead of comparing yourself to other people or social media, compare yourself to where you were a few weeks ago.</p>
+
+          <h4 style="margin-top:14px;">Take Progress Photos</h4>
+          <p>Every two weeks, take photos from the <strong>Front, Side, and Back</strong>.</p>
+          <p>Use:</p>
+          <ul class="info-list">
+            <li>The same lighting</li>
+            <li>The same pose</li>
+            <li>Similar clothing</li>
+          </ul>
+          <p style="font-size:0.88rem; color:var(--text-muted); margin-top:8px;">Changes are often easier to notice in photos than in the mirror.</p>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="footer">
+    <p>Fembody Build Guide · Consistency over perfection</p>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
