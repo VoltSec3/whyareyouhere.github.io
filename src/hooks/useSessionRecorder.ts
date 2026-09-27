@@ -16,6 +16,13 @@ export type Take = {
 
 export type RecorderStatus = "idle" | "requesting" | "recording" | "processing";
 
+/**
+ * Slack applied when trimming the stop click out of a take's event list. Covers
+ * the clock tick that can slip between the pointerdown mark and the mousedown
+ * that records the stop click's own press.
+ */
+const STOP_CLICK_GUARD = 0.002;
+
 export type RecorderState = {
   status: RecorderStatus;
   elapsed: number;
@@ -193,7 +200,15 @@ export function useSessionRecorder() {
     trimRef.current = null;
     const stopAt = (performance.now() - startedAtRef.current) / 1000;
     if (marked !== null && marked > 0 && stopAt - marked < 1) {
-      events = recorded.filter((event) => event.time < marked);
+      // The mark lands on pointerdown and the stop click's own press is recorded
+      // on the following mousedown, so those two timestamps are normally the very
+      // same clock tick. They are still separate reads though, and a tick can slip
+      // between them, which would leave the stop press sitting just before the
+      // boundary and surviving the trim. Trim from a hair earlier so the stop
+      // click's own press and release always go. A couple of milliseconds is far
+      // below anything a performance could occupy. The audio still cuts exactly at
+      // the mark, where the click really landed.
+      events = recorded.filter((event) => event.time < marked - STOP_CLICK_GUARD);
       const cut = Math.round(marked * TARGET_SAMPLE_RATE);
       if (cut < samples.length) {
         const trimmed = samples.slice(0, cut);

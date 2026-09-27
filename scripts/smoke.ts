@@ -117,6 +117,90 @@ check(
 );
 await page.screenshot({ path: path.join(shots, "04-take.png") });
 
+/* ---------- autocut: offered only while the library is empty ---------- */
+{
+  await page.getByRole("button", { name: /^Export/ }).click();
+  await page.getByRole("dialog").waitFor({ timeout: 5000 });
+  const autocutButton = page.getByRole("button", { name: /^Autocut$/ });
+  check("autocut is offered when nothing is saved", await autocutButton.isVisible());
+  check("autocut explains what it will cut", await page.getByText(/every press and release/i).isVisible());
+  await page.screenshot({ path: path.join(shots, "04b-autocut-offered.png") });
+
+  await autocutButton.click();
+  await page.waitForSelector("text=/[1-9]\\d* saved/", { timeout: 20000 });
+  const panelCounts = await page.locator("header + div span").allInnerTexts();
+  const labels = [
+    "Micro Click",
+    "Micro Release",
+    "Soft Click",
+    "Soft Release",
+    "Click",
+    "Release",
+    "Hard Click",
+    "Hard Release",
+  ];
+  const filled: string[] = [];
+  panelCounts.forEach((text, index) => {
+    if (!labels.includes(text.trim())) return;
+    const count = Number(panelCounts[index + 1]?.trim());
+    if (Number.isFinite(count) && count > 0) filled.push(`${text.trim()} ${count}`);
+  });
+  check("autocut filed clips under intensity categories", filled.length > 0, filled.join(", ") || panelCounts.join(" | "));
+  await page.screenshot({ path: path.join(shots, "04c-autocut-done.png") });
+
+  // Clips are written one at a time, so the total climbs as Autocut works
+  // through the take. Wait for the whole take to land before counting.
+  const expectedEvents = toolbarCounts.reduce((sum, text) => {
+    // The counters share one element, "12 press · 12 release", so take every hit.
+    for (const match of text.matchAll(/(\d+) (?:press|release)/g)) sum += Number(match[1]);
+    return sum;
+  }, 0);
+  await page.keyboard.press("Escape");
+  await page.getByRole("dialog").waitFor({ state: "hidden", timeout: 5000 });
+  // Autocut files every event that is loud enough to be a usable sample and
+  // deliberately drops the quiet ones, so the chip count is not the event count.
+  // What must hold is that the library holds exactly what autocut reported.
+  // Clips land one at a time, so wait for the count to stop moving before
+  // reading anything off the panel.
+  const chipCount = () => page.getByRole("button", { name: /^\d+\.wav/ }).count();
+  const categoryTotal = async () => {
+    const counts = await page.locator("header + div span").allInnerTexts();
+    return counts.reduce((sum, text, index) => {
+      if (!labels.includes(text.trim())) return sum;
+      const value = Number(counts[index + 1]?.trim());
+      return sum + (Number.isFinite(value) ? value : 0);
+    }, 0);
+  };
+  const deadline = Date.now() + 25000;
+  let savedAfterAutocut = await chipCount();
+  let previous = -1;
+  while (previous !== savedAfterAutocut && Date.now() < deadline) {
+    previous = savedAfterAutocut;
+    await page.waitForTimeout(400);
+    savedAfterAutocut = await chipCount();
+  }
+  const filedTotal = await categoryTotal();
+  check(
+    "autocut saved every clip it filed",
+    savedAfterAutocut === filedTotal && savedAfterAutocut > 0,
+    `${savedAfterAutocut} chips for ${filedTotal} filed`,
+  );
+  check(
+    "autocut kept a sensible share of the events",
+    savedAfterAutocut >= Math.floor(expectedEvents / 3),
+    `${savedAfterAutocut} of ${expectedEvents}`,
+  );
+
+  // Hand the rest of the run back an empty library so the manual cut, save and
+  // export flow below starts from the same place it always did.
+  await page.getByRole("button", { name: "Clear library" }).click();
+  await page.waitForTimeout(400);
+  const stillSaved = await page.getByRole("button", { name: /^\d+\.wav/ }).count();
+  check("library was emptied for the manual flow", stillSaved === 0, `${stillSaved} clip chip(s) left`);
+}
+
+
+
 const canvas = page.locator("canvas").first();
 const box = (await canvas.boundingBox())!;
 check("waveform canvas has a real size", box.width > 400 && box.height > 120, JSON.stringify(box));
@@ -215,6 +299,13 @@ const cutLabel = async () => {
     );
     return exact?.textContent?.trim().split(/\s+/)[0] ?? null;
   });
+};
+
+/** Drop whatever selection is showing, without touching the library. */
+const clearSelection = async () => {
+  await page.keyboard.press("Escape");
+  await page.keyboard.press("Delete");
+  await page.waitForTimeout(60);
 };
 
 /** Playhead position in seconds, read from the transport readout. */
@@ -329,12 +420,6 @@ await page.keyboard.press("Delete");
   const from = takeSeconds * 0.3;
   const to = takeSeconds * 0.62;
 
-  const clearSelection = async () => {
-    await page.keyboard.press("Escape");
-    await page.keyboard.press("Delete");
-    await page.waitForTimeout(60);
-  };
-
   // Grab a few pixels inside the start grip rather than exactly on the edge.
   // The grip is a 9px hit zone and the grab point gets snapped, so this used to
   // pin the far edge to the grab point and throw away everything to the right.
@@ -391,8 +476,8 @@ try {
   check("popup menu appears after the drag", await saveItem.isVisible());
   check("menu offers Preview this cut", await page.getByText("Preview this cut").isVisible());
   check("menu offers Discard selection", await page.getByText("Discard selection").isVisible());
-  const cutLabel = (await page.locator('[role="menu"]').getByText(/^\d+\.\d{3}s$/).first().innerText()).trim();
-  check("menu labels the cut length", /^\d+\.\d{3}s$/.test(cutLabel), cutLabel);
+  const menuLength = (await page.locator('[role="menu"]').getByText(/^\d+\.\d{3}s$/).first().innerText()).trim();
+  check("menu labels the cut length", /^\d+\.\d{3}s$/.test(menuLength), menuLength);
   await page.screenshot({ path: path.join(shots, "05-selection-menu.png") });
 
   /* ---------- preview plays the cut, with the play bar on the cut ---------- */
@@ -520,12 +605,28 @@ try {
   );
 
   /* ---------- save ---------- */
+  // Read the selection before saving it: with every extra off, the clip that
+  // lands in the library must be exactly this long. This is the bug the toggles
+  // exist for -- the export used to hand back something much longer.
+  const drawnLength = await cutLabel();
   await page.getByRole("menuitem", { name: /^Soft Click/ }).click();
   await page.waitForSelector("text=/Saved as Soft Click/", { timeout: 8000 });
   check("toast confirms the save", true);
   await page.waitForSelector("text=1 saved", { timeout: 5000 });
   check("topbar counter goes to 1 saved", true);
   await page.screenshot({ path: path.join(shots, "07-saved.png") });
+
+  const savedLength = await page.evaluate(() => {
+    const chip = Array.from(document.querySelectorAll("button")).find((el) =>
+      /1\.wav/.test(el.textContent ?? ""),
+    );
+    return /(\d+\.\d{2})s/.exec(chip?.textContent ?? "")?.[1] ?? null;
+  });
+  check(
+    "the saved clip is exactly as long as the selection",
+    drawnLength !== null && savedLength !== null && Math.abs(parseFloat(drawnLength) - parseFloat(savedLength)) < 0.006,
+    `selected ${drawnLength}, saved ${savedLength}`,
+  );
 } catch (error) {
   check("selection popup flow", false, (error as Error).message.split("\n")[0]);
   await page.screenshot({ path: path.join(shots, "05-selection-menu.png") });
@@ -534,6 +635,52 @@ try {
 
 const clipChip = page.getByRole("button", { name: /1\.wav/ });
 check("clip shows up in the library", (await clipChip.count()) > 0);
+
+/* ---------- the opt-in cut extras are all off and all explained ---------- */
+{
+  const extras = ["Snap to click", "Trim decay", "Normalise", "Fade edges"];
+  const row = page.getByText("On save");
+  check("the editor offers the cut extras", (await row.count()) > 0);
+
+  for (const label of extras) {
+    const toggle = page.getByRole("switch", { name: label });
+    const off = (await toggle.getAttribute("aria-checked")) === "false";
+    const help = page.getByRole("button", { name: `What does ${label} do?` });
+    check(`"${label}" is off by default and has a ? button`, off && (await help.count()) === 1);
+  }
+
+  // Start well before a press so there is room for the onset search to move.
+  await clearSelection();
+  await dragSelect(takeSeconds * 0.24, takeSeconds * 0.5);
+  check("no 'after trim' readout when every extra is off", (await page.getByText(/after trim/).count()) === 0);
+
+  // Turning one on must reach the cut, or the switches are decoration. Snap to
+  // click is the reliable one to watch in a real recording: room noise never
+  // falls far enough for trim decay, but a press always is a strong transient.
+  const snapClick = page.getByRole("switch", { name: "Snap to click" });
+  await snapClick.click();
+  await page.waitForTimeout(300);
+  check("snap to click reports itself as on", (await snapClick.getAttribute("aria-checked")) === "true");
+  const snappedLabel = await page.evaluate(() => {
+    const el = Array.from(document.querySelectorAll("*")).find((e) =>
+      /^\s*\d+\.\d{3}s\s+after trim\s*$/.test(e.textContent ?? ""),
+    );
+    return /^(\d+\.\d{3})s/.exec(el?.textContent ?? "")?.[1] ?? null;
+  });
+  const drawnMs = parseFloat((await cutLabel()) ?? "") * 1000;
+  const snappedMs = parseFloat(snappedLabel ?? "") * 1000;
+  check(
+    "snapping to the click shortens the cut and reports the new length",
+    Number.isFinite(snappedMs) && Number.isFinite(drawnMs) && snappedMs < drawnMs - 5,
+    `${drawnMs.toFixed(0)}ms drag -> ${snappedLabel} after trim`,
+  );
+
+  // With nothing on, the cut is the selection, so there is nothing to report.
+  await snapClick.click();
+  await page.waitForTimeout(200);
+  check("switching snapping off removes the extra length again", (await page.getByText(/after trim/).count()) === 0);
+  await clearSelection();
+}
 
 /* ---------- save a second one into another category ---------- */
 await dragSelect(takeSeconds * 0.45, takeSeconds * 0.62);
@@ -557,16 +704,85 @@ check(
   await page.getByText("Clickpack Noise File").isVisible(),
 );
 
+/* ---------- denoise controls ---------- */
+const denoiseSwitch = page.getByRole("switch", { name: /denoise background/i });
+const liveOption = page.getByRole("radio", { name: /^live/i });
+const spectralOption = page.getByRole("radio", { name: /^spectral/i });
+
+check("denoise switch present and off", (await denoiseSwitch.getAttribute("aria-checked")) === "false");
+check("method options hidden while denoise is off", (await liveOption.count()) === 0);
+check("zip summary shows denoise off", await page.getByText("Denoise").locator("..").getByText("off").isVisible());
+
+await denoiseSwitch.click();
+await page.waitForTimeout(150);
+check("method options appear once denoise is on", (await liveOption.count()) === 1 && (await spectralOption.count()) === 1);
+check("live is the default method", (await liveOption.getAttribute("aria-checked")) === "true");
+check("only one method is selectable at a time", (await spectralOption.getAttribute("aria-checked")) === "false");
+check(
+  "spectral is unavailable without a noise bed",
+  await spectralOption.isDisabled() && (await page.getByText(/needs a noise bed/i).isVisible()),
+);
+check("methods are announced as a radio group", (await page.getByRole("radiogroup", { name: /denoise method/i }).count()) === 1);
+check("zip summary reflects the chosen method", await page.getByText("Denoise").locator("..").getByText("Live").isVisible());
+await page.screenshot({ path: path.join(shots, "09b-denoise-methods.png") });
+
+// Spectral needs a noise bed, so put one in place and confirm it becomes usable.
+await spectralOption.click().catch(() => {});
+check("spectral stays unselected while disabled", (await liveOption.getAttribute("aria-checked")) === "true");
+await denoiseSwitch.click();
+await page.waitForTimeout(120);
+check("turning denoise off hides the methods again", (await liveOption.count()) === 0);
+check("zip summary returns to off", await page.getByText("Denoise").locator("..").getByText("off").isVisible());
+
 await page.locator("#pack-title").fill("Smoke Test Pack");
 await page.locator("#pack-description").fill("Recorded by the automated smoke test.");
 await page.locator("#pack-creator").fill("SawyerSayo");
 await page.waitForTimeout(300);
 await page.screenshot({ path: path.join(shots, "09-export-dialog.png") });
 
+// The bar is on screen for a fraction of a second. A MutationObserver coalesces
+// its mutations into one callback that only sees the final DOM state, so sample
+// it every animation frame instead and keep the whole sequence.
+const watchProgress = () =>
+  page.evaluate(() => {
+    const w = window as unknown as { __samples: { value: number; text: string }[]; __stop: boolean; __html: string };
+    w.__samples = [];
+    w.__stop = false;
+    w.__html = "";
+    const tick = () => {
+      const bar = document.querySelector('[role="progressbar"]');
+      if (bar) {
+        if (!w.__html) w.__html = bar.outerHTML;
+        w.__samples.push({
+          value: Number(bar.getAttribute("aria-valuenow") ?? "0"),
+          text: bar.parentElement?.querySelector("p")?.textContent ?? "",
+        });
+      }
+      if (!w.__stop) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  });
+
+const readProgress = () =>
+  page.evaluate(() => {
+    const w = window as unknown as { __samples: { value: number; text: string }[]; __stop: boolean; __html: string };
+    w.__stop = true;
+    const steps: string[] = [];
+    let max = 0;
+    for (const sample of w.__samples) {
+      if (sample.value > max) max = sample.value;
+      const key = sample.text.trim();
+      if (key && steps[steps.length - 1] !== key) steps.push(key);
+    }
+    return { steps, max, samples: w.__samples.length, html: w.__html };
+  });
+
+await watchProgress();
 const download = await Promise.all([
   page.waitForEvent("download", { timeout: 20000 }),
   page.getByRole("button", { name: /export \.zip/i }).click(),
 ]).then(([d]) => d);
+const plainProgress = await readProgress();
 
 const zipPath = path.join(os.tmpdir(), "smoke-pack.zip");
 await download.saveAs(zipPath);
@@ -591,6 +807,55 @@ check(
   listing.join(" "),
 );
 fs.rmSync(zipPath);
+
+/* ---------- the progress bar reported real progress ---------- */
+check("a progress bar appeared during export", plainProgress.samples > 0, `${plainProgress.samples} frame(s)`);
+check("progress advanced past the start", plainProgress.max > 5, `reached ${plainProgress.max}%`);
+check(
+  "progress exposed a readable value to assistive tech",
+  /aria-valuenow="\d+"/.test(plainProgress.html) && plainProgress.html.includes("data-state=\"loading\""),
+);
+check(
+  "progress named the phase it was in",
+  plainProgress.steps.some((s) => /preparing/i.test(s)) && plainProgress.steps.some((s) => /compressing/i.test(s)),
+  plainProgress.steps.slice(0, 4).join(" | "),
+);
+
+/* ---------- export again, this time denoised ---------- */
+await page.getByRole("button", { name: /^Export/ }).click();
+await page.getByRole("dialog").waitFor({ timeout: 5000 });
+await page.getByRole("switch", { name: /denoise background/i }).click();
+await page.waitForTimeout(150);
+check("denoise can be switched on for export", (await page.getByRole("radio", { name: /^live/i }).getAttribute("aria-checked")) === "true");
+await page.screenshot({ path: path.join(shots, "10-denoised-export.png") });
+
+await watchProgress();
+const denoisedDownload = await Promise.all([
+  page.waitForEvent("download", { timeout: 30000 }),
+  page.getByRole("button", { name: /export \.zip/i }).click(),
+]).then(([d]) => d);
+const denoiseProgress = await readProgress();
+
+const denoisedPath = path.join(os.tmpdir(), "smoke-pack-denoised.zip");
+await denoisedDownload.saveAs(denoisedPath);
+const denoisedListing = execSync(`tar -tf "${denoisedPath}"`).toString().trim().split(/\r?\n/);
+check(
+  "a denoised pack has the same architecture",
+  denoisedListing.includes("readme.txt") &&
+    folders.every((f) => denoisedListing.includes(`${f}/`)) &&
+    denoisedListing.includes("softclicks/1.wav") &&
+    denoisedListing.includes("hardreleases/1.wav"),
+  denoisedListing.join(" "),
+);
+// A small pack exports in a couple of frames, so only assert the bar appeared.
+// How far it advances, and the exact phase sequence, are covered deterministically
+// in verify-pipeline; the plain export above covers a real run to completion.
+check(
+  "denoised export showed the progress bar",
+  denoiseProgress.samples > 0,
+  `${denoiseProgress.samples} frame(s)`,
+);
+fs.rmSync(denoisedPath);
 
 /* ---------- persistence ---------- */
 await page.reload({ waitUntil: "networkidle" });

@@ -11,14 +11,20 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
 import { player } from "@/lib/audio/player";
+import { autocutTake, type AutoCutClip } from "@/lib/audio/autocut";
+import type { DenoiseMethod } from "@/lib/audio/denoise";
+import type { Take } from "@/hooks/useSessionRecorder";
 import { formatSeconds } from "@/lib/audio/wav";
-import { exportPack, packFileName } from "@/lib/exporter";
+import { exportPack, packFileName, type ExportProgress } from "@/lib/exporter";
 import { metaStore } from "@/lib/store";
+import { cn } from "@/lib/utils";
 import { CATEGORIES, type PackMeta, type StoredSound } from "@/lib/types";
 import type { StoredNoise } from "@/lib/store";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Check } from "lucide-react";
 import { toast } from "sonner";
 
 import { NoiseRecorder } from "./NoiseRecorder";
@@ -30,9 +36,34 @@ type ExportDialogProps = {
   counts: Record<string, number>;
   noise: StoredNoise | null;
   onNoiseChange: (noise: StoredNoise | null) => void;
+  /** The take on stage, so Autocut has something to cut when the library is empty. */
+  take: Take | null;
+  onAutocutSave: (clips: AutoCutClip[]) => Promise<boolean>;
 };
 
 const BLANK: PackMeta = { title: "", description: "", creator: "" };
+
+type MethodOption = {
+  id: DenoiseMethod;
+  label: string;
+  hint: string;
+  needsNoise: boolean;
+};
+
+const METHODS: MethodOption[] = [
+  {
+    id: "live",
+    label: "Live",
+    hint: "Learns the noise floor from each clip's own quiet moments.",
+    needsNoise: false,
+  },
+  {
+    id: "spectral",
+    label: "Spectral",
+    hint: "Uses the recorded noise bed to target what the room is really doing.",
+    needsNoise: true,
+  },
+];
 
 export function ExportDialog({
   open,
@@ -41,10 +72,19 @@ export function ExportDialog({
   counts,
   noise,
   onNoiseChange,
+  take,
+  onAutocutSave,
 }: ExportDialogProps) {
   const [meta, setMeta] = useState<PackMeta>(BLANK);
   const [busy, setBusy] = useState(false);
   const [touchedCreator, setTouchedCreator] = useState(false);
+  const [denoise, setDenoise] = useState(false);
+  const [method, setMethod] = useState<DenoiseMethod>("live");
+  const [progress, setProgress] = useState<ExportProgress | null>(null);
+  const [autocutting, setAutocutting] = useState(false);
+  const [autocutProgress, setAutocutProgress] = useState<{ done: number; total: number } | null>(
+    null,
+  );
 
   useEffect(() => {
     if (!open) return;
@@ -76,6 +116,53 @@ export function ExportDialog({
   const fileName = packFileName(effective);
   const total = sounds.length;
   const titleInvalid = !meta.title.trim();
+  const hasNoise = !!noise?.wav?.byteLength;
+  const activeMethod = METHODS.find((option) => option.id === method) ?? METHODS[0]!;
+
+  // Keep the choice valid: a noise bed can be cleared after spectral is picked.
+  const effectiveMethod: DenoiseMethod = method === "spectral" && !hasNoise ? "live" : method;
+
+  // Autocut is only worth offering when there is nothing to export and a take
+  // still on stage to cut.
+  const canAutocut = total === 0 && !!take && take.events.length > 0;
+
+  const handleAutocut = async () => {
+    if (!take) return;
+    setAutocutting(true);
+    setAutocutProgress({ done: 0, total: take.events.length });
+    try {
+      const clips = await autocutTake(take.samples, take.sampleRate, take.events, {
+        onProgress: (done, all) => setAutocutProgress({ done, total: all }),
+      });
+      if (clips.length === 0) {
+        toast.error("Autocut found no real clicks", {
+          description: "Nothing in this take was loud enough to be a performance.",
+        });
+        return;
+      }
+      const saved = await onAutocutSave(clips);
+      if (saved) {
+        const byCategory = clips.reduce<Record<string, number>>((acc, clip) => {
+          acc[clip.intensity] = (acc[clip.intensity] ?? 0) + 1;
+          return acc;
+        }, {});
+        const summary = (["micro", "soft", "medium", "hard"] as const)
+          .filter((intensity) => byCategory[intensity])
+          .map((intensity) => `${byCategory[intensity]} ${intensity}`)
+          .join(", ");
+        toast.success(`Autocut saved ${clips.length} clip${clips.length === 1 ? "" : "s"}`, {
+          description: summary,
+        });
+      }
+    } catch {
+      toast.error("Autocut could not finish", {
+        description: "The take could not be cut. Try recording it again.",
+      });
+    } finally {
+      setAutocutting(false);
+      setAutocutProgress(null);
+    }
+  };
 
   const handleExport = async () => {
     if (titleInvalid) {
@@ -90,13 +177,18 @@ export function ExportDialog({
     }
 
     setBusy(true);
+    setProgress({ value: 0, step: "Preparing", detail: "reading the library" });
     try {
       await metaStore.set<PackMeta>("pack", { ...effective, creator: meta.creator.trim() });
-      const result = await exportPack({
-        meta: effective,
-        sounds,
-        noise: noise ? { wav: noise.wav, duration: noise.duration } : null,
-      });
+      const result = await exportPack(
+        {
+          meta: effective,
+          sounds,
+          noise: noise ? { wav: noise.wav, duration: noise.duration } : null,
+          denoise: denoise ? { method: effectiveMethod } : null,
+        },
+        { onProgress: setProgress },
+      );
       toast.success("Clickpack exported", {
         description: `${result.fileName} · ${(result.size / 1024).toFixed(0)} KB`,
       });
@@ -107,6 +199,7 @@ export function ExportDialog({
       });
     } finally {
       setBusy(false);
+      setProgress(null);
     }
   };
 
@@ -123,6 +216,42 @@ export function ExportDialog({
           </DialogHeader>
 
           <div className="space-y-5 px-6 py-5">
+            {canAutocut && (
+              <div className="rounded-md border border-border bg-accent/40 p-3">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium">Nothing saved yet</p>
+                    <p className="text-xs text-muted-foreground">
+                      Autocut cuts a clip around every press and release in your last take
+                      ({take?.events.length ?? 0} found) and files each one under micro, soft,
+                      medium or hard by how loud it was.
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={autocutting || busy}
+                    onClick={() => void handleAutocut()}
+                  >
+                    {autocutting ? "Cutting…" : "Autocut"}
+                  </Button>
+                </div>
+                {autocutting && autocutProgress && (
+                  <div className="mt-3 space-y-1.5">
+                    <Progress
+                      value={(autocutProgress.done / Math.max(1, autocutProgress.total)) * 100}
+                      aria-label="Autocutting"
+                      aria-valuetext={`${autocutProgress.done} of ${autocutProgress.total}`}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Autocutting · {autocutProgress.done} of {autocutProgress.total} events
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="pack-title">
                 Clickpack Title <span className="text-destructive">*</span>
@@ -149,7 +278,7 @@ export function ExportDialog({
                 id="pack-description"
                 value={meta.description}
                 rows={4}
-                placeholder="Recorded on a wooden desk in a quiet room. Every click is trimmed and normalised to 48 kHz."
+                placeholder="Recorded on a wooden desk in a quiet room. Every clip is trimmed by hand and exported at 48 kHz."
                 onChange={(event) =>
                   setMeta((prev) => ({ ...prev, description: event.target.value }))
                 }
@@ -178,6 +307,69 @@ export function ExportDialog({
 
             <Separator />
 
+            <div className="space-y-3">
+              <div className="flex items-start justify-between gap-4">
+                <div className="space-y-1">
+                  <Label htmlFor="denoise-switch" className="cursor-pointer">
+                    Denoise background
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Runs a spectral gate over every clip as it is written to the zip. Transient
+                    protection keeps the click itself intact.
+                  </p>
+                </div>
+                <Switch
+                  id="denoise-switch"
+                  checked={denoise}
+                  onCheckedChange={setDenoise}
+                  disabled={busy}
+                />
+              </div>
+
+              {denoise && (
+                <div
+                  role="radiogroup"
+                  aria-label="Denoise method"
+                  className="space-y-2 border-l border-border pl-3"
+                >
+                  {METHODS.map((option) => {
+                    const active = effectiveMethod === option.id;
+                    const unavailable = option.needsNoise && !hasNoise;
+                    return (
+                      <button
+                        key={option.id}
+                        type="button"
+                        role="radio"
+                        aria-checked={active}
+                        disabled={busy || unavailable}
+                        onClick={() => setMethod(option.id)}
+                        className={cn(
+                          "w-full rounded-md border px-3 py-2.5 text-left transition-colors",
+                          "outline-none focus-visible:ring-ring/40 focus-visible:ring-[3px]",
+                          "disabled:pointer-events-none disabled:opacity-50",
+                          active
+                            ? "border-primary bg-accent"
+                            : "border-border bg-background hover:bg-accent/50",
+                        )}
+                      >
+                        <span className="flex items-center justify-between gap-3">
+                          <span className="text-sm font-medium">{option.label}</span>
+                          {active && <Check className="size-3.5 shrink-0" aria-hidden />}
+                        </span>
+                        <span className="mt-0.5 block text-xs text-muted-foreground">
+                          {unavailable
+                            ? "Needs a noise bed — record or attach one below."
+                            : option.hint}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <Separator />
+
             <NoiseRecorder noise={noise} onChange={onNoiseChange} />
 
             <div className="space-y-3">
@@ -196,6 +388,14 @@ export function ExportDialog({
                   </span>
                   <span className="truncate text-muted-foreground">
                     {noise ? formatSeconds(noise.duration, 2) : "not included"}
+                  </span>
+                </div>
+                <div className="mt-1 flex items-center justify-between gap-3">
+                  <span className={denoise ? "text-foreground" : "text-muted-foreground"}>
+                    Denoise
+                  </span>
+                  <span className="truncate text-muted-foreground">
+                    {denoise ? activeMethod.label : "off"}
                   </span>
                 </div>
                 <Separator className="my-2" />
@@ -222,13 +422,27 @@ export function ExportDialog({
             </div>
           </div>
 
-          <DialogFooter className="border-t border-border px-6 py-4">
-            <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={busy}>
-              Cancel
-            </Button>
-            <Button onClick={handleExport} disabled={busy || titleInvalid || total === 0}>
-              {busy ? "Building zip…" : "Export .zip"}
-            </Button>
+          <DialogFooter className="space-y-3 border-t border-border px-6 py-4">
+            {busy && progress && (
+              <div className="space-y-1.5 px-0.5 text-left">
+                <Progress
+                  value={progress.value * 100}
+                  aria-label={progress.step}
+                  aria-valuetext={progress.detail}
+                />
+                <p className="text-xs text-muted-foreground">
+                  {progress.step} · {progress.detail}
+                </p>
+              </div>
+            )}
+            <div className="flex justify-end gap-2">
+              <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={busy}>
+                Cancel
+              </Button>
+              <Button onClick={handleExport} disabled={busy || titleInvalid || total === 0}>
+                {busy ? "Exporting…" : "Export .zip"}
+              </Button>
+            </div>
           </DialogFooter>
         </div>
       </DialogContent>

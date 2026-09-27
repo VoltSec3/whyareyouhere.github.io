@@ -12,12 +12,23 @@ import {
   type ViewWindow,
 } from "@/components/editor/WaveformTimeline";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useClickLibrary } from "@/hooks/useClickLibrary";
 import { useSessionRecorder } from "@/hooks/useSessionRecorder";
 import { player } from "@/lib/audio/player";
-import { computePeaks, cutSegment, DEFAULT_CUT_OPTIONS, type PeakBucket } from "@/lib/audio/process";
+import {
+  computePeaks,
+  cutSegment,
+  DEFAULT_CUT_BEHAVIOR,
+  SELECTION_CUT_OPTIONS,
+  type CutBehavior,
+  type PeakBucket,
+} from "@/lib/audio/process";
 import { encodeWav, formatSeconds, formatTimestamp, TARGET_SAMPLE_RATE } from "@/lib/audio/wav";
+import type { AutoCutClip } from "@/lib/audio/autocut";
 import { CATEGORY_MAP, type CategoryId, type StoredSound } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -44,6 +55,11 @@ export function Editor({ onExit }: EditorProps) {
   const [hoverTime, setHoverTime] = useState<number | null>(null);
   const [exportOpen, setExportOpen] = useState(false);
   const [activeClip, setActiveClip] = useState<string | null>(null);
+  /**
+   * What to do to a cut on the way out. All off, so a selection is saved exactly
+   * as drawn; each extra is opt-in and changes what the audition plays.
+   */
+  const [cutBehavior, setCutBehavior] = useState<CutBehavior>(DEFAULT_CUT_BEHAVIOR);
 
   const bufferRef = useRef<AudioBuffer | null>(null);
   const playRafRef = useRef(0);
@@ -206,12 +222,14 @@ export function Editor({ onExit }: EditorProps) {
     (value: Selection) => {
       if (!take) return null;
       return cutSegment(take.samples, take.sampleRate, value.start, value.end, {
-        ...DEFAULT_CUT_OPTIONS,
+        ...SELECTION_CUT_OPTIONS,
         sampleRate: TARGET_SAMPLE_RATE,
+        ...cutBehavior,
       });
     },
-    [take],
+    [cutBehavior, take],
   );
+
 
   const handleSave = useCallback(
     async (category: CategoryId) => {
@@ -256,30 +274,63 @@ export function Editor({ onExit }: EditorProps) {
     [autoAdvance, buildCut, library, selectNext, selection, take],
   );
 
+  /**
+   * Persists a full Autocut run. `library.nextIndex` cannot be used here because
+   * the library state only lands after a render, so each category is counted as
+   * the clips go in.
+   */
+  const handleAutocutSave = useCallback(
+    async (clips: AutoCutClip[]) => {
+      const counters = new Map<CategoryId, number>();
+      let allSaved = true;
+
+      for (const clip of clips) {
+        const next = (counters.get(clip.category) ?? 0) + 1;
+        counters.set(clip.category, next);
+
+        const label = CATEGORY_MAP[clip.category].label;
+        const wav = encodeWav(clip.cut.samples, TARGET_SAMPLE_RATE);
+        const sound: StoredSound = {
+          id: `${clip.category}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`,
+          category: clip.category,
+          name: `${label} ${next}`,
+          sourceStart: clip.cut.start,
+          sourceEnd: clip.cut.end,
+          duration: clip.cut.samples.length / TARGET_SAMPLE_RATE,
+          peak: clip.cut.peakBefore,
+          gain: clip.cut.gain,
+          createdAt: Date.now(),
+          wav: wav.buffer as ArrayBuffer,
+        };
+        if (!(await library.add(sound))) allSaved = false;
+      }
+
+      return allSaved;
+    },
+    [library],
+  );
+
   const handlePreviewCut = useCallback(() => {
     if (!selection) return;
     const takeBuffer = bufferRef.current;
     if (!takeBuffer) return;
-    // Preview the selection itself, not the extracted click. `buildCut` searches
-    // a region for the first transient and returns a single click, which is what
-    // you want when saving but not when asking "what did I just highlight?".
-    const rate = takeBuffer.sampleRate;
-    const from = selection.start;
-    const to = selection.end;
-    const first = Math.max(0, Math.floor(from * rate));
-    const stop = Math.min(takeBuffer.length, Math.ceil(to * rate));
-    if (stop - first < 1) {
+    // Audition the clip that would actually be saved, not the raw region, so
+    // what you hear is what lands in the zip. The cut honours the toggles, so
+    // snapping, trimming, normalising and fading all change what you hear.
+    const cut = buildCut(selection);
+    if (!cut || cut.samples.length === 0) {
       toast.error("Nothing to preview", { description: "That selection is empty." });
       return;
     }
-    const region = takeBuffer.getChannelData(0).slice(first, stop);
-    const length = region.length / rate;
+
+    const from = cut.start;
+    const length = cut.samples.length / TARGET_SAMPLE_RATE;
 
     stopPlayback();
     const token = playTokenRef.current;
     previewRef.current = { from, length };
 
-    const buffer = player.createBuffer(region, rate);
+    const buffer = player.createBuffer(cut.samples, TARGET_SAMPLE_RATE);
     setPlayhead(from);
     setPlaying(true);
     void player.play(buffer, 0).then(() => {
@@ -289,7 +340,7 @@ export function Editor({ onExit }: EditorProps) {
       setPlayhead(from + length);
     });
 
-    // The preview plays the selection on its own, so walk the playhead across it
+    // The preview plays the clip on its own, so walk the playhead across it
     // instead of leaving it parked at the start.
     let last = 0;
     const loop = (now: number) => {
@@ -301,7 +352,7 @@ export function Editor({ onExit }: EditorProps) {
       playRafRef.current = requestAnimationFrame(loop);
     };
     playRafRef.current = requestAnimationFrame(loop);
-  }, [selection, stopPlayback]);
+  }, [buildCut, selection, stopPlayback]);
 
   const handleRecord = useCallback(async () => {
     if (recording) {
@@ -395,6 +446,13 @@ export function Editor({ onExit }: EditorProps) {
 
   const hasSelection = !!selection && selection.end - selection.start > 0.005;
   const cutInfo = hasSelection ? buildCut(selection!) : null;
+  // With every extra off the cut *is* the selection, so only report a separate
+  // length when something actually changed it.
+  const trimmedSeconds = cutInfo ? cutInfo.samples.length / TARGET_SAMPLE_RATE : null;
+  const cutDuration =
+    trimmedSeconds !== null && hasSelection && Math.abs(trimmedSeconds - (selection!.end - selection!.start)) > 0.0005
+      ? trimmedSeconds
+      : null;
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-background">
@@ -489,13 +547,22 @@ export function Editor({ onExit }: EditorProps) {
             {take ? <SelectionHint /> : <EmptyHint />}
           </div>
 
+          {take && (
+            <CutBehaviorRow
+              behavior={cutBehavior}
+              onChange={(key, value) =>
+                setCutBehavior((prev) => ({ ...prev, [key]: value }))
+              }
+            />
+          )}
+
           <TransportBar
             playing={playing}
             playhead={playhead}
             duration={duration}
             take={!!take}
             selection={hasSelection ? selection : null}
-            cutDuration={cutInfo ? cutInfo.samples.length / TARGET_SAMPLE_RATE : null}
+            cutDuration={cutDuration}
             canSave={hasSelection && !!anchor}
             onTogglePlay={togglePlay}
             onStop={() => {
@@ -534,6 +601,8 @@ export function Editor({ onExit }: EditorProps) {
         counts={library.counts}
         noise={library.noise}
         onNoiseChange={(value) => void library.setNoiseBed(value)}
+        take={take}
+        onAutocutSave={handleAutocutSave}
       />
     </div>
   );
@@ -802,6 +871,85 @@ function TransportBar({
             : "Record a take to start cutting."}
         </p>
       )}
+    </div>
+  );
+}
+
+/**
+ * The opt-in extras applied to a cut, each with a plain explanation on hover.
+ * They sit in the editor rather than the export dialog because they change what
+ * the audition button plays, and that decision is made while cutting.
+ */
+const CUT_BEHAVIORS: {
+  key: keyof CutBehavior;
+  label: string;
+  help: string;
+}[] = [
+  {
+    key: "snapOnset",
+    label: "Snap to click",
+    help: "Moves the start of the clip onto the loudest transient inside your selection, so a loose drag still lands on the attack.",
+  },
+  {
+    key: "trimTail",
+    label: "Trim decay",
+    help: "Ends the clip where the tail falls back into the room noise, cutting off any silence you dragged in by accident. Never extends past your selection.",
+  },
+  {
+    key: "normalize",
+    label: "Normalise",
+    help: "Scales the clip so its loudest peak sits just under full scale, with a ceiling on how far a quiet recording can be pushed up.",
+  },
+  {
+    key: "fade",
+    label: "Fade edges",
+    help: "Applies a very short fade in and out, which stops a hard cut from clicking on playback.",
+  },
+];
+
+function CutBehaviorRow({
+  behavior,
+  onChange,
+}: {
+  behavior: CutBehavior;
+  onChange: (key: keyof CutBehavior, value: boolean) => void;
+}) {
+  return (
+    <div className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-2 border-t border-border px-4 py-2">
+      <span className="text-xs text-muted-foreground">On save</span>
+      {CUT_BEHAVIORS.map((item) => {
+        const id = `cut-behavior-${item.key}`;
+        return (
+          <div key={item.key} className="flex items-center gap-1.5">
+            <Switch
+              id={id}
+              checked={behavior[item.key]}
+              onCheckedChange={(value) => onChange(item.key, value)}
+              aria-describedby={`${id}-help`}
+            />
+            <Label htmlFor={id} className="cursor-pointer text-xs">
+              {item.label}
+            </Label>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  aria-label={`What does ${item.label} do?`}
+                  className="grid size-4 place-items-center rounded-full border border-border text-[9px] leading-none text-muted-foreground transition-colors hover:border-foreground hover:text-foreground focus-visible:ring-ring/40 focus-visible:ring-[3px] focus-visible:outline-none"
+                >
+                  ?
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-64 text-xs">
+                {item.help}
+              </TooltipContent>
+            </Tooltip>
+            <span id={`${id}-help`} className="sr-only">
+              {item.help}
+            </span>
+          </div>
+        );
+      })}
     </div>
   );
 }

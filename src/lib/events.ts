@@ -46,6 +46,40 @@ let counter = 0;
 const nextId = () => `evt_${Date.now().toString(36)}_${(counter++).toString(36)}`;
 
 /**
+ * Nobody can press the same button twice this fast. A worn mouse switch also
+ * reports one physical press twice, microseconds apart, which used to show up as
+ * two clicks and two releases stacked on the same spot.
+ */
+export const MIN_EVENT_GAP = 0.05;
+
+/**
+ * Folds away input events that no human could have produced. Compared per kind
+ * and per button, so a genuine fast double-click still gets through while a
+ * switch bouncing inside one press is recorded once.
+ */
+export class EventDebouncer {
+  private lastAccepted = new Map<string, number>();
+
+  /** Returns whether the event is far enough from the last one of its kind. */
+  accepts(
+    kind: RecordedEvent["kind"],
+    source: RecordedEvent["source"],
+    label: string,
+    time: number,
+  ): boolean {
+    const key = `${kind}|${source}|${label}`;
+    const previous = this.lastAccepted.get(key);
+    if (previous !== undefined && time - previous < MIN_EVENT_GAP) return false;
+    this.lastAccepted.set(key, time);
+    return true;
+  }
+
+  reset() {
+    this.lastAccepted.clear();
+  }
+}
+
+/**
  * Captures every mouse press/release and key press/release with a timestamp
  * relative to the start of the take, so each one can be located on the timeline.
  */
@@ -54,6 +88,7 @@ export class InputEventRecorder {
   private startedAt = 0;
   private running = false;
   private readonly onEvent: (event: RecordedEvent) => void;
+  private readonly debouncer = new EventDebouncer();
 
   constructor(onEvent: (event: RecordedEvent) => void = () => {}) {
     this.onEvent = onEvent;
@@ -65,7 +100,10 @@ export class InputEventRecorder {
 
   private push(event: Omit<RecordedEvent, "id" | "time">) {
     if (!this.running) return;
-    const record: RecordedEvent = { ...event, id: nextId(), time: this.elapsed() };
+    const time = this.elapsed();
+    if (!this.debouncer.accepts(event.kind, event.source, event.label, time)) return;
+
+    const record: RecordedEvent = { ...event, id: nextId(), time };
     this.events.push(record);
     this.onEvent(record);
   }
@@ -107,6 +145,7 @@ export class InputEventRecorder {
     if (this.running) return;
     this.running = true;
     this.events = [];
+    this.debouncer.reset();
     this.startedAt = performance.now();
     window.addEventListener("mousedown", this.handleMouseDown, true);
     window.addEventListener("mouseup", this.handleMouseUp, true);

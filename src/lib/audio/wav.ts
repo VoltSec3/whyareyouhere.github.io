@@ -43,6 +43,90 @@ export function wavBlob(samples: Float32Array, sampleRate: number): Blob {
   return new Blob([encodeWav(samples, sampleRate) as BlobPart], { type: "audio/wav" });
 }
 
+export type DecodedWav = {
+  samples: Float32Array;
+  sampleRate: number;
+};
+
+function readAscii(view: DataView, offset: number): string {
+  let text = "";
+  for (let i = 0; i < 4; i++) text += String.fromCharCode(view.getUint8(offset + i));
+  return text;
+}
+
+/**
+ * Minimal RIFF/WAVE reader for the 16-bit PCM buffers this app stores, and for
+ * 8/24/32-bit PCM or 32-bit float in case a noise file came from elsewhere.
+ * Returns null rather than throwing so callers can skip an unusable buffer.
+ */
+export function decodeWav(buffer: ArrayBuffer): DecodedWav | null {
+  if (buffer.byteLength < 44) return null;
+  const view = new DataView(buffer);
+  if (readAscii(view, 0) !== "RIFF" || readAscii(view, 8) !== "WAVE") return null;
+
+  let format = 0;
+  let channels = 0;
+  let sampleRate = 0;
+  let bitsPerSample = 0;
+  let dataStart = -1;
+  let dataLength = 0;
+
+  // Chunk walk rather than fixed offsets: encoders insert LIST/fact chunks.
+  let offset = 12;
+  while (offset + 8 <= view.byteLength) {
+    const id = readAscii(view, offset);
+    const size = view.getUint32(offset + 4, true);
+    const body = offset + 8;
+
+    if (id === "fmt ") {
+      format = view.getUint16(body, true);
+      channels = view.getUint16(body + 2, true);
+      sampleRate = view.getUint32(body + 4, true);
+      bitsPerSample = view.getUint16(body + 14, true);
+    } else if (id === "data") {
+      dataStart = body;
+      // Some encoders write a size that overruns the buffer; clamp it.
+      dataLength = Math.max(0, Math.min(size, view.byteLength - body));
+      break;
+    }
+
+    offset = body + size + (size % 2);
+  }
+
+  if (dataStart < 0 || channels < 1 || sampleRate < 1) return null;
+
+  const bytesPerSample = bitsPerSample / 8;
+  if (!Number.isInteger(bytesPerSample) || bytesPerSample < 1) return null;
+  const frameCount = Math.floor(dataLength / (bytesPerSample * channels));
+  if (frameCount < 1) return null;
+
+  const out = new Float32Array(frameCount);
+  const float = format === 3;
+
+  for (let i = 0; i < frameCount; i++) {
+    let sum = 0;
+    for (let c = 0; c < channels; c++) {
+      const at = dataStart + (i * channels + c) * bytesPerSample;
+      if (float) {
+        sum += bitsPerSample === 64 ? view.getFloat64(at, true) : view.getFloat32(at, true);
+      } else if (bitsPerSample === 8) {
+        sum += (view.getUint8(at) - 128) / 128;
+      } else if (bitsPerSample === 16) {
+        sum += view.getInt16(at, true) / 32768;
+      } else if (bitsPerSample === 24) {
+        const value =
+          view.getUint8(at) | (view.getUint8(at + 1) << 8) | (view.getInt8(at + 2) << 16);
+        sum += value / 8388608;
+      } else if (bitsPerSample === 32) {
+        sum += view.getInt32(at, true) / 2147483648;
+      }
+    }
+    out[i] = sum / channels;
+  }
+
+  return { samples: out, sampleRate };
+}
+
 /** Linear-interpolation resampler. Good enough for short percussive transients. */
 export function resample(samples: Float32Array, from: number, to: number): Float32Array {
   if (from === to) return samples;

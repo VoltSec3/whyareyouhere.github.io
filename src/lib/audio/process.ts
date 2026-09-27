@@ -82,6 +82,11 @@ export type TailOptions = {
   holdDuration: number;
   maxDuration: number;
   minDuration: number;
+  /**
+   * Hard ceiling in samples. A cut may never run past the region the user
+   * selected, however long the tail rings.
+   */
+  endLimit?: number;
 };
 
 /**
@@ -97,7 +102,11 @@ export function findTailEnd(
 ): number {
   const { floorRatio, noiseMultiplier, holdDuration, maxDuration, minDuration } = options;
   const onset = Math.max(0, Math.floor(onsetSample));
-  const maxEnd = Math.min(samples.length, onset + Math.round(sampleRate * maxDuration));
+  const maxEnd = Math.min(
+    samples.length,
+    onset + Math.round(sampleRate * maxDuration),
+    options.endLimit ?? samples.length,
+  );
   const minEnd = Math.min(maxEnd, onset + Math.round(sampleRate * minDuration));
   if (maxEnd - onset < 2) return maxEnd;
 
@@ -148,8 +157,19 @@ export type CutOptions = {
   normalize: boolean;
   /** Never amplify by more than this, so noise-only selections stay quiet. */
   maxGain: number;
+  /** Move the clip start onto the strongest transient inside the selection. */
+  snapOnset: boolean;
+  /** End the clip where the tail decays into the noise floor. */
+  trimTail: boolean;
+  /** Apply the fade in and out. */
+  fade: boolean;
 };
 
+/**
+ * Everything switched on. Autocut uses this because it has to guess where a
+ * click starts and stops, whereas a hand-made selection is honoured as drawn
+ * unless the editor's toggles say otherwise.
+ */
 export const DEFAULT_CUT_OPTIONS: CutOptions = {
   sampleRate: 48000,
   leadIn: 0.012,
@@ -159,6 +179,37 @@ export const DEFAULT_CUT_OPTIONS: CutOptions = {
   fadeOut: 0.006,
   normalize: true,
   maxGain: 14,
+  snapOnset: true,
+  trimTail: true,
+  fade: true,
+};
+
+/**
+ * A hand-drawn selection, taken exactly as drawn. The three extras are opt-in so
+ * that dragging over a click and saving gives back the click you heard.
+ */
+export const SELECTION_CUT_OPTIONS: CutOptions = {
+  ...DEFAULT_CUT_OPTIONS,
+  snapOnset: false,
+  trimTail: false,
+  normalize: false,
+  fade: false,
+};
+
+/** The opt-in extras a user can switch on for a hand-drawn selection. */
+export type CutBehavior = {
+  snapOnset: boolean;
+  trimTail: boolean;
+  normalize: boolean;
+  fade: boolean;
+};
+
+/** Everything off: what you drag is what you get. */
+export const DEFAULT_CUT_BEHAVIOR: CutBehavior = {
+  snapOnset: false,
+  trimTail: false,
+  normalize: false,
+  fade: false,
 };
 
 export type Cut = {
@@ -172,8 +223,10 @@ export type Cut = {
 
 /**
  * Extracts a clean, self-contained clip from a raw region of the session.
- * The transient inside the region is located, the tail is allowed to ring out,
- * and the result is peak-normalized with a safe gain ceiling.
+ *
+ * The region is the user's selection and the clip never reaches outside it. What
+ * happens inside it is up to the caller: by default a hand-drawn selection is
+ * taken exactly as drawn, and each of the three extras is opt-in.
  */
 export function cutSegment(
   session: Float32Array,
@@ -189,15 +242,31 @@ export function cutSegment(
   const regionEnd = Math.min(session.length, Math.ceil(toSeconds * sessionRate));
   if (regionEnd - regionStart < Math.round(sessionRate * 0.01)) return null;
 
-  const onset = findOnset(session, regionStart, regionEnd, sessionRate);
-  const clipStart = Math.max(regionStart, onset - Math.round(options.leadIn * sessionRate));
-  const clipEnd = findTailEnd(session, clipStart + Math.round(options.leadIn * sessionRate), sessionRate, {
-    floorRatio: options.tailFloor,
-    noiseMultiplier: 2.2,
-    holdDuration: 0.02,
-    maxDuration: options.maxDuration,
-    minDuration: 0.05,
-  });
+  // Default: honour the selection exactly, so what was dragged is what is saved.
+  let clipStart = regionStart;
+  if (options.snapOnset) {
+    const onset = findOnset(session, regionStart, regionEnd, sessionRate);
+    clipStart = Math.max(regionStart, onset - Math.round(options.leadIn * sessionRate));
+  }
+
+  // Default: run to the end of the selection. Trimming is opt-in, and even then
+  // the decay point can never push the clip past what was selected.
+  let clipEnd = regionEnd;
+  if (options.trimTail) {
+    clipEnd = findTailEnd(
+      session,
+      clipStart + Math.round(options.leadIn * sessionRate),
+      sessionRate,
+      {
+        floorRatio: options.tailFloor,
+        noiseMultiplier: 2.2,
+        holdDuration: 0.02,
+        maxDuration: options.maxDuration,
+        minDuration: 0.05,
+        endLimit: regionEnd,
+      },
+    );
+  }
 
   const sourceEnd = Math.max(clipStart + 1, Math.min(session.length, clipEnd));
   const raw = session.subarray(clipStart, sourceEnd);
@@ -223,7 +292,9 @@ export function cutSegment(
     for (let i = 0; i < out.length; i++) out[i] *= gain;
   }
 
-  applyFades(out, options.fadeIn * rate, options.fadeOut * rate);
+  if (options.fade) {
+    applyFades(out, options.fadeIn * rate, options.fadeOut * rate);
+  }
 
   return {
     samples: out,

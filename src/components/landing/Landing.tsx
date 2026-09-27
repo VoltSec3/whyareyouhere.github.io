@@ -18,7 +18,7 @@ const STEPS = [
   {
     icon: Scissors,
     title: "Cut",
-    body: "Drag across the waveform to grab a single press or release. The transient is found and the tail trimmed clean.",
+    body: "Drag across the waveform to grab a single press or release. You get back exactly what you highlighted, with snapping, trimming and normalising there if you want them.",
   },
   {
     icon: Layers,
