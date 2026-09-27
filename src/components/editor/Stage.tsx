@@ -79,7 +79,7 @@ export function Stage({
         <div className="mt-2 flex items-center justify-between font-mono text-[0.65rem] text-muted-foreground">
           <span className="flex items-center gap-1.5">
             <Mic className="size-3" />
-            {clipping ? "Clipping — pull back from the mic" : "Input level"}
+            {clipping ? "Clipping - pull back from the mic" : "Input level"}
           </span>
           <span>{clipping ? "HOT" : `${Math.round(peak * 100)}% peak`}</span>
         </div>

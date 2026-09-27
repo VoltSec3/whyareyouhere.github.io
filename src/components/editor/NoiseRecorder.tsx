@@ -213,7 +213,7 @@ export function NoiseRecorder({ noise, onChange }: NoiseRecorderProps) {
         <div className="space-y-1.5">
           <Progress value={(elapsed / target) * 100} className="h-1.5" />
           <p className="text-xs text-muted-foreground">
-            recording {elapsed.toFixed(1)}s / {target}s — keep the room quiet
+            recording {elapsed.toFixed(1)}s / {target}s - keep the room quiet
           </p>
         </div>
       )}

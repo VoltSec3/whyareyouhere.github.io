@@ -358,7 +358,7 @@ export function ExportDialog({
                         </span>
                         <span className="mt-0.5 block text-xs text-muted-foreground">
                           {unavailable
-                            ? "Needs a noise bed — record or attach one below."
+                            ? "Needs a noise bed - record or attach one below."
                             : option.hint}
                         </span>
                       </button>

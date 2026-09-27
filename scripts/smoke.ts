@@ -11,7 +11,7 @@ fs.mkdirSync(shots, { recursive: true });
 
 const log: string[] = [];
 function check(label: string, ok: boolean, detail = "") {
-  log.push(`${ok ? "PASS" : "FAIL"}  ${label}${detail ? ` — ${detail}` : ""}`);
+  log.push(`${ok ? "PASS" : "FAIL"}  ${label}${detail ? ` - ${detail}` : ""}`);
   if (!ok) process.exitCode = 1;
 }
 

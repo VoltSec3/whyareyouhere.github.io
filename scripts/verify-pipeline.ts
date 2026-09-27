@@ -23,7 +23,7 @@ import { CATEGORIES, type PackMeta, type StoredSound } from "../src/lib/types";
 const RATE = TARGET_SAMPLE_RATE;
 const results: string[] = [];
 function check(label: string, ok: boolean, detail = "") {
-  results.push(`${ok ? "PASS" : "FAIL"}  ${label}${detail ? ` — ${detail}` : ""}`);
+  results.push(`${ok ? "PASS" : "FAIL"}  ${label}${detail ? ` - ${detail}` : ""}`);
   if (!ok) process.exitCode = 1;
 }
 

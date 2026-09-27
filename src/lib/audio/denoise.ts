@@ -142,7 +142,7 @@ function frameOffsets(length: number, hop: number): number[] {
 /**
  * Locates the click's own body from the amplitude envelope. Clips are trimmed to
  * begin on the attack, so this is what separates "the transient" from "the
- * background" — there is no leading silence to rely on.
+ * background" - there is no leading silence to rely on.
  */
 export function findClickBody(
   samples: Float32Array,
@@ -246,7 +246,7 @@ function resolveProfile(live: Float32Array, options: DenoiseOptions): Float32Arr
 
   // Undo the stored peak normalisation so the noise file and the clip are
   // compared at the same absolute level. Without a known gain there is nothing
-  // to anchor to, so fall back to the clip's own estimate — which is what
+  // to anchor to, so fall back to the clip's own estimate - which is what
   // `live` uses.
   const gain = options.storedGain;
   if (!gain || !Number.isFinite(gain) || gain <= 0) return live;

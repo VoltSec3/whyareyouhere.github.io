@@ -40,7 +40,7 @@ const PACK_START = 0.72;
 const PACK_SPAN = 0.06;
 const ZIP_START = 0.78;
 
-/** `<Creator>-CutItQuik` — creator falls back to the pack title when left blank. */
+/** `<Creator>-CutItQuik` - creator falls back to the pack title when left blank. */
 export function packFileName(meta: PackMeta): string {
   const raw = (meta.creator.trim() || meta.title.trim() || "untitled")
     .replace(/[\\/:*?"<>|]+/g, "")

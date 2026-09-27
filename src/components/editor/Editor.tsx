@@ -240,7 +240,7 @@ export function Editor({ onExit }: EditorProps) {
       const cut = buildCut(value);
       if (!cut || cut.samples.length === 0) {
         toast.error("Nothing to cut there", {
-          description: "That region is silent — drag across a click you can hear.",
+          description: "That region is silent - drag across a click you can hear.",
         });
         return;
       }
@@ -733,7 +733,7 @@ function TimelineToolbar({
         active={suggest}
         onClick={() => onSuggestChange(!suggest)}
         label="Suggest Clicks/Releases"
-        title="Show where each click and release was detected. Visual only — it never moves your cut."
+        title="Show where each click and release was detected. Visual only - it never moves your cut."
         disabled={disabled}
       />
 
@@ -758,7 +758,7 @@ function TimelineToolbar({
           {pressCount} press · {releaseCount} release
         </span>
         <span className="w-20 text-right font-mono tabular-nums">
-          {hoverTime === null ? "—" : formatTimestamp(hoverTime).slice(3)}
+          {hoverTime === null ? "-" : formatTimestamp(hoverTime).slice(3)}
         </span>
       </div>
     </div>

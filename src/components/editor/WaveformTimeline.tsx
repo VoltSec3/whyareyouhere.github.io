@@ -271,7 +271,7 @@ export function WaveformTimeline({
     ctx.globalAlpha = 1;
     ctx.lineWidth = 1;
 
-    // suggested click / release positions — advisory markers only
+    // suggested click / release positions - advisory markers only
     if (suggest) {
       for (const event of events) {
         const x = Math.round(timeToX(event.time)) + 0.5;
