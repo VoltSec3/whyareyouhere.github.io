@@ -181,24 +181,24 @@ check("resample 24k -> 48k doubles length", up.length === 9600, `${up.length}`);
 
 /* ---------- readme + file naming ---------- */
 const meta: PackMeta = {
-  title: "Sawyer's Soft Desk Pack",
+  title: "Sayo's Soft Desk Pack",
   description: "Recorded on a wooden desk in a quiet room.",
-  creator: "SawyerSayo",
+  creator: "sdsa",
 };
-check("file name format", packFileName(meta) === "SawyerSayo-CutItQuik.zip", packFileName(meta));
+check("file name format", packFileName(meta) === "sdsa-CutItQuik.zip", packFileName(meta));
 check(
   "file name falls back to the title",
-  packFileName({ ...meta, creator: "" }) === "Sawyer's-Soft-Desk-Pack-CutItQuik.zip",
+  packFileName({ ...meta, creator: "" }) === "Sayo's-Soft-Desk-Pack-CutItQuik.zip",
   packFileName({ ...meta, creator: "" }),
 );
 check(
   "illegal filename characters stripped",
-  packFileName({ ...meta, creator: "Saw/yer:Sa*yo?" }) === "SawyerSa yo-CutItQuik.zip".replace(" ", ""),
-  packFileName({ ...meta, creator: "Saw/yer:Sa*yo?" }),
+  packFileName({ ...meta, creator: "sdsa /:sdsa" }) === "sdsa-sdsa-CutItQuik.zip",
+  packFileName({ ...meta, creator: "sdsa /:sdsa" }),
 );
 check(
   "readme starts with the title then the description",
-  buildReadme(meta) === "Sawyer's Soft Desk Pack\n\nRecorded on a wooden desk in a quiet room.\n",
+  buildReadme(meta) === "Sayo's Soft Desk Pack\n\nRecorded on a wooden desk in a quiet room.\n",
 );
 
 /* ---------- zip structure ---------- */
@@ -233,7 +233,7 @@ const missing = expected.filter((entry) => !listing.includes(entry));
 check("zip contains the full SD1 architecture", missing.length === 0, `missing: ${missing.join(", ")}`);
 check("all 8 folders present even when used", listing.filter((l) => l.endsWith("/")).length === 8);
 check("clips are numbered from 1", listing.includes("clicks/1.wav") && !listing.includes("clicks/0.wav"));
-check("no nested root folder", !listing.some((l) => l.startsWith("SawyerSayo")));
+check("no nested root folder", !listing.some((l) => l.startsWith("sdsa")));
 check(
   "every clip made it into the zip",
   listing.filter((l) => l.endsWith(".wav") && l !== "noise.wav").length === sounds.length,
@@ -241,7 +241,7 @@ check(
 );
 
 const reloaded = await JSZip.loadAsync(buffer);
-check("readme.txt round-trips", (await reloaded.file("readme.txt")!.async("string")).startsWith("Sawyer's Soft Desk Pack"));
+check("readme.txt round-trips", (await reloaded.file("readme.txt")!.async("string")) === buildReadme(meta));
 
 /* ================= denoise ================= */
 const rms = (x: Float32Array, from: number, to: number) => {

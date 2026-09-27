@@ -736,7 +736,7 @@ check("zip summary returns to off", await page.getByText("Denoise").locator(".."
 
 await page.locator("#pack-title").fill("Smoke Test Pack");
 await page.locator("#pack-description").fill("Recorded by the automated smoke test.");
-await page.locator("#pack-creator").fill("SawyerSayo");
+await page.locator("#pack-creator").fill("sdsa");
 await page.waitForTimeout(300);
 await page.screenshot({ path: path.join(shots, "09-export-dialog.png") });
 
@@ -786,7 +786,7 @@ const plainProgress = await readProgress();
 
 const zipPath = path.join(os.tmpdir(), "smoke-pack.zip");
 await download.saveAs(zipPath);
-check("zip file name matches the SD1 pattern", download.suggestedFilename() === "SawyerSayo-CutItQuik.zip", download.suggestedFilename());
+check("zip file name matches the SD1 pattern", download.suggestedFilename() === "sdsa-CutItQuik.zip", download.suggestedFilename());
 
 const listing = execSync(`tar -tf "${zipPath}"`).toString().trim().split(/\r?\n/);
 const folders = [

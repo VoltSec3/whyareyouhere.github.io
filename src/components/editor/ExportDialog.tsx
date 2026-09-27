@@ -260,7 +260,7 @@ export function ExportDialog({
                 id="pack-title"
                 value={meta.title}
                 autoFocus
-                placeholder="Sawyer's Soft Desk Pack"
+                placeholder="Sayo's Soft Desk Pack"
                 aria-invalid={titleInvalid}
                 onChange={(event) => setMeta((prev) => ({ ...prev, title: event.target.value }))}
               />
@@ -294,7 +294,7 @@ export function ExportDialog({
               <Input
                 id="pack-creator"
                 value={touchedCreator ? meta.creator : effective.creator}
-                placeholder="SawyerSayo"
+                placeholder="sdsa"
                 onChange={(event) => {
                   setTouchedCreator(true);
                   setMeta((prev) => ({ ...prev, creator: event.target.value }));
