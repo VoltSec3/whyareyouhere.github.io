@@ -2,11 +2,18 @@ import type JSZip from "jszip";
 
 import { buildNoiseShape, denoiseSamples, type DenoiseMethod, type NoiseShape } from "./audio/denoise";
 import { decodeWav, encodeWav } from "./audio/wav";
+import { zcbLayout, zcbRootName, zcbTierFolder, type ZcbLayoutId } from "./zcb";
 import { CATEGORIES, type PackMeta, type StoredSound } from "./types";
 
 export type DenoiseConfig = {
   method: DenoiseMethod;
 };
+
+/**
+ * `generic` writes a flat folder tree that any loader can walk. `zcb` writes the
+ * slot-per-player tree that ZCB Live for Geode expects.
+ */
+export type ExportTarget = "generic" | "zcb";
 
 export type ExportProgress = {
   /** 0..1 across the whole export. */
@@ -25,6 +32,10 @@ export type PackInput = {
   noise: { wav: ArrayBuffer; duration: number } | null;
   /** Omit or null to export the clips untouched. */
   denoise?: DenoiseConfig | null;
+  /** Defaults to `generic`. */
+  target?: ExportTarget;
+  /** Only read when `target` is `zcb`. */
+  zcbLayout?: ZcbLayoutId;
 };
 
 export type BuildOptions = {
@@ -41,7 +52,12 @@ const PACK_SPAN = 0.06;
 const ZIP_START = 0.78;
 
 /** `<Creator>-CutItQuik` - creator falls back to the pack title when left blank. */
-export function packFileName(meta: PackMeta): string {
+export function packFileName(meta: PackMeta, target: ExportTarget = "generic"): string {
+  if (target === "zcb") {
+    // Named after the folder the zip expands into, so the install step is
+    // obvious: unzip, and the result is already the name ZCB will show.
+    return `${zcbRootName(meta.title)}-ZCB.zip`;
+  }
   const raw = (meta.creator.trim() || meta.title.trim() || "untitled")
     .replace(/[\\/:*?"<>|]+/g, "")
     .replace(/\s+/g, "-")
@@ -54,6 +70,35 @@ export function buildReadme(meta: PackMeta): string {
   const title = meta.title.trim() || "Untitled Clickpack";
   const description = meta.description.trim();
   return description ? `${title}\n\n${description}\n` : `${title}\n`;
+}
+
+/** The readme a ZCB pack ships with, including how to actually install it. */
+export function buildZcbReadme(meta: PackMeta, layoutId: ZcbLayoutId): string {
+  const layout = zcbLayout(layoutId);
+  const title = meta.title.trim() || "Untitled Clickpack";
+  const description = meta.description.trim();
+  const slots = layout.slots.join(", ");
+
+  return [
+    title,
+    "",
+    description,
+    "",
+    "Built with CutItQuik for ZCB Live.",
+    "",
+    "Install",
+    "  1. Unzip this archive.",
+    "  2. Move the resulting folder into the .zcb/clickpacks folder next to your",
+    "     Geometry Dash executable.",
+    "  3. In ZCB Live, open Clickpack > Select clickpack and pick it from the list.",
+    "",
+    `Layout: ${layout.label} (${slots})`,
+    "Format: 48 kHz, mono, 16-bit PCM WAV. No manifest is needed; ZCB reads the",
+    "folder name as the pack name.",
+    "",
+  ]
+    .filter((line, index, all) => !(line === "" && all[index - 1] === ""))
+    .join("\n");
 }
 
 function groupByCategory(sounds: StoredSound[]) {
@@ -130,6 +175,7 @@ async function denoiseClips(
 
 export async function buildPack(input: PackInput, options: BuildOptions = {}): Promise<JSZip> {
   const { onProgress } = options;
+  const target: ExportTarget = input.target ?? "generic";
 
   // Loaded on demand: the zip library is only needed when exporting, so keeping
   // it out of the entry chunk roughly a third off the initial download.
@@ -140,24 +186,43 @@ export async function buildPack(input: PackInput, options: BuildOptions = {}): P
   const noiseShape = await prepareNoiseShape(input, onProgress);
   const cleaned = input.denoise ? await denoiseClips(input, noiseShape, onProgress) : null;
 
-  onProgress?.({ value: PACK_START, step: "Packing", detail: "writing readme.txt" });
-  zip.file("readme.txt", buildReadme(input.meta));
+  // ZCB names the pack after its root folder and expects a slot per player, so
+  // everything moves down one level. The generic target stays flat.
+  const layout = target === "zcb" ? zcbLayout(input.zcbLayout ?? "all") : null;
+  const root = layout ? zcbRootName(input.meta.title) : "";
+  const prefix = layout ? `${root}/` : "";
+  const slots = layout ? layout.slots : [null];
+
+  onProgress?.({
+    value: PACK_START,
+    step: "Packing",
+    detail: layout ? `writing ${root}/readme.txt` : "writing readme.txt",
+  });
+  zip.file(
+    `${prefix}readme.txt`,
+    layout
+      ? buildZcbReadme(input.meta, layout.id)
+      : buildReadme(input.meta),
+  );
 
   if (input.noise?.wav?.byteLength) {
-    zip.file("noise.wav", input.noise.wav);
+    zip.file(`${prefix}noise.wav`, input.noise.wav);
   }
 
   const written: { path: string; detail: string }[] = [];
-  for (const category of CATEGORIES) {
-    const folder = zip.folder(category.id);
-    if (!folder) continue;
-    const bucket = grouped.get(category.id) ?? [];
-    bucket.forEach((sound, index) => {
-      const path = `${category.id}/${index + 1}.wav`;
-      const bytes = cleaned?.get(sound.id) ?? new Uint8Array(sound.wav);
-      folder.file(`${index + 1}.wav`, bytes);
-      written.push({ path, detail: `adding ${path}` });
-    });
+  for (const slot of slots) {
+    for (const category of CATEGORIES) {
+      const path = slot ? `${root}/${slot}/${zcbTierFolder(category.id)}` : category.id;
+      const folder = zip.folder(path);
+      if (!folder) continue;
+      const bucket = grouped.get(category.id) ?? [];
+      bucket.forEach((sound, index) => {
+        const entry = `${index + 1}.wav`;
+        const bytes = cleaned?.get(sound.id) ?? new Uint8Array(sound.wav);
+        folder.file(entry, bytes);
+        written.push({ path: `${path}/${entry}`, detail: `adding ${path}/${entry}` });
+      });
+    }
   }
 
   for (let i = 0; i < written.length; i++) {
@@ -180,8 +245,9 @@ export async function exportPack(
   }
 
   const { onProgress } = options;
+  const target: ExportTarget = input.target ?? "generic";
   const zip = await buildPack(input, options);
-  const fileName = packFileName(input.meta);
+  const fileName = packFileName(input.meta, target);
 
   onProgress?.({ value: ZIP_START, step: "Compressing", detail: "deflating entries" });
   const blob = await zip.generateAsync(
@@ -218,9 +284,16 @@ export function exportSummary(input: PackInput) {
     category,
     count: input.sounds.filter((sound) => sound.category === category.id).length,
   }));
+  const target: ExportTarget = input.target ?? "generic";
+  const layout = target === "zcb" ? zcbLayout(input.zcbLayout ?? "all") : null;
   return {
     counts,
     total: input.sounds.length,
     hasNoise: !!input.noise?.wav?.byteLength,
+    target,
+    layout,
+    /** How many copies of the library the zip ends up holding. */
+    slotCount: layout?.slots.length ?? 1,
+    root: layout ? zcbRootName(input.meta.title) : null,
   };
 }

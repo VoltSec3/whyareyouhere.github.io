@@ -19,6 +19,13 @@ import { buildPack, buildReadme, packFileName, type ExportProgress } from "../sr
 import { autocutTake } from "../src/lib/audio/autocut";
 import { EventDebouncer, type RecordedEvent } from "../src/lib/events";
 import { CATEGORIES, type PackMeta, type StoredSound } from "../src/lib/types";
+import {
+  ZCB_CUT_PRESET,
+  validateZcbPack,
+  zcbEntryPath,
+  zcbLayout,
+  zcbRootName,
+} from "../src/lib/zcb";
 
 const RATE = TARGET_SAMPLE_RATE;
 const results: string[] = [];
@@ -661,6 +668,211 @@ check(
   check(
     "the exported wav keeps the saved level",
     Buffer.compare(Buffer.from(encodeWav(asDrawn.samples, RATE)), Buffer.from(out)) === 0,
+  );
+}
+
+/* ---------- ZCB 3 target ----------
+ * The block below re-implements the loader's own folder matcher from
+ * zcblive's live/src/clickpack.rs and runs it over the generated archive, so
+ * compatibility is checked against the real rules rather than asserted.
+ */
+const ZCB_SLOT_DIRNAMES = ["player1", "player2", "left1", "left2", "right1", "right2"];
+const ZCB_TIER_LITERALS = [
+  "hardclick", "hardclicks", "hardrelease", "hardreleases",
+  "click", "clicks", "release", "releases",
+  "softclick", "softclicks", "softrelease", "softreleases",
+  "microclick", "microclicks", "microrelease", "microreleases",
+];
+
+/** Exactly what the loader does: keep letters only, lowercase, compare exactly. */
+const zcbNormalise = (name: string) =>
+  [...name].filter((c) => /\p{L}/u.test(c)).join("").toLowerCase();
+
+check(
+  "zcb root name strips characters Windows forbids",
+  zcbRootName('Sayo\'s: "Soft"/Desk? Pack') === "Sayo's-Soft-Desk-Pack",
+  zcbRootName('Sayo\'s: "Soft"/Desk? Pack'),
+);
+check("zcb root name never comes back empty", zcbRootName("   ") === "untitled", zcbRootName("   "));
+check("zcb root name trims leading dots", zcbRootName("...pack") === "pack", zcbRootName("...pack"));
+check(
+  "zcb entry paths use forward slashes",
+  zcbEntryPath("Pack", "left1", "softclicks", 2) === "Pack/left1/softclicks/3.wav",
+  zcbEntryPath("Pack", "left1", "softclicks", 2),
+);
+
+check("zcb layout single is one slot", zcbLayout("single").slots.length === 1);
+check("zcb layout duo is two slots", zcbLayout("duo").slots.join() === "player1,player2");
+check("zcb layout all is six slots", zcbLayout("all").slots.length === 6);
+check("zcb layout all covers platformer", zcbLayout("all").usesPlatformer);
+check("zcb file name follows the root folder", packFileName(meta, "zcb") === "Sayo's-Soft-Desk-Pack-ZCB.zip", packFileName(meta, "zcb"));
+
+const zcbPack = await buildPack({
+  meta,
+  sounds,
+  noise: { wav: noiseWav, duration: 2 },
+  target: "zcb",
+  zcbLayout: "all",
+});
+const zcbBuffer = await zcbPack.generateAsync({ type: "nodebuffer", compression: "DEFLATE" });
+const zcbTmp = path.join(os.tmpdir(), "ciq-verify-zcb.zip");
+fs.writeFileSync(zcbTmp, zcbBuffer);
+const zcbListing = execSync(`tar -tf "${zcbTmp}"`).toString().trim().split(/\r?\n/);
+fs.rmSync(zcbTmp);
+
+const root = zcbRootName(meta.title);
+check("zcb zip has exactly one root folder", new Set(zcbListing.map((l) => l.split("/")[0])).size === 1, zcbListing[0]);
+check("zcb root folder is the pack name", zcbListing.every((l) => l.startsWith(`${root}/`)), root);
+
+const zcbFiles = zcbListing.filter((l) => l.endsWith(".wav"));
+const zcbClipFiles = zcbFiles.filter((l) => !l.endsWith("noise.wav"));
+const zcbSlotsSeen = new Set(zcbClipFiles.map((l) => l.split("/")[1]!));
+check("zcb zip writes all six slots", zcbSlotsSeen.size === 6, [...zcbSlotsSeen].join(","));
+check(
+  "every slot folder is one the loader looks for",
+  [...zcbSlotsSeen].every((slot) => ZCB_SLOT_DIRNAMES.includes(slot)),
+);
+check(
+  "zcb clip count is the library times the slot count",
+  zcbClipFiles.length === sounds.length * 6,
+  `${zcbClipFiles.length} vs ${sounds.length * 6}`,
+);
+
+// The decisive check: run the loader's matcher over every folder we emitted.
+const zcbDirs = zcbListing.filter((l) => l.endsWith("/")).map((l) => l.replace(/\/$/, ""));
+const zcbTierDirs = zcbDirs.filter((d) => d.split("/").length === 3);
+const zcbSlotDirs = zcbDirs.filter((d) => d.split("/").length === 2);
+check(
+  "zcb emits 6 slots of 8 tiers",
+  zcbSlotDirs.length === 6 && zcbTierDirs.length === 48,
+  `${zcbSlotDirs.length} slots, ${zcbTierDirs.length} tiers`,
+);
+const unmatchedTiers = zcbTierDirs.filter((d) => !ZCB_TIER_LITERALS.includes(zcbNormalise(d.split("/")[2]!)));
+check("every tier folder matches the loader's patterns", unmatchedTiers.length === 0, unmatchedTiers.join(", "));
+const unmatchedSlots = zcbSlotDirs.filter((d) => !ZCB_SLOT_DIRNAMES.includes(d.split("/")[1]!));
+check("every slot folder matches the loader's patterns", unmatchedSlots.length === 0, unmatchedSlots.join(", "));
+check(
+  "zcb keeps readme and noise inside the root",
+  zcbListing.includes(`${root}/readme.txt`) && zcbListing.includes(`${root}/noise.wav`),
+);
+check(
+  "zcb readme documents the install step",
+  (await zcbPack.file(`${root}/readme.txt`)!.async("string")).includes(".zcb/clickpacks"),
+);
+
+// A one-slot export must be a strict subset, never a different shape.
+const zcbSingle = await buildPack({ meta, sounds, noise: null, target: "zcb", zcbLayout: "single" });
+const zcbSingleFiles = Object.keys(zcbSingle.files).filter((f) => f.endsWith(".wav"));
+check("single-slot export writes one copy of the library", zcbSingleFiles.length === sounds.length, `${zcbSingleFiles.length}`);
+check(
+  "single-slot export uses player1 only",
+  zcbSingleFiles.every((f) => f.split("/")[1] === "player1"),
+);
+
+/* ---------- ZCB readiness report ---------- */
+const clip = (id: string, category: string, samples: Float32Array): StoredSound => ({
+  id,
+  category: category as StoredSound["category"],
+  name: id,
+  sourceStart: 0,
+  sourceEnd: samples.length / RATE,
+  duration: samples.length / RATE,
+  peak: 1,
+  gain: 1,
+  createdAt: 0,
+  wav: encodeWav(samples, RATE).buffer as ArrayBuffer,
+});
+
+/** A well-formed 80 ms click: instant attack, exponential decay. */
+function goodClip(seconds = 0.08, amp = 0.5) {
+  const n = Math.round(RATE * seconds);
+  const out = new Float32Array(n);
+  for (let i = 0; i < n; i++) out[i] = Math.sin((2 * Math.PI * 2400 * i) / RATE) * Math.exp(-i / (RATE * 0.012)) * amp;
+  return out;
+}
+
+const fullTier = Array.from({ length: 8 }, (_, i) =>
+  clip(`ok-${i}`, "clicks", goodClip(0.08, 0.3 + i * 0.02)),
+);
+const clean = validateZcbPack([...fullTier, ...Array.from({ length: 8 }, (_, i) => clip(`okr-${i}`, "releases", goodClip()))], {
+  categories: ["clicks", "releases"],
+});
+check("a healthy tier raises nothing", clean.findings.length === 0, clean.findings.map((f) => f.id).join(","));
+
+const sparse = validateZcbPack([clip("only", "clicks", goodClip())], { categories: ["clicks"] });
+check("a one-clip tier is an error", sparse.findings.some((f) => f.id === "layers-clicks"));
+check(
+  "a one-clip tier reports the blocking problem only",
+  sparse.findings.length === 1,
+  sparse.findings.map((f) => f.id).join(","),
+);
+
+const thin = validateZcbPack(
+  Array.from({ length: 5 }, (_, i) => clip(`t-${i}`, "clicks", goodClip())),
+  { categories: ["clicks"] },
+);
+check("five clips is a warning, not an error", thin.findings.every((f) => f.severity === "warning"));
+check("five clips trips the sub-tiering warning", thin.findings.some((f) => f.id === "tiering-clicks"));
+
+const empty = validateZcbPack([clip("a", "clicks", goodClip())], { categories: ["clicks", "hardclicks"] });
+const emptyFinding = empty.findings.find((f) => f.id === "empty-hardclicks");
+check("an empty tier is reported", !!emptyFinding);
+check("an empty tier warns about the release fallback", !!emptyFinding && emptyFinding.detail.includes("release sample"));
+
+const short = validateZcbPack([clip("s", "clicks", goodClip(0.02))], { categories: ["clicks"] });
+check("a clip under 40 ms is reported", short.findings.some((f) => f.id === "short-clicks"));
+const longEnough = validateZcbPack([clip("l", "clicks", goodClip(0.08))], { categories: ["clicks"] });
+check("a clip over 40 ms is not reported as short", !longEnough.findings.some((f) => f.id === "short-clicks"));
+
+const late = new Float32Array(RATE * 0.08);
+for (let i = 0; i < RATE * 0.02; i++) {
+  late[i] = Math.sin((2 * Math.PI * 2400 * i) / RATE) * Math.exp(-i / (RATE * 0.004)) * 0.5;
+}
+check(
+  "a silent second half is reported separately from length",
+  validateZcbPack([clip("t", "clicks", late)], { categories: ["clicks"] }).findings.some((f) => f.id === "tail-clicks"),
+);
+
+const late2 = new Float32Array(RATE * 0.08);
+late2[Math.round(RATE * 0.05)] = 0.5;
+check(
+  "leading silence is reported",
+  validateZcbPack([clip("p", "clicks", late2)], { categories: ["clicks"] }).findings.some((f) => f.id === "attack-clicks"),
+);
+
+const lopsided = validateZcbPack(
+  [
+    ...Array.from({ length: 7 }, (_, i) => clip(`q-${i}`, "clicks", goodClip(0.08, 0.6))),
+    clip("q-loud", "clicks", goodClip(0.08, 0.03)),
+  ],
+  { categories: ["clicks"] },
+);
+check("a level spread past 2.5x is reported", lopsided.findings.some((f) => f.id === "spread-clicks"));
+
+check("errors sort above warnings", (() => {
+  const mixed = validateZcbPack(
+    [clip("m", "clicks", goodClip(0.02)), clip("m2", "releases", goodClip(0.02))],
+    { categories: ["clicks", "releases", "hardclicks"] },
+  );
+  return mixed.findings.findIndex((f) => f.severity === "error") <= mixed.findings.findIndex((f) => f.severity === "warning");
+})());
+
+/* ---------- the ZCB cut preset ---------- */
+check("zcb preset turns every extra on", Object.values(ZCB_CUT_PRESET).every(Boolean));
+const preset = cutSegment(take, RATE, eventTimes[0]! - 0.02, eventTimes[0]! + 0.5, {
+  ...SELECTION_CUT_OPTIONS,
+  sampleRate: RATE,
+  ...ZCB_CUT_PRESET,
+});
+check("the preset produces a cut", !!preset);
+if (preset) {
+  const presetPeak = Math.max(...Array.from(preset.samples, Math.abs));
+  check("the preset normalises", Math.abs(presetPeak - 0.92) < 0.01, presetPeak.toFixed(3));
+  check("the preset keeps the clip inside the selection", preset.end <= eventTimes[0]! + 0.5 + 1e-6);
+  check(
+    "the preset shortens a generous drag",
+    (preset.samples.length / RATE) * 1000 < 500,
+    `${((preset.samples.length / RATE) * 1000).toFixed(0)}ms from a 520ms drag`,
   );
 }
 

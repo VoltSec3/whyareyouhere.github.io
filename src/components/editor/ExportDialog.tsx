@@ -19,12 +19,21 @@ import { autocutTake, type AutoCutClip } from "@/lib/audio/autocut";
 import type { DenoiseMethod } from "@/lib/audio/denoise";
 import type { Take } from "@/hooks/useSessionRecorder";
 import { formatSeconds } from "@/lib/audio/wav";
-import { exportPack, packFileName, type ExportProgress } from "@/lib/exporter";
+import { exportPack, packFileName, type ExportProgress, type ExportTarget } from "@/lib/exporter";
+import {
+  DEFAULT_ZCB_LAYOUT,
+  validateZcbPack,
+  ZCB_LAYOUTS,
+  zcbLayout,
+  zcbRootName,
+  type ZcbLayoutId,
+  type ZcbReport,
+} from "@/lib/zcb";
 import { metaStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { CATEGORIES, type PackMeta, type StoredSound } from "@/lib/types";
 import type { StoredNoise } from "@/lib/store";
-import { AlertCircle, Check } from "lucide-react";
+import { AlertCircle, Check, TriangleAlert } from "lucide-react";
 import { toast } from "sonner";
 
 import { NoiseRecorder } from "./NoiseRecorder";
@@ -65,6 +74,19 @@ const METHODS: MethodOption[] = [
   },
 ];
 
+const TARGETS: { id: ExportTarget; label: string; hint: string }[] = [
+  {
+    id: "zcb",
+    label: "ZCB 3",
+    hint: "For ZCB Live on Geode. Wraps the pack in its own folder and writes a slot per player.",
+  },
+  {
+    id: "generic",
+    label: "Generic",
+    hint: "A flat folder tree that any clickpack loader can walk.",
+  },
+];
+
 export function ExportDialog({
   open,
   onOpenChange,
@@ -80,6 +102,8 @@ export function ExportDialog({
   const [touchedCreator, setTouchedCreator] = useState(false);
   const [denoise, setDenoise] = useState(false);
   const [method, setMethod] = useState<DenoiseMethod>("live");
+  const [target, setTarget] = useState<ExportTarget>("zcb");
+  const [layoutId, setLayoutId] = useState<ZcbLayoutId>(DEFAULT_ZCB_LAYOUT);
   const [progress, setProgress] = useState<ExportProgress | null>(null);
   const [autocutting, setAutocutting] = useState(false);
   const [autocutProgress, setAutocutProgress] = useState<{ done: number; total: number } | null>(
@@ -113,11 +137,22 @@ export function ExportDialog({
     [meta],
   );
 
-  const fileName = packFileName(effective);
+  const fileName = packFileName(effective, target);
+  const layout = zcbLayout(layoutId);
+  const root = zcbRootName(effective.title);
   const total = sounds.length;
   const titleInvalid = !meta.title.trim();
   const hasNoise = !!noise?.wav?.byteLength;
   const activeMethod = METHODS.find((option) => option.id === method) ?? METHODS[0]!;
+
+  /**
+   * ZCB's loader never rejects a pack for sounding wrong, it just works around
+   * it, so the report is the only place these problems can surface.
+   */
+  const report: ZcbReport | null = useMemo(
+    () => (target === "zcb" ? validateZcbPack(sounds) : null),
+    [sounds, target],
+  );
 
   // Keep the choice valid: a noise bed can be cleared after spectral is picked.
   const effectiveMethod: DenoiseMethod = method === "spectral" && !hasNoise ? "live" : method;
@@ -186,11 +221,16 @@ export function ExportDialog({
           sounds,
           noise: noise ? { wav: noise.wav, duration: noise.duration } : null,
           denoise: denoise ? { method: effectiveMethod } : null,
+          target,
+          zcbLayout: layoutId,
         },
         { onProgress: setProgress },
       );
       toast.success("Clickpack exported", {
-        description: `${result.fileName} · ${(result.size / 1024).toFixed(0)} KB`,
+        description:
+          target === "zcb"
+            ? `${result.fileName} · unzip into .zcb/clickpacks`
+            : `${result.fileName} · ${(result.size / 1024).toFixed(0)} KB`,
       });
       onOpenChange(false);
     } catch (error) {
@@ -305,6 +345,62 @@ export function ExportDialog({
               </p>
             </div>
 
+            <div className="space-y-3">
+              <p className="text-sm font-medium">Export for</p>
+              <div role="radiogroup" aria-label="Export target" className="grid gap-2 sm:grid-cols-2">
+                {TARGETS.map((option) => {
+                  const active = target === option.id;
+                  return (
+                    <button
+                      key={option.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={active}
+                      disabled={busy}
+                      onClick={() => setTarget(option.id)}
+                      className={cn(
+                        "rounded-md border px-3 py-2.5 text-left transition-colors",
+                        "outline-none focus-visible:ring-ring/40 focus-visible:ring-[3px]",
+                        "disabled:pointer-events-none disabled:opacity-50",
+                        active
+                          ? "border-primary bg-accent"
+                          : "border-border bg-background hover:bg-accent/50",
+                      )}
+                    >
+                      <span className="flex items-center justify-between gap-3">
+                        <span className="text-sm font-medium">{option.label}</span>
+                        {active && <Check className="size-3.5 shrink-0" aria-hidden />}
+                      </span>
+                      <span className="mt-0.5 block text-xs text-muted-foreground">
+                        {option.hint}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {target === "zcb" && (
+                <div className="space-y-2">
+                  <Label htmlFor="zcb-layout">Slots</Label>
+                  <select
+                    id="zcb-layout"
+                    value={layoutId}
+                    disabled={busy}
+                    onChange={(event) => setLayoutId(event.target.value as ZcbLayoutId)}
+                    className="border-input bg-background focus-visible:border-ring focus-visible:ring-ring/40 h-9 w-full rounded-md border px-3 text-sm shadow-xs outline-none focus-visible:ring-[3px] disabled:opacity-50"
+                  >
+                    {ZCB_LAYOUTS.map((option) => (
+                      <option key={option.id} value={option.id}>
+                        {option.label} · {option.slots.length} slot
+                        {option.slots.length === 1 ? "" : "s"}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-muted-foreground">{layout.hint}</p>
+                </div>
+              )}
+            </div>
+
             <Separator />
 
             <div className="space-y-3">
@@ -375,8 +471,20 @@ export function ExportDialog({
             <div className="space-y-3">
               <p className="text-sm font-medium">What goes in the zip</p>
               <div className="rounded-lg border border-border bg-background p-3 font-mono text-xs">
-                <div className="flex items-center justify-between gap-3">
-                  <span className="text-foreground">readme.txt</span>
+                {target === "zcb" && (
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-foreground">{root}/</span>
+                    <span className="truncate text-muted-foreground">
+                      {layout.slots.join(" ")}
+                    </span>
+                  </div>
+                )}
+                <div
+                  className={`flex items-center justify-between gap-3 ${target === "zcb" ? "mt-1" : ""}`}
+                >
+                  <span className="text-foreground">
+                    {target === "zcb" ? `${root}/readme.txt` : "readme.txt"}
+                  </span>
                   <span className="truncate text-muted-foreground">
                     {effective.title}
                     {effective.description ? " + description" : ""}
@@ -384,7 +492,7 @@ export function ExportDialog({
                 </div>
                 <div className="mt-1 flex items-center justify-between gap-3">
                   <span className={noise ? "text-foreground" : "text-muted-foreground"}>
-                    noise.wav
+                    {target === "zcb" ? `${root}/noise.wav` : "noise.wav"}
                   </span>
                   <span className="truncate text-muted-foreground">
                     {noise ? formatSeconds(noise.duration, 2) : "not included"}
@@ -404,7 +512,9 @@ export function ExportDialog({
                     <div key={category.id} className="flex items-center justify-between gap-2">
                       <span className="truncate text-muted-foreground">{category.id}</span>
                       <span className="text-foreground tabular-nums">
-                        {counts[category.id] ?? 0}
+                        {target === "zcb" && layout.slots.length > 1
+                          ? (counts[category.id] ?? 0) * layout.slots.length
+                          : (counts[category.id] ?? 0)}
                       </span>
                     </div>
                   ))}
@@ -415,11 +525,73 @@ export function ExportDialog({
                   {total} clip{total === 1 ? "" : "s"}
                 </span>
                 <span>48 kHz · 16-bit · mono</span>
+                {target === "zcb" && layout.slots.length > 1 && (
+                  <span>× {layout.slots.length} slots = {total * layout.slots.length} files</span>
+                )}
                 {total === 0 && (
                   <span className="text-destructive">Save at least one clip before exporting.</span>
                 )}
               </div>
             </div>
+
+            {report && total > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm font-medium">ZCB readiness</p>
+                  {report.findings.length === 0 ? (
+                    <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <Check className="size-3.5" aria-hidden />
+                      Nothing to flag
+                    </span>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">
+                      {report.errors > 0 && `${report.errors} blocking`}
+                      {report.errors > 0 && report.warnings > 0 && " · "}
+                      {report.warnings > 0 && `${report.warnings} to look at`}
+                    </span>
+                  )}
+                </div>
+
+                {report.findings.length > 0 && (
+                  <ul className="space-y-2">
+                    {report.findings.map((finding) => (
+                      <li
+                        key={finding.id}
+                        className={cn(
+                          "rounded-md border px-3 py-2 text-xs",
+                          finding.severity === "error"
+                            ? "border-destructive/40 bg-destructive/5"
+                            : "border-border bg-accent/30",
+                        )}
+                      >
+                        <span className="flex items-start gap-2">
+                          {finding.severity === "error" ? (
+                            <AlertCircle className="mt-px size-3.5 shrink-0 text-destructive" aria-hidden />
+                          ) : (
+                            <TriangleAlert
+                              className="mt-px size-3.5 shrink-0 text-muted-foreground"
+                              aria-hidden
+                            />
+                          )}
+                          <span className="space-y-0.5">
+                            <span className="block font-medium text-foreground">{finding.title}</span>
+                            <span className="block text-muted-foreground">{finding.detail}</span>
+                          </span>
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
+                {target === "zcb" && (
+                  <p className="text-xs text-muted-foreground">
+                    Unzip, then move <span className="font-mono text-foreground">{root}/</span>{" "}
+                    into <span className="font-mono text-foreground">.zcb/clickpacks/</span> next
+                    to your Geometry Dash executable.
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
           <DialogFooter className="space-y-3 border-t border-border px-6 py-4">

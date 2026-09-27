@@ -30,6 +30,7 @@ import {
 import { encodeWav, formatSeconds, formatTimestamp, TARGET_SAMPLE_RATE } from "@/lib/audio/wav";
 import type { AutoCutClip } from "@/lib/audio/autocut";
 import { CATEGORY_MAP, type CategoryId, type StoredSound } from "@/lib/types";
+import { ZCB_CUT_PRESET } from "@/lib/zcb";
 import { cn } from "@/lib/utils";
 
 const LIVE_WINDOW = 20;
@@ -914,6 +915,7 @@ function CutBehaviorRow({
   behavior: CutBehavior;
   onChange: (key: keyof CutBehavior, value: boolean) => void;
 }) {
+  const isPreset = CUT_BEHAVIORS.every((item) => behavior[item.key] === ZCB_CUT_PRESET[item.key]);
   return (
     <div className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-2 border-t border-border px-4 py-2">
       <span className="text-xs text-muted-foreground">On save</span>
@@ -950,6 +952,23 @@ function CutBehaviorRow({
           </div>
         );
       })}
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            disabled={isPreset}
+            onClick={() => CUT_BEHAVIORS.forEach((item) => onChange(item.key, ZCB_CUT_PRESET[item.key]))}
+            className="ml-auto rounded-md border border-border px-2 py-1 text-xs text-muted-foreground transition-colors hover:border-foreground hover:text-foreground focus-visible:ring-ring/40 focus-visible:ring-[3px] focus-visible:outline-none disabled:cursor-default disabled:opacity-60 disabled:hover:border-border disabled:hover:text-muted-foreground"
+          >
+            {isPreset ? "ZCB preset on" : "Apply ZCB preset"}
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="max-w-64 text-xs">
+          ZCB layers a click, a transient and a body on every press, and re-uses the tail as a
+          resonance ring. Snapping to the attack, trimming the decay and normalising gives it the
+          clean material it needs.
+        </TooltipContent>
+      </Tooltip>
     </div>
   );
 }

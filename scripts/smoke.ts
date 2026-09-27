@@ -679,6 +679,39 @@ check("clip shows up in the library", (await clipChip.count()) > 0);
   await snapClick.click();
   await page.waitForTimeout(200);
   check("switching snapping off removes the extra length again", (await page.getByText(/after trim/).count()) === 0);
+
+  // The ZCB preset is a shortcut for all four at once, and must not be sticky.
+  const preset = page.getByRole("button", { name: /apply zcb preset/i });
+  check("a zcb preset button is offered", (await preset.count()) === 1);
+  await preset.click();
+  await page.waitForTimeout(200);
+  check(
+    "the zcb preset turns every extra on",
+    (await Promise.all(extras.map((l) => page.getByRole("switch", { name: l }).getAttribute("aria-checked")))).every(
+      (v) => v === "true",
+    ),
+  );
+  check("the button reports the preset is applied", (await page.getByRole("button", { name: /zcb preset on/i }).count()) === 1);
+  check(
+    "the preset button disables itself once applied",
+    await page.getByRole("button", { name: /zcb preset on/i }).isDisabled(),
+  );
+  // Put the extras back the way the rest of the run expects them.
+  for (const label of extras) {
+    const toggle = page.getByRole("switch", { name: label });
+    if ((await toggle.getAttribute("aria-checked")) === "true") await toggle.click();
+  }
+  await page.waitForTimeout(200);
+  check(
+    "the extras can all be turned back off",
+    (await Promise.all(extras.map((l) => page.getByRole("switch", { name: l }).getAttribute("aria-checked")))).every(
+      (v) => v === "false",
+    ),
+  );
+  check(
+    "turning an extra off brings the preset button back",
+    (await page.getByRole("button", { name: /apply zcb preset/i }).count()) === 1,
+  );
   await clearSelection();
 }
 
@@ -738,6 +771,22 @@ await page.locator("#pack-title").fill("Smoke Test Pack");
 await page.locator("#pack-description").fill("Recorded by the automated smoke test.");
 await page.locator("#pack-creator").fill("sdsa");
 await page.waitForTimeout(300);
+
+/* ---------- the ZCB target is the default ---------- */
+const zcbOption = page.getByRole("radio", { name: /^zcb 3/i });
+const genericOption = page.getByRole("radio", { name: /^generic/i });
+check("zcb is the default export target", (await zcbOption.getAttribute("aria-checked")) === "true");
+check("targets are announced as a radio group", (await page.getByRole("radiogroup", { name: /export target/i }).count()) === 1);
+check("the slot selector only shows for zcb", await page.locator("#zcb-layout").isVisible());
+check("all six slots are the default", (await page.locator("#zcb-layout").inputValue()) === "all");
+check("the full platformer option is offered", (await page.locator("#zcb-layout option").count()) === 3);
+check("the zcb pack name is previewed", await page.getByText("Smoke-Test-Pack-ZCB.zip").isVisible());
+check("the zip summary names the root folder", await page.getByText("Smoke-Test-Pack/").first().isVisible());
+check("a zcb readiness report is shown", await page.getByText("ZCB readiness").isVisible());
+check(
+  "the readiness report explains a problem ZCB would hide",
+  (await page.getByText(/release sample instead/i).count()) > 0,
+);
 await page.screenshot({ path: path.join(shots, "09-export-dialog.png") });
 
 // The bar is on screen for a fraction of a second. A MutationObserver coalesces
@@ -786,7 +835,7 @@ const plainProgress = await readProgress();
 
 const zipPath = path.join(os.tmpdir(), "smoke-pack.zip");
 await download.saveAs(zipPath);
-check("zip file name matches the SD1 pattern", download.suggestedFilename() === "sdsa-CutItQuik.zip", download.suggestedFilename());
+check("zcb zip is named after its root folder", download.suggestedFilename() === "Smoke-Test-Pack-ZCB.zip", download.suggestedFilename());
 
 const listing = execSync(`tar -tf "${zipPath}"`).toString().trim().split(/\r?\n/);
 const folders = [
@@ -799,12 +848,50 @@ const folders = [
   "softclicks",
   "softreleases",
 ];
-check("readme.txt at the root", listing.includes("readme.txt"));
-check("all 8 folders present", folders.every((f) => listing.includes(`${f}/`)), listing.join(" "));
+
+/* Re-implement the loader's folder matcher so the archive is checked against the
+ * real rules rather than against our own assumptions about them. */
+const ZCB_SLOT_DIRNAMES = ["player1", "player2", "left1", "left2", "right1", "right2"];
+const ZCB_TIER_LITERALS = [
+  "hardclick", "hardclicks", "hardrelease", "hardreleases",
+  "click", "clicks", "release", "releases",
+  "softclick", "softclicks", "softrelease", "softreleases",
+  "microclick", "microclicks", "microrelease", "microreleases",
+];
+const zcbNormalise = (name: string) =>
+  [...name].filter((c) => /\p{L}/u.test(c)).join("").toLowerCase();
+
+const zcbDirs = listing.filter((l) => l.endsWith("/")).map((l) => l.replace(/\/$/, ""));
+const zcbTierDirs = zcbDirs.filter((d) => d.split("/").length === 3);
+const zcbSlotDirs = zcbDirs.filter((d) => d.split("/").length === 2);
+const zcbClips = listing.filter((l) => l.endsWith(".wav") && !l.endsWith("/noise.wav"));
+
+check("the zcb pack sits in one root folder", new Set(listing.map((l) => l.split("/")[0])).size === 1, listing[0]);
+check("readme.txt is inside the root folder", listing.includes("Smoke-Test-Pack/readme.txt"));
+check("no noise bed was recorded, so none is shipped", !listing.some((l) => l.endsWith("noise.wav")), listing.join(" "));
+check("all six slot folders were written", zcbSlotDirs.length === 6, zcbSlotDirs.join(" "));
+check("each slot got all eight tiers", zcbTierDirs.length === 48, `${zcbTierDirs.length}`);
 check(
-  "saved clips exported as numbered wavs",
-  listing.includes("softclicks/1.wav") && listing.includes("hardreleases/1.wav"),
+  "every slot folder is one the loader scans for",
+  zcbSlotDirs.every((d) => ZCB_SLOT_DIRNAMES.includes(d.split("/")[1]!)),
+  zcbSlotDirs.join(" "),
+);
+check(
+  "every tier folder matches the loader's patterns",
+  zcbTierDirs.every((d) => ZCB_TIER_LITERALS.includes(zcbNormalise(d.split("/")[2]!))),
+  zcbTierDirs.filter((d) => !ZCB_TIER_LITERALS.includes(zcbNormalise(d.split("/")[2]!))).join(" "),
+);
+check(
+  "saved clips landed in the slots",
+  listing.includes("Smoke-Test-Pack/player1/softclicks/1.wav") &&
+    listing.includes("Smoke-Test-Pack/player1/hardreleases/1.wav"),
   listing.join(" "),
+);
+check("clips are numbered from 1", !listing.some((l) => l.endsWith("/0.wav")));
+check(
+  "the library was written once per slot",
+  zcbClips.length > 0 && zcbClips.length % 6 === 0,
+  `${zcbClips.length} clips`,
 );
 fs.rmSync(zipPath);
 
@@ -821,9 +908,45 @@ check(
   plainProgress.steps.slice(0, 4).join(" | "),
 );
 
-/* ---------- export again, this time denoised ---------- */
+/* ---------- the generic target stays flat ---------- */
 await page.getByRole("button", { name: /^Export/ }).click();
 await page.getByRole("dialog").waitFor({ timeout: 5000 });
+check("generic can be chosen", (await genericOption.getAttribute("aria-checked")) === "false");
+await genericOption.click();
+await page.waitForTimeout(200);
+check("choosing generic switches the selection", (await genericOption.getAttribute("aria-checked")) === "true");
+check("choosing generic hides the slot selector", (await page.locator("#zcb-layout").count()) === 0);
+check("choosing generic hides the readiness report", (await page.getByText("ZCB readiness").count()) === 0);
+check("the generic pack name is previewed", await page.getByText("sdsa-CutItQuik.zip").isVisible());
+
+const genericDownload = await Promise.all([
+  page.waitForEvent("download", { timeout: 20000 }),
+  page.getByRole("button", { name: /export \.zip/i }).click(),
+]).then(([d]) => d);
+const genericPath = path.join(os.tmpdir(), "smoke-pack-generic.zip");
+await genericDownload.saveAs(genericPath);
+check("generic zip file name matches the SD1 pattern", genericDownload.suggestedFilename() === "sdsa-CutItQuik.zip", genericDownload.suggestedFilename());
+
+const genericListing = execSync(`tar -tf "${genericPath}"`).toString().trim().split(/\r?\n/);
+check("generic readme.txt sits at the root", genericListing.includes("readme.txt"));
+check("generic writes all 8 folders flat", folders.every((f) => genericListing.includes(`${f}/`)), genericListing.join(" "));
+check(
+  "generic clips are numbered from 1",
+  genericListing.includes("softclicks/1.wav") && genericListing.includes("hardreleases/1.wav"),
+  genericListing.join(" "),
+);
+check("generic has no slot folders", !genericListing.some((l) => /(^|\/)(player1|left1|right1)\//.test(l)), genericListing.join(" "));
+fs.rmSync(genericPath);
+
+/* ---------- export again, denoised and back on zcb ---------- */
+await page.getByRole("button", { name: /^Export/ }).click();
+await page.getByRole("dialog").waitFor({ timeout: 5000 });
+// The dialog stays mounted, so the previous choice is remembered.
+check("the export target is remembered between opens", (await genericOption.getAttribute("aria-checked")) === "true");
+await page.getByRole("radio", { name: /^zcb 3/i }).click();
+await page.waitForTimeout(200);
+check("the target can be switched back to zcb", (await page.getByRole("radio", { name: /^zcb 3/i }).getAttribute("aria-checked")) === "true");
+check("the slot count is remembered too", (await page.locator("#zcb-layout").inputValue()) === "all");
 await page.getByRole("switch", { name: /denoise background/i }).click();
 await page.waitForTimeout(150);
 check("denoise can be switched on for export", (await page.getByRole("radio", { name: /^live/i }).getAttribute("aria-checked")) === "true");
@@ -839,13 +962,16 @@ const denoiseProgress = await readProgress();
 const denoisedPath = path.join(os.tmpdir(), "smoke-pack-denoised.zip");
 await denoisedDownload.saveAs(denoisedPath);
 const denoisedListing = execSync(`tar -tf "${denoisedPath}"`).toString().trim().split(/\r?\n/);
+const denoisedTiers = denoisedListing.filter(
+  (l) => l.endsWith("/") && l.replace(/\/$/, "").split("/").length === 3,
+);
 check(
-  "a denoised pack has the same architecture",
-  denoisedListing.includes("readme.txt") &&
-    folders.every((f) => denoisedListing.includes(`${f}/`)) &&
-    denoisedListing.includes("softclicks/1.wav") &&
-    denoisedListing.includes("hardreleases/1.wav"),
-  denoisedListing.join(" "),
+  "a denoised zcb pack has the same architecture",
+  denoisedListing.includes("Smoke-Test-Pack/readme.txt") &&
+    denoisedTiers.length === 48 &&
+    denoisedListing.includes("Smoke-Test-Pack/player1/softclicks/1.wav") &&
+    denoisedListing.includes("Smoke-Test-Pack/player1/hardreleases/1.wav"),
+  `${denoisedTiers.length} tiers`,
 );
 // A small pack exports in a couple of frames, so only assert the bar appeared.
 // How far it advances, and the exact phase sequence, are covered deterministically
