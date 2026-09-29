@@ -30,7 +30,11 @@ import {
   type ZcbLayoutId,
   type ZcbReport,
 } from "@/lib/zcb";
-import { MENU_CATEGORIES, type MenuSoundId, type StoredMenuSound } from "@/lib/menusounds";
+import {
+  MENU_CATEGORIES,
+  emptyMenuSoundCounts,
+  type StoredMenuSound,
+} from "@/lib/menusounds";
 import { metaStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { CATEGORIES, type PackMeta, type StoredSound } from "@/lib/types";
@@ -179,11 +183,8 @@ export function ExportDialog({
   );
   const menuCount = menuSounds.length;
   const menuCounts = useMemo(() => {
-    const map = Object.fromEntries(MENU_CATEGORIES.map((c) => [c.id, 0])) as Record<
-      MenuSoundId,
-      number
-    >;
-    for (const sound of menuSounds) map[sound.category] += 1;
+    const map = emptyMenuSoundCounts();
+    for (const sound of menuSounds) map[sound.category][sound.phase] += 1;
     return map;
   }, [menuSounds]);
 
@@ -572,14 +573,23 @@ export function ExportDialog({
                 </div>
                 {menuCount > 0 && (
                   <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 border-t border-border pt-2 sm:grid-cols-4">
-                    {MENU_CATEGORIES.map((category) => (
-                      <div key={category.id} className="flex items-center justify-between gap-2">
-                        <span className="truncate text-muted-foreground">{category.folder}</span>
-                        <span className="text-foreground tabular-nums">
-                          {menuCounts[category.id] ?? 0}
-                        </span>
-                      </div>
-                    ))}
+                    {/* One row per folder actually written, not per kind, because a
+                        release pool is its own folder in the archive. */}
+                    {MENU_CATEGORIES.flatMap((category) => {
+                      const pools = menuCounts[category.id];
+                      const rows = [{ folder: category.folder, count: pools.press }];
+                      if (category.release) {
+                        rows.push({ folder: category.release.folder, count: pools.release });
+                      }
+                      return rows
+                        .filter((row) => row.count > 0)
+                        .map((row) => (
+                          <div key={row.folder} className="flex items-center justify-between gap-2">
+                            <span className="truncate text-muted-foreground">{row.folder}</span>
+                            <span className="text-foreground tabular-nums">{row.count}</span>
+                          </div>
+                        ));
+                    })}
                   </div>
                 )}
               </div>

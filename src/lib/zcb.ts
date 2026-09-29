@@ -14,7 +14,7 @@ import { decodeWav } from "./audio/wav";
  *       softclicks/ softreleases/ microclicks/ microreleases/
  *     noise.wav                                         optional
  *     menusounds/                                       optional
- *       escape/ menuclicks/ typing/
+ *       escape/ menuclicks/ menuclicksreleases/ typing/
  *
  * The loader matches a tier folder by stripping every non-alphabetic character
  * from its name and lowercasing it, so `soft_clicks` and `SOFT CLICKS` both work.
@@ -25,6 +25,14 @@ import { decodeWav } from "./audio/wav";
  * player did rather than by how hard, so there is nothing per-player about it -
  * two players at one keyboard share one Escape sound - and the loader reads it
  * once rather than per slot.
+ *
+ * A menu release is a sibling folder of its press folder, named the way the
+ * gameplay tiers name theirs, and only menu clicks have one. That is not a
+ * limitation so much as a consequence of what each gesture sounds like: a mouse
+ * button is held down for a length of time the player chooses, and letting go of
+ * it is a real sound, whereas Escape is tapped and a typing key stays down for as
+ * long as it takes to type a word. Releases are optional - a pack that ships none
+ * simply has no sound when a mouse button comes back up.
  */
 
 /** The loader's six slot folders, in the order its `Index<usize>` uses. */
@@ -53,10 +61,46 @@ export const ZCB_TIER_FOLDERS = [
 /** The folder holding the menu sounds, which sit outside the slot tree. */
 export const ZCB_MENU_ROOT = "menusounds";
 
-/** The three kinds of menu sound, by the folder ZCB reads them from. */
+/** The three press pools ZCB reads menu sounds from. */
 export const ZCB_MENU_FOLDERS = ["escape", "menuclicks", "typing"] as const;
 
+/**
+ * The release pool that exists, by folder. Named `<kind>releases` for the same
+ * reason the gameplay tiers are: a press and its release are two pools, and the
+ * only reliable way to tell them apart is the folder name.
+ */
+export const ZCB_MENU_RELEASE_FOLDERS = ["menuclicksreleases"] as const;
+
+/** Every folder the menu loader reads, press pools first. */
+export const ZCB_MENU_ALL_FOLDERS = [
+  ...ZCB_MENU_FOLDERS,
+  ...ZCB_MENU_RELEASE_FOLDERS,
+] as const;
+
 export type ZcbMenuFolder = (typeof ZCB_MENU_FOLDERS)[number];
+
+/** Human labels for the menu folders, which do not survive `labelOf`. */
+const MENU_FOLDER_LABELS: Record<string, string> = {
+  escape: "Escape",
+  menuclicks: "Menu clicks",
+  typing: "Typing",
+  menuclicksreleases: "Menu click releases",
+};
+
+const menuLabelOf = (folder: string) => MENU_FOLDER_LABELS[folder] ?? labelOf(folder);
+
+/**
+ * The folder a stored menu sound is exported into, from its kind and phase.
+ *
+ * The phase is what picks the folder rather than being carried in the folder
+ * name, so that a clip cannot end up in a pool that does not match how it was
+ * recorded. A release of a kind with no release folder would have nowhere to go;
+ * the caller never produces one, and `MENU_CATEGORIES` is the single place that
+ * decides which kinds those are.
+ */
+export function zcbMenuFolder(category: string, phase: string | undefined): string {
+  return phase === "release" ? `${category}releases` : category;
+}
 
 /**
  * Clips below this are skipped by the menu loader the same way the gameplay
@@ -468,16 +512,22 @@ export function validateZcbPack(
  * warning about it would reject every clip the recorder produces.
  */
 export function validateZcbMenuSounds(
-  sounds: readonly { id: string; category: string; wav: ArrayBuffer }[],
+  sounds: readonly { id: string; category: string; phase?: string; wav: ArrayBuffer }[],
   options: { folders?: readonly string[] } = {},
 ): ZcbReport {
   const findings: ZcbFinding[] = [];
-  const known = options.folders ?? ZCB_MENU_FOLDERS;
-  const grouped = groupByCategory(sounds);
+  const known = options.folders ?? ZCB_MENU_ALL_FOLDERS;
+  // Grouped by the folder each clip actually lands in rather than by its kind, so
+  // the press pool and the release pool of one kind are checked apart. A pack
+  // with thirty clicks and no releases is complete, and validating it as though
+  // the release pool were half-full would be inventing a problem.
+  const grouped = groupByCategory(
+    sounds.map((sound) => ({ ...sound, category: zcbMenuFolder(sound.category, sound.phase) })),
+  );
 
   for (const folder of known) {
     const tier = grouped.get(folder);
-    const name = labelOf(folder);
+    const name = menuLabelOf(folder);
 
     if (!tier || tier.count === 0) continue;
 

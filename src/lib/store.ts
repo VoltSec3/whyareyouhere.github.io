@@ -2,7 +2,7 @@ import type { StoredMenuSound } from "./menusounds";
 import type { StoredSound } from "./types";
 
 const DB_NAME = "cutitquik";
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 const SOUNDS = "sounds";
 const MENU_SOUNDS = "menusounds";
 const META = "meta";
@@ -15,7 +15,7 @@ function openDatabase(): Promise<IDBDatabase> {
   dbPromise = new Promise<IDBDatabase>((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
 
-    request.onupgradeneeded = () => {
+    request.onupgradeneeded = (event) => {
       const db = request.result;
       if (!db.objectStoreNames.contains(SOUNDS)) {
         const store = db.createObjectStore(SOUNDS, { keyPath: "id" });
@@ -30,6 +30,30 @@ function openDatabase(): Promise<IDBDatabase> {
         const store = db.createObjectStore(MENU_SOUNDS, { keyPath: "id" });
         store.createIndex("category", "category", { unique: false });
         store.createIndex("createdAt", "createdAt", { unique: false });
+        // Press and release are replaced one pool at a time, so a re-recorded step
+        // can replace the presses it re-recorded without also throwing away the
+        // releases that were already right. A category-only cursor cannot express
+        // that, hence the compound key.
+        store.createIndex("categoryPhase", ["category", "phase"], { unique: false });
+      } else {
+        // A store carried over from before press and release were split needs the
+        // compound index added to it, and its existing clips need a phase. Without
+        // the backfill they would sit in a bucket no replace query ever visits, and
+        // a previously recorded library would silently export empty.
+        const store = request.transaction!.objectStore(MENU_SOUNDS);
+        if (!store.indexNames.contains("categoryPhase")) {
+          store.createIndex("categoryPhase", ["category", "phase"], { unique: false });
+        }
+        if (event.oldVersion < 3) {
+          const backfill = store.openCursor();
+          backfill.onsuccess = () => {
+            const cursor = backfill.result;
+            if (!cursor) return;
+            const sound = cursor.value as Partial<StoredMenuSound>;
+            if (!sound.phase) cursor.update({ ...sound, phase: "press" as const });
+            cursor.continue();
+          };
+        }
       }
       if (!db.objectStoreNames.contains(META)) {
         db.createObjectStore(META, { keyPath: "key" });
@@ -115,17 +139,22 @@ export const menuSoundStore = {
     await withStore(MENU_SOUNDS, "readwrite", (store) => store.delete(id));
   },
 
-  /** Replaces every clip of one kind, which is how a re-recorded step works. */
-  async replaceCategory(
+  /**
+   * Replaces every clip of one kind's one pool, which is how a re-recorded step
+   * works. Scoped to the phase so re-recording the menu clicks a second time keeps
+   * the release clips the first take already banked.
+   */
+  async replaceCategoryPhase(
     category: StoredMenuSound["category"],
+    phase: StoredMenuSound["phase"],
     sounds: StoredMenuSound[],
   ): Promise<void> {
     const db = await openDatabase();
     await new Promise<void>((resolve, reject) => {
       const tx = db.transaction(MENU_SOUNDS, "readwrite");
       const store = tx.objectStore(MENU_SOUNDS);
-      const index = store.index("category");
-      const cursorRequest = index.openKeyCursor(IDBKeyRange.only(category));
+      const index = store.index("categoryPhase");
+      const cursorRequest = index.openKeyCursor(IDBKeyRange.only([category, phase]));
       cursorRequest.onsuccess = () => {
         const cursor = cursorRequest.result;
         if (cursor) {

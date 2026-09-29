@@ -8,7 +8,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { formatSeconds } from "@/lib/audio/wav";
-import { MENU_CATEGORIES, type MenuSoundId } from "@/lib/menusounds";
+import { MENU_CATEGORIES, type MenuSoundCounts } from "@/lib/menusounds";
 import { CATEGORIES, type CategoryId, type StoredSound } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { ChevronRight, Inbox, Keyboard, TrashIcon } from "lucide-react";
@@ -27,7 +27,7 @@ type LibraryPanelProps = {
    * by loudness, so folding them into `CATEGORIES` would be a lie about both.
    */
   menuCount: number;
-  menuCounts: Record<MenuSoundId, number>;
+  menuCounts: MenuSoundCounts;
   onRecordMenu: () => void;
 };
 
@@ -163,8 +163,18 @@ export function LibraryPanel({
               {menuCount === 0 ? (
                 "Optional. Escape, menu clicks and typing."
               ) : (
-                MENU_CATEGORIES.filter((c) => (menuCounts[c.id] ?? 0) > 0)
-                  .map((c) => `${c.label} ${menuCounts[c.id]}`)
+                MENU_CATEGORIES.filter(
+                  (c) => (menuCounts[c.id]?.press ?? 0) + (menuCounts[c.id]?.release ?? 0) > 0,
+                )
+                  .map((c) => {
+                    const pools = menuCounts[c.id];
+                    // Releases are a separate pool, so a kind with both reads as
+                    // "25 +20 rel" rather than as one inflated number.
+                    return (
+                      `${c.label} ${pools.press}` +
+                      (pools.release > 0 ? ` +${pools.release} rel` : "")
+                    );
+                  })
                   .join(" · ")
               )}
             </p>

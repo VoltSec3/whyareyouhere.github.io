@@ -23,15 +23,23 @@ import {
   cutMenuStep,
   isTypingKey,
   type MenuCaptureEvent,
+  type MenuSoundCounts,
   type MenuSoundId,
+  type MenuSoundPhase,
 } from "@/lib/menusounds";
 import { cn } from "@/lib/utils";
 
 /**
- * Gap between two samples of the same kind. A worn switch reports one physical
- * press twice a few microseconds apart, and a held key autorepeats; without this
- * the same sound is banked three or four times and the pool is thinner than the
- * counter claims.
+ * Gap between two samples of the same kind *and the same half of the gesture*. A
+ * worn switch reports one physical press twice a few microseconds apart, and a held
+ * key autorepeats; without this the same sound is banked three or four times and
+ * the pool is thinner than the counter claims.
+ *
+ * Measured per phase rather than across the whole step, which matters more now that
+ * a step records two phases. A press and its release are the same physical action,
+ * and a click held for 80ms is well inside this gap - one shared timer would throw
+ * the release away as a duplicate of the press, and the take would bank a press
+ * with no release to go with it.
  */
 const MIN_GAP = 0.12;
 
@@ -40,14 +48,25 @@ type Status = "idle" | "requesting" | "recording" | "cutting";
 type RecorderProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  counts: Record<MenuSoundId, number>;
-  onRecorded: (category: MenuSoundId, cuts: ReturnType<typeof cutMenuStep>) => Promise<number>;
+  counts: MenuSoundCounts;
+  onRecorded: (
+    category: MenuSoundId,
+    cuts: ReturnType<typeof cutMenuStep>,
+  ) => Promise<{ press: number; release: number }>;
 };
+
+/** Progress text for one pool: how many are banked against the target. */
+function tally(have: number, target: number) {
+  return `${have} / ${target}${have >= target ? " ✓" : ""}`;
+}
 
 export function MenuSoundRecorder({ open, onOpenChange, counts, onRecorded }: RecorderProps) {
   const [step, setStep] = useState<MenuSoundId>("escape");
   const [status, setStatus] = useState<Status>("idle");
-  const [captured, setCaptured] = useState(0);
+  const [captured, setCaptured] = useState<Record<MenuSoundPhase, number>>({
+    press: 0,
+    release: 0,
+  });
   const [elapsed, setElapsed] = useState(0);
   const [typing, setTyping] = useState("");
 
@@ -58,10 +77,15 @@ export function MenuSoundRecorder({ open, onOpenChange, counts, onRecorded }: Re
   const rafRef = useRef(0);
   const statusRef = useRef<Status>("idle");
   const stepRef = useRef<MenuSoundId>(step);
-  const lastGapRef = useRef(-Infinity);
+  const lastGapRef = useRef<Record<MenuSoundPhase, number>>({
+    press: -Infinity,
+    release: -Infinity,
+  });
 
   const definition = MENU_CATEGORY_MAP[step];
-  const have = counts[step] ?? 0;
+  const releaseTarget = definition.release?.target;
+  const have = counts[step]?.press ?? 0;
+  const haveRelease = counts[step]?.release ?? 0;
   const met = have >= definition.target;
 
   useEffect(() => {
@@ -81,28 +105,35 @@ export function MenuSoundRecorder({ open, onOpenChange, counts, onRecorded }: Re
       stopAll();
       statusRef.current = "idle";
       setStatus("idle");
-      setCaptured(0);
+      setCaptured({ press: 0, release: 0 });
       setElapsed(0);
     }
   }, [open, stopAll]);
 
   const elapsedNow = () => (performance.now() - startedAtRef.current) / 1000;
 
-  const pushEvent = useCallback((label: string) => {
+  const pushEvent = useCallback((label: string, phase: MenuSoundPhase) => {
     const time = elapsedNow();
-    if (time - lastGapRef.current < MIN_GAP) return;
-    lastGapRef.current = time;
-    eventsRef.current.push({ time, label });
-    setCaptured(eventsRef.current.length);
+    if (time - lastGapRef.current[phase] < MIN_GAP) return;
+    lastGapRef.current[phase] = time;
+    eventsRef.current.push({ time, label, phase });
+    setCaptured((prev) => ({ ...prev, [phase]: prev[phase] + 1 }));
   }, []);
 
   // --- input capture, one rule per kind ---
   // The three kinds are told apart by what the player is being asked to do, not
   // by guessing later: Escape is a keypress of its own, a menu click is a
-  // mousedown anywhere outside this window, and typing is a keydown in the box
-  // below. Typing is deliberately *not* filtered by input target the way the
-  // gameplay recorder filters it - typing into a field is the case being
+  // mousedown/mouseup pair anywhere outside this window, and typing is a keydown
+  // in the box below. Typing is deliberately *not* filtered by input target the
+  // way the gameplay recorder filters it - typing into a field is the case being
   // recorded.
+  //
+  // Only the mouse records a release. Escape is a deliberate tap on a switch the
+  // player barely holds, so its release is barely a sound; typing releases land
+  // wherever a sentence pauses, which for a fast typist is every few characters,
+  // and ZCB plays a typing sound per character rather than per key-up. Only the
+  // menu click is a gesture long enough to have a recognisable end, and it is the
+  // one that is heard as a click, so it is the one that gets a release.
   useEffect(() => {
     if (status !== "recording") return;
 
@@ -111,25 +142,46 @@ export function MenuSoundRecorder({ open, onOpenChange, counts, onRecorded }: Re
       if (event.repeat) return;
       if (kind === "escape") {
         if (event.key !== "Escape") return;
-        pushEvent("Esc");
+        pushEvent("Esc", "press");
         return;
       }
       if (kind === "typing") {
         const target = event.target as HTMLElement | null;
         if (!target?.dataset?.menuTyping) return;
         if (!isTypingKey(event.key)) return;
-        pushEvent(event.key);
+        pushEvent(event.key, "press");
       }
+    };
+
+    const outsideTheDialog = (event: Event) => {
+      // Clicks anywhere in this window are the recorder's own controls, not menu
+      // clicks. `panelRef` is the dialog itself, so the backdrop still counts.
+      const target = event.target as Node | null;
+      return !(target && panelRef.current?.contains(target));
     };
 
     const onMouseDown = (event: MouseEvent) => {
       if (stepRef.current !== "menuclicks") return;
-      if (event.button > 4) return;
-      // Clicks anywhere in this window are the recorder's own controls, not menu
-      // clicks. `panelRef` is the dialog itself, so the backdrop still counts.
-      const target = event.target as Node | null;
-      if (target && panelRef.current?.contains(target)) return;
-      pushEvent(`Mouse ${event.button}`);
+      // Left button only, matching the runtime. ZCB routes `WM_LBUTTONDOWN` and
+      // `WM_LBUTTONUP` to these pools and nothing else, so a right- or
+      // middle-button clip would be recorded, exported, and then never played -
+      // and a pool with dead clips in it sounds worse than a smaller pool, because
+      // the samples land on top of each other unevenly. The right button opening a
+      // context menu is a different sound from a menu button, and the middle one
+      // is a scroll gesture.
+      if (event.button !== 0) return;
+      if (!outsideTheDialog(event)) return;
+      pushEvent("Mouse 0", "press");
+    };
+
+    const onMouseUp = (event: MouseEvent) => {
+      if (stepRef.current !== "menuclicks") return;
+      if (event.button !== 0) return;
+      if (!outsideTheDialog(event)) return;
+      // No check for a matching mousedown: a press that began outside the window
+      // and was released outside it is still a real click, and a release is the
+      // only half of the gesture that can be missed by looking for a pair.
+      pushEvent("Mouse 0 up", "release");
     };
 
     const onContextMenu = (event: MouseEvent) => {
@@ -138,10 +190,12 @@ export function MenuSoundRecorder({ open, onOpenChange, counts, onRecorded }: Re
 
     window.addEventListener("keydown", onKeyDown, true);
     window.addEventListener("mousedown", onMouseDown, true);
+    window.addEventListener("mouseup", onMouseUp, true);
     window.addEventListener("contextmenu", onContextMenu, true);
     return () => {
       window.removeEventListener("keydown", onKeyDown, true);
       window.removeEventListener("mousedown", onMouseDown, true);
+      window.removeEventListener("mouseup", onMouseUp, true);
       window.removeEventListener("contextmenu", onContextMenu, true);
     };
   }, [status, pushEvent]);
@@ -167,8 +221,8 @@ export function MenuSoundRecorder({ open, onOpenChange, counts, onRecorded }: Re
 
     micRef.current = mic;
     eventsRef.current = [];
-    lastGapRef.current = -Infinity;
-    setCaptured(0);
+    lastGapRef.current = { press: -Infinity, release: -Infinity };
+    setCaptured({ press: 0, release: 0 });
     setElapsed(0);
     startedAtRef.current = performance.now();
     statusRef.current = "recording";
@@ -199,7 +253,7 @@ export function MenuSoundRecorder({ open, onOpenChange, counts, onRecorded }: Re
 
     if (cuts.length === 0) {
       setStatus("idle");
-      setCaptured(0);
+      setCaptured({ press: 0, release: 0 });
       toast.error("Nothing usable was captured", {
         description: "The sounds were too quiet, or the room was louder than the action.",
       });
@@ -207,19 +261,34 @@ export function MenuSoundRecorder({ open, onOpenChange, counts, onRecorded }: Re
     }
 
     const saved = await onRecorded(step, cuts);
-    if (saved === 0) {
+    const total = saved.press + saved.release;
+    if (total === 0) {
       setStatus("idle");
       return;
     }
     setStatus("idle");
-    setCaptured(0);
+    setCaptured({ press: 0, release: 0 });
     setElapsed(0);
-    toast.success(`${definition.label}: ${saved} clip${saved === 1 ? "" : "s"} saved`, {
-      description:
-        saved >= definition.target
-          ? "Target reached. Record again to replace them, or move on."
-          : `${definition.target - saved} short of the target. Record again to top it up.`,
-    });
+    // Reported per pool, because a take can land on one without the other: a
+    // player who clicks but never lets go - or clicks the dialog's own controls by
+    // habit - should be told which half is missing rather than given a single
+    // number that looks like it succeeded.
+    toast.success(
+      `${definition.label}: ${saved.press} press${saved.press === 1 ? "" : "es"}` +
+        (saved.release > 0 ? `, ${saved.release} release${saved.release === 1 ? "" : "s"}` : "") +
+        " saved",
+      {
+        description: releaseTarget
+          ? !saved.release
+            ? `No releases were captured. Press and let go, away from this window. ${tally(saved.press, definition.target)} presses.`
+            : saved.press >= definition.target && saved.release >= releaseTarget
+              ? "Targets reached. Record again to replace them, or move on."
+              : `${tally(saved.press, definition.target)} presses, ${tally(saved.release, releaseTarget)} releases. Record again to top up.`
+          : saved.press >= definition.target
+            ? "Target reached. Record again to replace them, or move on."
+            : `${tally(saved.press, definition.target)}. Record again to top up.`,
+      },
+    );
   };
 
   const recording = status === "recording";
@@ -254,16 +323,19 @@ export function MenuSoundRecorder({ open, onOpenChange, counts, onRecorded }: Re
           <DialogTitle>Record menu sounds</DialogTitle>
           <DialogDescription>
             Three short steps. ZCB plays Escape from anywhere, menu clicks only outside a level, and
-            typing only while you are actually typing.
+            typing only while you are actually typing. Menu clicks also record the release, so
+            click and let go rather than clicking and holding.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 px-6 py-5">
           <div className="space-y-2" role="tablist" aria-label="Menu sound steps">
             {MENU_CATEGORIES.map((category) => {
-              const count = counts[category.id] ?? 0;
+              const pools = counts[category.id] ?? { press: 0, release: 0 };
               const active = category.id === step;
-              const enough = count >= category.target;
+              const enough =
+                pools.press >= category.target &&
+                (!category.release || pools.release >= category.release.target);
               return (
                 <button
                   key={category.id}
@@ -285,14 +357,30 @@ export function MenuSoundRecorder({ open, onOpenChange, counts, onRecorded }: Re
                     <span className="block text-sm font-medium">{category.label}</span>
                     <span className="block text-xs text-muted-foreground">{category.prompt}</span>
                   </span>
-                  <span
-                    className={cn(
-                      "shrink-0 text-xs tabular-nums",
-                      enough ? "text-foreground" : "text-muted-foreground",
+                  <span className="shrink-0 space-y-0.5 text-right text-xs tabular-nums">
+                    <span
+                      className={cn(
+                        "block",
+                        pools.press >= category.target
+                          ? "text-foreground"
+                          : "text-muted-foreground",
+                      )}
+                    >
+                      {tally(pools.press, category.target)}
+                    </span>
+                    {category.release && (
+                      <span
+                        className={cn(
+                          "block",
+                          pools.release >= category.release.target
+                            ? "text-foreground"
+                            : "text-muted-foreground",
+                        )}
+                      >
+                        {tally(pools.release, category.release.target)} rel
+                      </span>
                     )}
-                  >
-                    {count} / {category.target}
-                    {enough ? " ✓" : ""}
+                    {enough && <span className="block text-foreground">✓</span>}
                   </span>
                 </button>
               );
@@ -303,6 +391,9 @@ export function MenuSoundRecorder({ open, onOpenChange, counts, onRecorded }: Re
 
           <div className="space-y-2">
             <p className="text-xs text-muted-foreground">{definition.hint}</p>
+            {definition.release && (
+              <p className="text-xs text-muted-foreground">{definition.release.hint}</p>
+            )}
 
             {step === "typing" && (
               <div className="space-y-1.5">
@@ -325,12 +416,16 @@ export function MenuSoundRecorder({ open, onOpenChange, counts, onRecorded }: Re
             {recording && (
               <div className="space-y-1.5">
                 <Progress
-                  value={Math.min(100, (captured / definition.target) * 100)}
-                  aria-label={`Recording ${definition.label}`}
-                  aria-valuetext={`${captured} captured`}
+                  value={Math.min(100, (captured.press / definition.target) * 100)}
+                  aria-label={`Recording ${definition.label} presses`}
+                  aria-valuetext={`${captured.press} presses captured`}
                 />
                 <p className="text-xs text-muted-foreground tabular-nums">
-                  {captured} captured · {elapsed.toFixed(1)}s · target {definition.target}
+                  {captured.press} press{captured.press === 1 ? "" : "es"} ·{" "}
+                  {releaseTarget
+                    ? `${captured.release} release${captured.release === 1 ? "" : "s"} · `
+                    : ""}
+                  {elapsed.toFixed(1)}s · target {definition.target}
                   {met ? " (already have enough - keep going for more)" : ""}
                 </p>
               </div>
@@ -343,7 +438,11 @@ export function MenuSoundRecorder({ open, onOpenChange, counts, onRecorded }: Re
                 </Button>
               ) : (
                 <Button onClick={() => void start()} disabled={busy} variant="outline">
-                  {status === "cutting" ? "Cutting…" : have > 0 ? "Re-record" : "Start"}
+                  {status === "cutting"
+                    ? "Cutting…"
+                    : have > 0 || haveRelease > 0
+                      ? "Re-record"
+                      : "Start"}
                 </Button>
               )}
               {recording && (

@@ -2,7 +2,13 @@ import type JSZip from "jszip";
 
 import { buildNoiseShape, denoiseSamples, type DenoiseMethod, type NoiseShape } from "./audio/denoise";
 import { decodeWav, encodeWav } from "./audio/wav";
-import { MENU_CATEGORIES, type MenuSoundId, type StoredMenuSound } from "./menusounds";
+import {
+  MENU_CATEGORIES,
+  MENU_PHASES,
+  emptyMenuSoundCounts,
+  type MenuSoundCounts,
+  type StoredMenuSound,
+} from "./menusounds";
 import {
   zcbLayout,
   zcbRootName,
@@ -89,13 +95,16 @@ export function buildReadme(meta: PackMeta): string {
 export function buildZcbReadme(
   meta: PackMeta,
   layoutId: ZcbLayoutId,
-  menuCounts?: Record<string, number>,
+  counts?: MenuSoundCounts,
 ): string {
   const layout = zcbLayout(layoutId);
   const title = meta.title.trim() || "Untitled Clickpack";
   const description = meta.description.trim();
   const slots = layout.slots.join(", ");
-  const menuTotal = Object.values(menuCounts ?? {}).reduce((sum, n) => sum + n, 0);
+  const menuTotal = Object.values(counts ?? {}).reduce(
+    (sum, pools) => sum + pools.press + pools.release,
+    0,
+  );
 
   return [
     title,
@@ -116,8 +125,19 @@ export function buildZcbReadme(
     menuTotal > 0
       ? [
           "",
-          `Menu sounds: ${MENU_CATEGORIES.filter((c) => (menuCounts?.[c.id] ?? 0) > 0)
-            .map((c) => `${c.label} x${menuCounts![c.id]}`)
+          `Menu sounds: ${MENU_CATEGORIES.filter(
+            (c) => ((counts?.[c.id]?.press ?? 0) + (counts?.[c.id]?.release ?? 0)) > 0,
+          )
+            .map((c) => {
+              const pools = counts?.[c.id];
+              if (!pools) return c.label;
+              // Releases are their own folder, so they are reported separately: a
+              // pack with 20 clicks and no releases should not read as if it
+              // shipped forty menu sounds.
+              const parts = [`${c.label} x${pools.press}`];
+              if (pools.release > 0) parts.push(`+${pools.release} release`);
+              return parts.join(" ");
+            })
             .join(", ")}`,
           "  In ZCB, open Audio and turn Menu sounds on. The toggle is greyed out",
           "  when the pack has none, so a missing folder shows up there rather than",
@@ -125,6 +145,8 @@ export function buildZcbReadme(
           "  Escape plays from anywhere, menu clicks only outside a level, and typing",
           "  only while you are typing. Typing sounds overlap instead of cutting",
           "  each other off, so a fast typist hears a chord rather than one click.",
+          "  Menu click releases play on mouse-up and are optional: a pack without",
+          "  them simply has no sound when the button comes back up.",
         ].join("\n")
       : "",
     "",
@@ -260,26 +282,38 @@ export async function buildPack(input: PackInput, options: BuildOptions = {}): P
   // Menu sounds are written untouched, even when the gameplay tiers are being
   // denoised. The denoiser protects a click body in its first 15 ms and then
   // gates hard against the noise profile, which is tuned for a normalised click
-  // against room tone. A menu sound is normalised as a whole category rather
+  // against room tone. A menu sound is normalised as a whole pool rather
   // than per clip, so its level is already relative to its neighbours and the
   // same gate would either leave it alone or eat its tail. The recorder cuts to
   // the quiet after the attack already, so there is not much room tone to remove.
+  //
+  // Presses and releases go to sibling folders, named the way the gameplay tiers
+  // name theirs (`clicks` / `releases`), so the loader can tell a release folder
+  // from a press one by name and the two never share a pool. A kind with no
+  // release folder simply writes no second folder, which is what makes releases
+  // optional for a pack rather than an empty directory ZCB has to ignore.
   const menuPath = `${prefix}${ZCB_MENU_ROOT}`;
   for (const category of MENU_CATEGORIES) {
-    const bucket = (input.menuSounds ?? [])
-      .filter((sound) => sound.category === category.id)
-      .sort((a, b) => a.createdAt - b.createdAt);
-    if (bucket.length === 0) continue;
-    const folder = zip.folder(`${menuPath}/${category.folder}`);
-    if (!folder) continue;
-    bucket.forEach((sound, index) => {
-      const entry = `${index + 1}.wav`;
-      folder.file(entry, new Uint8Array(sound.wav));
-      written.push({
-        path: `${menuPath}/${category.folder}/${entry}`,
-        detail: `adding ${menuPath}/${category.folder}/${entry}`,
+    const sounds = input.menuSounds ?? [];
+    for (const phase of MENU_PHASES) {
+      const release = phase === "release" ? category.release : undefined;
+      if (phase === "release" && !release) continue;
+      const folderName = release ? release.folder : category.folder;
+      const bucket = sounds
+        .filter((sound) => sound.category === category.id && sound.phase === phase)
+        .sort((a, b) => a.createdAt - b.createdAt);
+      if (bucket.length === 0) continue;
+      const folder = zip.folder(`${menuPath}/${folderName}`);
+      if (!folder) continue;
+      bucket.forEach((sound, index) => {
+        const entry = `${index + 1}.wav`;
+        folder.file(entry, new Uint8Array(sound.wav));
+        written.push({
+          path: `${menuPath}/${folderName}/${entry}`,
+          detail: `adding ${menuPath}/${folderName}/${entry}`,
+        });
       });
-    });
+    }
   }
 
   for (let i = 0; i < written.length; i++) {
@@ -359,13 +393,8 @@ export function exportSummary(input: PackInput) {
   };
 }
 
-function menuCounts(list?: readonly StoredMenuSound[]): Record<MenuSoundId, number> {
-  const map = Object.fromEntries(MENU_CATEGORIES.map((c) => [c.id, 0])) as Record<
-    MenuSoundId,
-    number
-  >;
-  for (const sound of list ?? []) {
-    if (sound.category in map) map[sound.category as MenuSoundId]++;
-  }
+function menuCounts(list?: readonly StoredMenuSound[]): MenuSoundCounts {
+  const map = emptyMenuSoundCounts();
+  for (const sound of list ?? []) map[sound.category][sound.phase]++;
   return map;
 }

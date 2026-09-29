@@ -638,7 +638,7 @@ export function Editor({ onExit }: EditorProps) {
         open={menuSoundsOpen}
         onOpenChange={setMenuSoundsOpen}
         counts={menuLibrary.counts}
-        onRecorded={menuLibrary.replaceCategory}
+          onRecorded={menuLibrary.replacePool}
       />
     </div>
   );
