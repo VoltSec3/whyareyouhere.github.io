@@ -45,9 +45,9 @@ const MIN_ROOM = 0.004;
 const SEARCH_FLOOR = 0.025;
 
 /**
- * Intensity bands as a share of the loudest click in the take. Roughly -24 dB,
- * -12 dB and -5 dB, which is about the spread between a fingertip on a switch
- * and a proper palm strike on the same mouse.
+ * Intensity bands as a share of the loudest click of the same kind. Roughly
+ * -16 dB, -8 dB and -3 dB, which is about the spread between a fingertip on a
+ * switch and a proper palm strike on the same mouse.
  */
 const BANDS: { upTo: number; intensity: Category["intensity"] }[] = [
   { upTo: 0.16, intensity: "micro" },
@@ -56,6 +56,49 @@ const BANDS: { upTo: number; intensity: Category["intensity"] }[] = [
   { upTo: Infinity, intensity: "hard" },
 ];
 
+/**
+ * How much of a click's transient counts as its loudness. Long enough to hold a
+ * real click's body, short enough that a ringy tail cannot dominate.
+ */
+const TRANSIENT_WINDOW = 0.012;
+
+/**
+ * How much of the score comes from the peak rather than the body. A click is
+ * impulsive, so the peak carries most of the perceived weight, but two clicks can
+ * share a peak and differ entirely in size: a thin tick and a full thock. The
+ * body term is what tells those two apart.
+ */
+const PEAK_WEIGHT = 0.65;
+
+type Loudness = {
+  peak: number;
+  score: number;
+};
+
+/**
+ * Measures one click off the raw take, before normalisation and fades, so the
+ * score reflects the performance rather than the processing.
+ */
+function measureLoudness(
+  session: Float32Array,
+  sessionRate: number,
+  onsetSample: number,
+): Loudness {
+  const from = Math.max(0, Math.floor(onsetSample));
+  const to = Math.min(session.length, from + Math.round(TRANSIENT_WINDOW * sessionRate));
+  let peak = 0;
+  let sum = 0;
+  const count = Math.max(1, to - from);
+  for (let i = from; i < to; i++) {
+    const value = session[i]!;
+    const magnitude = Math.abs(value);
+    if (magnitude > peak) peak = magnitude;
+    sum += value * value;
+  }
+  const rms = Math.sqrt(sum / count);
+  return { peak, score: PEAK_WEIGHT * peak + (1 - PEAK_WEIGHT) * rms };
+}
+
 export type AutoCutClip = {
   /** Where the event happened in the take. */
   eventTime: number;
@@ -63,8 +106,11 @@ export type AutoCutClip = {
   onsetTime: number;
   kind: RecordedEvent["kind"];
   label: string;
-  /** Peak of the clip before it was normalised, used for the band. */
-  relativePeak: number;
+  /**
+   * Loudness against the loudest click of the same kind, which is what the band
+   * is read from. Peak and body are combined, so this is not the clip's peak.
+   */
+  relativeLoudness: number;
   intensity: Category["intensity"];
   category: CategoryId;
   cut: Cut;
@@ -230,9 +276,12 @@ export function suggestOnsets(
  * Boundaries come from the measured onsets rather than from each event's
  * timestamp in isolation, so a press cannot swallow the release that follows it:
  * the split lands in the quiet between the two, leaving the tail of the press
- * room to decay and the attack of the release room to arrive. Loudness is judged
- * against the loudest click in the take rather than an absolute dBFS figure, so
- * it works at any microphone gain.
+ * room to decay and the attack of the release room to arrive.
+ *
+ * Loudness is measured off the raw take as a blend of peak and body, and judged
+ * against the loudest click of the same kind rather than an absolute dBFS
+ * figure, so it works at any microphone gain and a lift is not mistaken for a
+ * faint press just because lifts are quieter than presses.
  */
 export async function autocutTake(
   samples: Float32Array,
@@ -252,22 +301,44 @@ export async function autocutTake(
     if (index % 4 === 3) await yieldToUi();
   }
 
-  const loudest = cuts.reduce((max, entry) => Math.max(max, entry.cut.peakBefore), 0);
-  if (loudest <= 0) return [];
+  // Loudness is measured once per clip, off the raw take, before normalisation
+  // and fades, so the score reflects the performance rather than the processing.
+  const measured = cuts
+    .filter((entry) => entry.cut.peakBefore >= settings.minPeak)
+    .map((entry) => ({ ...entry, ...measureLoudness(samples, sampleRate, entry.entry.onsetSample!) }));
+  if (measured.length === 0) return [];
 
-  const floor = Math.max(settings.minPeak, loudest * settings.relativeFloor);
+  // Each kind is judged against the loudest click of its own kind, for both the
+  // tap floor and the band. A lift is quieter than a press by nature, so one
+  // shared reference scaled to the hardest press pushes every ordinary release
+  // down a tier and leaves the release pools ZCB expects to be filled empty.
+  // Scoring within the kind instead makes "standard lift" mean the same thing as
+  // "standard press" for this hand, on this mouse, at this microphone gain.
+  const loudestPeak = new Map<RecordedEvent["kind"], number>();
+  const loudestScore = new Map<RecordedEvent["kind"], number>();
+  for (const { entry, peak, score } of measured) {
+    const kind = entry.event.kind;
+    loudestPeak.set(kind, Math.max(loudestPeak.get(kind) ?? 0, peak));
+    loudestScore.set(kind, Math.max(loudestScore.get(kind) ?? 0, score));
+  }
 
-  return cuts
-    .filter((entry) => entry.cut.peakBefore >= floor)
-    .map(({ entry, cut }) => {
-      const relativePeak = cut.peakBefore / loudest;
-      const intensity = BANDS.find((band) => relativePeak < band.upTo)?.intensity ?? "hard";
+  return measured
+    .filter(({ entry, peak }) => {
+      const ref = loudestPeak.get(entry.event.kind) ?? 0;
+      return ref > 0 && peak >= ref * settings.relativeFloor;
+    })
+    .map(({ entry, cut, score }) => {
+      // The loudest click of a kind scores 1 by construction, so the top tier is
+      // always reachable and never collapses into medium.
+      const ref = loudestScore.get(entry.event.kind) ?? 0;
+      const relativeLoudness = ref > 0 ? score / ref : 0;
+      const intensity = BANDS.find((band) => relativeLoudness < band.upTo)?.intensity ?? "hard";
       return {
         eventTime: entry.event.time,
         onsetTime: entry.onsetTime,
         kind: entry.event.kind,
         label: entry.event.label,
-        relativePeak,
+        relativeLoudness,
         intensity,
         category: categoryFor(intensity, entry.event.kind),
         cut,
