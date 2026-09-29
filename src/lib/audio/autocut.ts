@@ -38,14 +38,6 @@ const ATTACK_GUARD = 0.0035;
 const MIN_ROOM = 0.004;
 
 /**
- * Hard floor on how long a clip may be. A fast click puts a press and its release
- * 40 ms apart, which is less than two lead-ins plus both decays, so this only
- * stops a boundary from landing on top of the attack it belongs to. It is
- * deliberately not the length a clip is aiming for.
- */
-const MIN_CLIP = 0.012;
-
-/**
  * How long after the previous event's timestamp its own search may begin. Long
  * enough to skip the previous click's tail, short enough that a release measured
  * shortly after its press can still find its own attack.
@@ -143,6 +135,16 @@ export function analyseTake(
       ? Math.min(wantedEnd, next.time * sampleRate - leadInSamples - guardSamples)
       : wantedEnd;
 
+    // Two clicks closer together than the previous one's tail leave no quiet to
+    // measure, which leaves no window: `earliest` is past `latest`. Searching it
+    // anyway lands the boundary on that tail and drags the clip tens of
+    // milliseconds past the click it belongs to, so this event is cut at its raw
+    // timestamp instead. An unmeasured cut is inaudible next to a wrong one.
+    if (latest <= earliest) {
+      found.push(null);
+      continue;
+    }
+
     const from = Math.max(0, Math.floor(Math.min(earliest, samples.length)));
     const to = Math.min(samples.length, Math.ceil(Math.max(latest, from + 1)));
     found.push(detectOnset(samples, from, to, sampleRate));
@@ -171,11 +173,20 @@ export function analyseTake(
   const roomSamples = Math.round(MIN_ROOM * sampleRate);
   for (const [index, entry] of analysed.entries()) {
     const next = analysed[index + 1];
-    if (!next) continue;
-    const boundary = next.startLatest - guardSamples - roomSamples;
+    // The last click has no neighbour to stop it, so it is bounded by the search
+    // window instead. Without this it runs to the end of the recording and
+    // swallows any stray click recorded after the performance finished.
+    const stop = next
+      ? next.startLatest - guardSamples - roomSamples
+      : entry.onsetSample! + Math.round(settings.searchAfter * sampleRate);
+    // The neighbour's boundary always wins. Treating MIN_CLIP as a floor here
+    // could push a clip past its own boundary and into the next attack, which
+    // reads as one click bleeding into the next; truncating instead is the
+    // lesser fault. The outer floor guarantees a clip is never shorter than the
+    // transient it was cut for.
     entry.endLimit = Math.max(
-      entry.onsetSample! + Math.round(MIN_CLIP * sampleRate),
-      Math.min(entry.onsetSample! + settings.searchAfter * sampleRate, boundary),
+      entry.onsetSample!,
+      Math.min(entry.onsetSample! + Math.round(settings.searchAfter * sampleRate), stop),
     );
   }
 

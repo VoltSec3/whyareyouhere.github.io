@@ -377,7 +377,10 @@ export type CutOptions = {
  */
 export const DEFAULT_CUT_OPTIONS: CutOptions = {
   sampleRate: 48000,
-  leadIn: 0.012,
+  // Kept sub-perceptual. The 1.5 ms fade below already stops the clip starting on
+  // a hard digital edge, so any real lead-in is only added latency in front of
+  // the click rather than protection.
+  leadIn: 0.0015,
   maxDuration: 1.2,
   tailFloor: 0.02,
   fadeIn: 0.0015,
