@@ -13,11 +13,18 @@ import { decodeWav } from "./audio/wav";
  *       hardclicks/ hardreleases/ clicks/ releases/
  *       softclicks/ softreleases/ microclicks/ microreleases/
  *     noise.wav                                         optional
+ *     menusounds/                                       optional
+ *       escape/ menuclicks/ typing/
  *
  * The loader matches a tier folder by stripping every non-alphabetic character
  * from its name and lowercasing it, so `soft_clicks` and `SOFT CLICKS` both work.
  * The eight names below are the canonical spellings and are byte-identical to
  * CutItQuik's own category ids, so the mapping is the identity.
+ *
+ * `menusounds/` is outside the slot tree on purpose. It is keyed by what the
+ * player did rather than by how hard, so there is nothing per-player about it -
+ * two players at one keyboard share one Escape sound - and the loader reads it
+ * once rather than per slot.
  */
 
 /** The loader's six slot folders, in the order its `Index<usize>` uses. */
@@ -42,6 +49,23 @@ export const ZCB_TIER_FOLDERS = [
   "microclicks",
   "microreleases",
 ] as const;
+
+/** The folder holding the menu sounds, which sit outside the slot tree. */
+export const ZCB_MENU_ROOT = "menusounds";
+
+/** The three kinds of menu sound, by the folder ZCB reads them from. */
+export const ZCB_MENU_FOLDERS = ["escape", "menuclicks", "typing"] as const;
+
+export type ZcbMenuFolder = (typeof ZCB_MENU_FOLDERS)[number];
+
+/**
+ * Clips below this are skipped by the menu loader the same way the gameplay
+ * loader skips anything it cannot decode, so a pack can ship a folder of
+ * one-sample files and get silence. The gameplay tiers have a different floor -
+ * they need 3 files to layer and 8 to sub-tier - but a menu sound is played as a
+ * single voice, so the only thing that matters is that it is not empty.
+ */
+export const ZCB_MENU_MIN_CLIPS = 1;
 
 export type ZcbLayoutId = "single" | "duo" | "all";
 
@@ -118,6 +142,15 @@ export function zcbEntryPath(
   index: number,
 ): string {
   return `${root}/${slot}/${zcbTierFolder(categoryId)}/${index + 1}.wav`;
+}
+
+/** Path of one menu sound inside the pack, always with `/` separators. */
+export function zcbMenuEntryPath(
+  root: string,
+  folder: ZcbMenuFolder,
+  index: number,
+): string {
+  return `${root}/${ZCB_MENU_ROOT}/${folder}/${index + 1}.wav`;
 }
 
 /**
@@ -409,6 +442,67 @@ export function validateZcbPack(
 
   const order = { error: 0, warning: 1 } as const;
   findings.sort((a, b) => order[a.severity] - order[b.severity]);
+
+  const errors = findings.filter((f) => f.severity === "error").length;
+  return {
+    findings,
+    errors,
+    warnings: findings.length - errors,
+    loadable: errors === 0,
+  };
+}
+
+/**
+ * The same kind of check for the menu folders, kept separate because the rules
+ * barely overlap: a menu sound is played as one whole voice, so there is no
+ * layering requirement and no loudness sub-tiering, and a folder with one clip
+ * in it is perfectly fine.
+ *
+ * Note what is *not* checked here, unlike the gameplay tiers. A gameplay click
+ * is cut into an attack transient taken from the first `transient_len_ms` of
+ * the file, so leading silence really does mute its transient and ZCB warns
+ * about it. A menu sound never goes near that engine: `play_menu_sound` hands
+ * the sample straight to FMOD and it plays from the first sample. A lead-in is
+ * therefore good rather than bad for a menu clip - it is what stops the hard
+ * sample-accurate start of a switch click from being an audible tick - so
+ * warning about it would reject every clip the recorder produces.
+ */
+export function validateZcbMenuSounds(
+  sounds: readonly { id: string; category: string; wav: ArrayBuffer }[],
+  options: { folders?: readonly string[] } = {},
+): ZcbReport {
+  const findings: ZcbFinding[] = [];
+  const known = options.folders ?? ZCB_MENU_FOLDERS;
+  const grouped = groupByCategory(sounds);
+
+  for (const folder of known) {
+    const tier = grouped.get(folder);
+    const name = labelOf(folder);
+
+    if (!tier || tier.count === 0) continue;
+
+    if (tier.readable < tier.count) {
+      findings.push({
+        id: `menu-unreadable-${folder}`,
+        severity: "error",
+        category: folder,
+        title: `${name} has ${tier.count - tier.readable} unreadable clip${tier.count - tier.readable === 1 ? "" : "s"}`,
+        detail:
+          "ZCB's menu loader skips any file it cannot decode, so these would vanish from the pack.",
+      });
+      continue;
+    }
+
+    if (tier.count < ZCB_MENU_MIN_CLIPS) {
+      findings.push({
+        id: `menu-empty-${folder}`,
+        severity: "warning",
+        category: folder,
+        title: `${name} is empty`,
+        detail: "ZCB will fall back to its own default sound for this action.",
+      });
+    }
+  }
 
   const errors = findings.filter((f) => f.severity === "error").length;
   return {

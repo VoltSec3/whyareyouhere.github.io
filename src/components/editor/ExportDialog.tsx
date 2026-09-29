@@ -22,6 +22,7 @@ import { formatSeconds } from "@/lib/audio/wav";
 import { exportPack, packFileName, type ExportProgress, type ExportTarget } from "@/lib/exporter";
 import {
   DEFAULT_ZCB_LAYOUT,
+  validateZcbMenuSounds,
   validateZcbPack,
   ZCB_LAYOUTS,
   zcbLayout,
@@ -29,6 +30,7 @@ import {
   type ZcbLayoutId,
   type ZcbReport,
 } from "@/lib/zcb";
+import { MENU_CATEGORIES, type MenuSoundId, type StoredMenuSound } from "@/lib/menusounds";
 import { metaStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { CATEGORIES, type PackMeta, type StoredSound } from "@/lib/types";
@@ -45,6 +47,12 @@ type ExportDialogProps = {
   counts: Record<string, number>;
   noise: StoredNoise | null;
   onNoiseChange: (noise: StoredNoise | null) => void;
+  /**
+   * Menu sounds, kept out of `sounds` and out of the slot tree. Optional: the
+   * export handles an empty list, and ZCB shows the toggle greyed out when the
+   * pack ends up with none.
+   */
+  menuSounds: StoredMenuSound[];
   /** The take on stage, so Autocut has something to cut when the library is empty. */
   take: Take | null;
   onAutocutSave: (clips: AutoCutClip[]) => Promise<boolean>;
@@ -94,6 +102,7 @@ export function ExportDialog({
   counts,
   noise,
   onNoiseChange,
+  menuSounds,
   take,
   onAutocutSave,
 }: ExportDialogProps) {
@@ -154,6 +163,30 @@ export function ExportDialog({
     [sounds, target],
   );
 
+  /**
+   * Menu sounds are reported separately and merged in, so one card can tell the
+   * person that a gameplay tier is thin *and* that a menu folder is missing an
+   * attack, without the two reports having to know about each other.
+   */
+  const menuReport: ZcbReport | null = useMemo(
+    () => (target === "zcb" ? validateZcbMenuSounds(menuSounds) : null),
+    [menuSounds, target],
+  );
+
+  const findings = useMemo(
+    () => [...(report?.findings ?? []), ...(menuReport?.findings ?? [])],
+    [report, menuReport],
+  );
+  const menuCount = menuSounds.length;
+  const menuCounts = useMemo(() => {
+    const map = Object.fromEntries(MENU_CATEGORIES.map((c) => [c.id, 0])) as Record<
+      MenuSoundId,
+      number
+    >;
+    for (const sound of menuSounds) map[sound.category] += 1;
+    return map;
+  }, [menuSounds]);
+
   // Keep the choice valid: a noise bed can be cleared after spectral is picked.
   const effectiveMethod: DenoiseMethod = method === "spectral" && !hasNoise ? "live" : method;
 
@@ -204,9 +237,9 @@ export function ExportDialog({
       toast.error("Give the clickpack a title first");
       return;
     }
-    if (total === 0) {
+    if (total === 0 && menuCount === 0) {
       toast.error("Nothing to export", {
-        description: "Save at least one click or release to the library first.",
+        description: "Save at least one clip, or record some menu sounds, first.",
       });
       return;
     }
@@ -219,6 +252,7 @@ export function ExportDialog({
         {
           meta: effective,
           sounds,
+          menuSounds,
           noise: noise ? { wav: noise.wav, duration: noise.duration } : null,
           denoise: denoise ? { method: effectiveMethod } : null,
           target,
@@ -506,6 +540,23 @@ export function ExportDialog({
                     {denoise ? activeMethod.label : "off"}
                   </span>
                 </div>
+                {/*
+                  Menu sounds sit outside the slot tree and are listed separately,
+                  because they are not copied per slot: one Escape sound serves
+                  every player at the same keyboard. Showing them multiplied by
+                  the slot count would be wrong, so the tree shows the single copy
+                  that is actually written.
+                */}
+                {menuCount > 0 && (
+                  <div className="mt-1 flex items-center justify-between gap-3">
+                    <span className="text-foreground">
+                      {target === "zcb" ? `${root}/menusounds/` : "menusounds/"}
+                    </span>
+                    <span className="truncate text-muted-foreground">
+                      {menuCount} clip{menuCount === 1 ? "" : "s"} · not per slot
+                    </span>
+                  </div>
+                )}
                 <Separator className="my-2" />
                 <div className="grid grid-cols-2 gap-x-4 gap-y-1 sm:grid-cols-4">
                   {CATEGORIES.map((category) => (
@@ -519,6 +570,18 @@ export function ExportDialog({
                     </div>
                   ))}
                 </div>
+                {menuCount > 0 && (
+                  <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 border-t border-border pt-2 sm:grid-cols-4">
+                    {MENU_CATEGORIES.map((category) => (
+                      <div key={category.id} className="flex items-center justify-between gap-2">
+                        <span className="truncate text-muted-foreground">{category.folder}</span>
+                        <span className="text-foreground tabular-nums">
+                          {menuCounts[category.id] ?? 0}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
               <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
                 <span>
@@ -532,29 +595,43 @@ export function ExportDialog({
                   <span className="text-destructive">Save at least one clip before exporting.</span>
                 )}
               </div>
+              {menuCount > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  Menu sounds are written once to{" "}
+                  <span className="font-mono text-foreground">
+                    {target === "zcb" ? `${root}/menusounds/` : "menusounds/"}
+                  </span>
+                  , not once per slot, and are left un-denoised so the recorder&apos;s cuts survive
+                  intact.
+                </p>
+              )}
             </div>
 
-            {report && total > 0 && (
+            {report && (total > 0 || menuCount > 0) && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-sm font-medium">ZCB readiness</p>
-                  {report.findings.length === 0 ? (
+                  {findings.length === 0 ? (
                     <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
                       <Check className="size-3.5" aria-hidden />
                       Nothing to flag
                     </span>
                   ) : (
                     <span className="text-xs text-muted-foreground">
-                      {report.errors > 0 && `${report.errors} blocking`}
-                      {report.errors > 0 && report.warnings > 0 && " · "}
-                      {report.warnings > 0 && `${report.warnings} to look at`}
+                      {findings.filter((f) => f.severity === "error").length > 0 &&
+                        `${findings.filter((f) => f.severity === "error").length} blocking`}
+                      {findings.filter((f) => f.severity === "error").length > 0 &&
+                        findings.filter((f) => f.severity === "warning").length > 0 &&
+                        " · "}
+                      {findings.filter((f) => f.severity === "warning").length > 0 &&
+                        `${findings.filter((f) => f.severity === "warning").length} to look at`}
                     </span>
                   )}
                 </div>
 
-                {report.findings.length > 0 && (
+                {findings.length > 0 && (
                   <ul className="space-y-2">
-                    {report.findings.map((finding) => (
+                    {findings.map((finding) => (
                       <li
                         key={finding.id}
                         className={cn(
@@ -611,7 +688,10 @@ export function ExportDialog({
               <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={busy}>
                 Cancel
               </Button>
-              <Button onClick={handleExport} disabled={busy || titleInvalid || total === 0}>
+              <Button
+                onClick={handleExport}
+                disabled={busy || titleInvalid || (total === 0 && menuCount === 0)}
+              >
                 {busy ? "Exporting…" : "Export .zip"}
               </Button>
             </div>

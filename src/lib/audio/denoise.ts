@@ -39,36 +39,69 @@ const HALF = FRAME_SIZE / 2;
 
 /**
  * A bin must sit this many times above the estimated floor to be left alone.
- * Per-bin noise magnitudes are Rayleigh-distributed, so the threshold has to sit
- * well above 1 to gate the bulk of the background: at 2.2 the average reduction
- * works out around -6 dB, at 3.5 around -11 dB. The click is protected by the
- * body detector and the broadband guard regardless of this value, so it buys
- * background suppression without endangering the transient.
+ *
+ * The floor is the *average* noise level of the clip, which is what makes this
+ * ratio meaningful: a bin of the background sits at about 1.0 by definition, and
+ * per-bin magnitudes are Rayleigh-distributed around it, so at 2.6 only about 1%
+ * of noise bins escape untouched. The rest are pulled down, and the click - whose
+ * bins sit two or three orders of magnitude above the room - is not among them.
  */
-const SNR_THRESHOLD = 3.5;
-/** Residual gain applied to fully-gated bins (-20 dB). */
-const ATTENUATION = 0.1;
+const SNR_THRESHOLD = 2.6;
+/** Residual gain applied to fully-gated bins (-26 dB). */
+const ATTENUATION = 0.05;
 /** A frame this many times louder than the floor is a transient, not noise. */
 const TRANSIENT_RATIO = 2.5;
 /**
- * Percentile of the clip's tail frames treated as the floor. The median of the
- * quiet frames tracks the mean noise power closely; a low percentile lands well
- * under it, which leaves most noise bins sitting above the gate threshold and
- * barely reduces anything.
+ * …or one this many times louder than the floor's average bin, measured as a
+ * single-bin spike. Compared against the average rather than the floor's own
+ * loudest bin, because the loudest bin of a noise frame is several times the
+ * average on its own: referencing the peak of the profile made every noise frame
+ * look like a transient and the gate never closed.
  */
-const LIVE_PERCENTILE = 0.5;
+const PEAK_GUARD_RATIO = 12;
+/**
+ * How quickly the floor follows the room when it gets louder, per frame. The
+ * click is protected explicitly by the body detector, so this only ever reacts to
+ * the background: someone walks past, a fan spins up, the gate tightens, and it
+ * relaxes again once the room settles. Slower than the release below on purpose,
+ * because a floor that chases every wobble is what makes a gate sound like a
+ * pump rather than like noise going away.
+ */
+const FLOOR_TRACK_RATE = 0.04;
+/** Bounds on that tracking, so one very loud frame cannot swamp the floor. */
+const FLOOR_TRACK_MIN = 0.5;
+const FLOOR_TRACK_MAX = 6;
 /** Bins either side used when smoothing the gain across frequency. */
 const SMOOTH_RADIUS = 2;
+/**
+ * Smoothing widens with frequency, because a fixed narrow window leaves isolated
+ * gated bins behind and they are heard as a metallic warble. A wider window at
+ * the top averages neighbouring bins together and keeps the noise smooth.
+ */
+const SMOOTH_RADIUS_PER_DECADE = 6;
+/** Upper bound on the widening above. */
+const MAX_SMOOTH_RADIUS = 6;
 /** Frames to ease the gain closed. */
 const RELEASE_FRAMES = 6;
 /** Frames between UI yields so the progress bar can paint. */
 const YIELD_EVERY = 16;
-/** The click body is protected down to this fraction of its own peak envelope. */
-const PROTECT_FLOOR = 0.08;
-/** Extra protection past the detected body, in seconds. */
-const PROTECT_MARGIN = 0.004;
+/**
+ * The click body is protected down to this fraction of its own peak envelope.
+ * This is the one that decides whether the exported click sounds truncated: a
+ * decay that is still audible sits well below 8% of the attack, and gating it is
+ * what produces a click that stops dead a millisecond after it starts.
+ */
+const PROTECT_FLOOR = 0.012;
 /** Envelope resolution for body detection, in seconds. */
 const ENV_WINDOW = 0.001;
+/**
+ * A two-stage mechanical click dips between the main strike and the spring
+ * release, so the body end is the last envelope above the floor *with a hold*,
+ * rather than the last one that clears it.
+ */
+const PROTECT_HOLD = 0.008;
+/** Extra protection past the detected body, in seconds. */
+const PROTECT_MARGIN = 0.004;
 const EPS = 1e-12;
 
 export type DenoiseOptions = {
@@ -95,12 +128,26 @@ function hannWindow(): Float32Array {
   return window;
 }
 
-function smoothBins(bins: Float32Array, radius: number): Float32Array {
+/**
+ * Gain smoothing radius per bin, widening with frequency.
+ *
+ * A fixed narrow window leaves isolated gated bins behind between louder ones,
+ * and those are heard as a metallic warble that no amount of noise removal
+ * justifies. Widening with frequency averages each bin with more of its
+ * neighbours where the bins are closer together in pitch.
+ */
+function smoothingRadius(bin: number): number {
+  const octaves = bin / (BINS - 1);
+  return Math.min(MAX_SMOOTH_RADIUS, SMOOTH_RADIUS + Math.round(octaves * SMOOTH_RADIUS_PER_DECADE));
+}
+
+function smoothBins(bins: Float32Array, radius: number | ((bin: number) => number)): Float32Array {
   const out = new Float32Array(bins.length);
   for (let i = 0; i < bins.length; i++) {
+    const width = typeof radius === "function" ? radius(i) : radius;
     let sum = 0;
     let count = 0;
-    for (let k = -radius; k <= radius; k++) {
+    for (let k = -width; k <= width; k++) {
       const j = i + k;
       if (j < 0 || j >= bins.length) continue;
       sum += bins[j]!;
@@ -143,6 +190,13 @@ function frameOffsets(length: number, hop: number): number[] {
  * Locates the click's own body from the amplitude envelope. Clips are trimmed to
  * begin on the attack, so this is what separates "the transient" from "the
  * background" - there is no leading silence to rely on.
+ *
+ * The floor is deliberately low and the search tolerates a short dip, because a
+ * mechanical click is not one shape. The strike, the plate settling and the
+ * spring coming back are separate events, and between them the envelope falls
+ * most of the way to the room. A detector that stopped at the first quiet moment
+ * would hand the rest of the decay to the noise gate, and the exported click
+ * would end abruptly in playback.
  */
 export function findClickBody(
   samples: Float32Array,
@@ -153,6 +207,7 @@ export function findClickBody(
   const win = Math.max(1, Math.round(ENV_WINDOW * sampleRate));
   const env = new Float32Array(samples.length);
   let peak = 0;
+  let peakIndex = 0;
   let sum = 0;
   for (let i = 0; i < samples.length; i++) {
     const value = samples[i]!;
@@ -163,13 +218,25 @@ export function findClickBody(
     }
     const level = Math.sqrt(sum / Math.min(i + 1, win));
     env[i] = level;
-    if (level > peak) peak = level;
+    if (level > peak) {
+      peak = level;
+      peakIndex = i;
+    }
   }
   if (peak <= 0) return { start: 0, end: samples.length };
 
   const threshold = peak * PROTECT_FLOOR;
-  let end = 0;
-  for (let i = 0; i < samples.length; i++) if (env[i]! > threshold) end = i;
+  const hold = Math.round(PROTECT_HOLD * sampleRate);
+  let end = peakIndex;
+  let lastLoud = peakIndex;
+  for (let i = peakIndex; i < samples.length; i++) {
+    if (env[i]! > threshold) {
+      end = i;
+      lastLoud = i;
+    } else if (i - lastLoud > hold) {
+      break;
+    }
+  }
 
   const margin = Math.round(PROTECT_MARGIN * sampleRate);
   return { start: 0, end: Math.min(samples.length, end + margin) };
@@ -192,13 +259,20 @@ export function buildNoiseShape(noiseSamples: Float32Array): NoiseShape {
     for (let b = 0; b < BINS; b++) shape[b] = shape[b]! + Math.hypot(re[b]!, im[b]!);
   }
   for (let b = 0; b < BINS; b++) shape[b] = shape[b]! / offsets.length;
-  return smoothBins(shape, SMOOTH_RADIUS);
+  return smoothBins(shape, smoothingRadius);
 }
 
 /**
- * Per-bin low percentile of the frames that do NOT contain the click body.
- * Including the body was what made the first version gate the click itself: its
- * own decay is far louder than the room, so it became the "floor".
+ * Noise floor estimated from the clip's own frames that do not contain the click
+ * body: the per-bin average magnitude of that background.
+ *
+ * Earlier versions used one percentile of the quiet frames, and a running
+ * minimum over them. Both put the floor well *below* the average noise level - a
+ * low percentile lands at the bottom of the Rayleigh distribution, and a minimum
+ * lower still - so a background bin measured against it read as signal and the
+ * gate barely closed. The floor has to be the average level for "times above the
+ * floor" to mean anything, and the frames that hold the click are excluded so the
+ * click cannot raise its own floor.
  */
 function liveProfile(
   samples: Float32Array,
@@ -223,21 +297,14 @@ function liveProfile(
 
   const re = new Float32Array(FRAME_SIZE);
   const im = new Float32Array(FRAME_SIZE);
-  const hist = new Float32Array(usable.length * BINS);
-  for (let u = 0; u < usable.length; u++) {
-    loadFrame(samples, usable[u]!, window, re, im);
+  for (const offset of usable) {
+    loadFrame(samples, offset, window, re, im);
     fft(re, im);
-    for (let b = 0; b < BINS; b++) hist[u * BINS + b] = Math.hypot(re[b]!, im[b]!);
+    for (let b = 0; b < BINS; b++) profile[b] = profile[b]! + Math.hypot(re[b]!, im[b]!);
   }
-
-  const column = new Float32Array(usable.length);
-  const index = Math.min(usable.length - 1, Math.floor(usable.length * LIVE_PERCENTILE));
-  for (let b = 0; b < BINS; b++) {
-    for (let u = 0; u < usable.length; u++) column[u] = hist[u * BINS + b]!;
-    column.sort();
-    profile[b] = column[index]!;
-  }
-  return smoothBins(profile, SMOOTH_RADIUS);
+  const frames = Math.max(1, usable.length);
+  for (let b = 0; b < BINS; b++) profile[b] = profile[b]! / frames;
+  return smoothBins(profile, smoothingRadius);
 }
 
 function resolveProfile(live: Float32Array, options: DenoiseOptions): Float32Array {
@@ -253,7 +320,7 @@ function resolveProfile(live: Float32Array, options: DenoiseOptions): Float32Arr
 
   const profile = new Float32Array(BINS);
   for (let b = 0; b < BINS; b++) profile[b] = shape[b]! / gain;
-  return smoothBins(profile, SMOOTH_RADIUS);
+  return smoothBins(profile, smoothingRadius);
 }
 
 export async function denoiseSamples(
@@ -286,6 +353,10 @@ export async function denoiseSamples(
   const applied = new Float32Array(BINS).fill(1);
   const release = 1 / RELEASE_FRAMES;
   const offsets = frameOffsets(total, HOP_SIZE);
+  // How much louder than the floor the room currently is. One figure rather than
+  // one per bin: the click is handled separately, and the background either is
+  // louder than it was or it is not.
+  let floorScale = 1;
 
   for (let f = 0; f < offsets.length; f++) {
     const start = offsets[f]!;
@@ -293,27 +364,39 @@ export async function denoiseSamples(
     fft(re, im);
 
     let sum = 0;
+    let peak = 0;
     for (let b = 0; b < BINS; b++) {
       const m = Math.hypot(re[b]!, im[b]!);
       magnitude[b] = m;
       sum += m;
+      if (m > peak) peak = m;
     }
     // Any frame that touches the click body is passed through untouched.
     const inBody = start < bodyEndPadded && start + FRAME_SIZE > pad;
-    const loud = sum / BINS > profileMean * TRANSIENT_RATIO;
+    // Two ways of spotting an onset the body detector missed: broadband energy
+    // well over the floor, or one bin far above the floor's average level.
+    const level = sum / BINS;
+    const loud = level > profileMean * TRANSIENT_RATIO || peak > profileMean * PEAK_GUARD_RATIO;
+
+    // Let the floor follow the room, but only on frames the gate is allowed to
+    // act on, so a louder room tightens the gate without a click loosening it.
+    if (!inBody && !loud && profileMean > 0) {
+      const wanted = Math.max(FLOOR_TRACK_MIN, Math.min(FLOOR_TRACK_MAX, level / profileMean));
+      floorScale += (wanted - floorScale) * FLOOR_TRACK_RATE;
+    }
 
     for (let b = 0; b < BINS; b++) {
       if (inBody || loud) {
         target[b] = 1;
         continue;
       }
-      const snr = magnitude[b]! / (profile[b]! + EPS);
+      const snr = magnitude[b]! / ((profile[b]! * floorScale) + EPS);
       target[b] =
         snr >= SNR_THRESHOLD
           ? 1
           : ATTENUATION + (1 - ATTENUATION) * (snr / SNR_THRESHOLD) ** 2;
     }
-    const smoothed = smoothBins(target, SMOOTH_RADIUS);
+    const smoothed = smoothBins(target, smoothingRadius);
 
     for (let b = 0; b < BINS; b++) {
       const want = smoothed[b]!;

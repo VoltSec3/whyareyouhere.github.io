@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import type { PeakBucket } from "@/lib/audio/process";
 import type { RecordedEvent } from "@/lib/events";
@@ -6,6 +6,17 @@ import type { RecordedEvent } from "@/lib/events";
 export type Selection = { start: number; end: number };
 export type ViewWindow = { start: number; end: number };
 export type Anchor = { x: number; y: number };
+
+/**
+ * A click position the editor measured from the audio rather than from the input
+ * device. Carries the event it belongs to so the marker keeps its press/release
+ * shape, and a confidence so a weak guess can be drawn faintly.
+ */
+export type OnsetMarker = {
+  time: number;
+  kind: RecordedEvent["kind"];
+  confidence: number;
+};
 
 const MARKER_LANE = 30;
 const RULER_HEIGHT = 22;
@@ -15,6 +26,12 @@ export type TimelineProps = {
   peaks: PeakBucket[];
   duration: number;
   events: RecordedEvent[];
+  /**
+   * Measured onsets, used for the suggestion markers and for snapping. Empty
+   * means fall back to the raw event timestamps, which is what a live recording
+   * shows before the audio has been analysed.
+   */
+  onsets?: OnsetMarker[];
   selection: Selection | null;
   playhead: number;
   view: ViewWindow;
@@ -62,6 +79,7 @@ export function WaveformTimeline({
   peaks,
   duration,
   events,
+  onsets,
   selection,
   playhead,
   view,
@@ -118,22 +136,33 @@ export function WaveformTimeline({
     [view.start, span, size.width],
   );
 
+  /**
+   * Positions the editor snaps to and draws suggestions at. A measured onset
+   * replaces the raw event timestamp when one exists, because the timestamp is
+   * when the operating system was told about the click while the marker is meant
+   * to point at where the click actually is in the audio.
+   */
+  const markerTimes = useMemo<OnsetMarker[]>(() => {
+    if (onsets && onsets.length > 0) return onsets;
+    return events.map((event) => ({ time: event.time, kind: event.kind, confidence: 1 }));
+  }, [events, onsets]);
+
   const snapTime = useCallback(
     (time: number) => {
       if (!snap) return time;
       const tolerance = span * 0.02;
       let best = time;
       let bestDistance = tolerance;
-      for (const event of events) {
-        const distance = Math.abs(event.time - time);
+      for (const marker of markerTimes) {
+        const distance = Math.abs(marker.time - time);
         if (distance < bestDistance) {
           bestDistance = distance;
-          best = event.time;
+          best = marker.time;
         }
       }
       return best;
     },
-    [snap, events, span],
+    [snap, markerTimes, span],
   );
 
   useEffect(() => {
@@ -273,14 +302,17 @@ export function WaveformTimeline({
 
     // suggested click / release positions - advisory markers only
     if (suggest) {
-      for (const event of events) {
-        const x = Math.round(timeToX(event.time)) + 0.5;
+      for (const marker of markerTimes) {
+        const x = Math.round(timeToX(marker.time)) + 0.5;
         if (x < -8 || x > size.width + 8) continue;
-        const isPress = event.kind === "press";
+        const isPress = marker.kind === "press";
         const color = isPress ? palette.press : palette.release;
+        // A weak measurement is drawn faintly rather than hidden, so a marker
+        // that needs a second look can still be spotted.
+        const weight = 0.25 + 0.75 * Math.min(1, Math.max(0, marker.confidence));
 
         ctx.strokeStyle = color;
-        ctx.globalAlpha = 0.4;
+        ctx.globalAlpha = 0.4 * weight;
         ctx.beginPath();
         ctx.moveTo(x, MARKER_LANE - 7);
         ctx.lineTo(x, waveBottom);
@@ -288,6 +320,7 @@ export function WaveformTimeline({
         ctx.globalAlpha = 1;
 
         ctx.fillStyle = color;
+        ctx.globalAlpha = weight;
         ctx.beginPath();
         if (isPress) {
           ctx.moveTo(x - 4.5, 1);
@@ -301,7 +334,7 @@ export function WaveformTimeline({
         ctx.closePath();
         ctx.fill();
 
-        ctx.globalAlpha = 0.95;
+        ctx.globalAlpha = weight;
         ctx.beginPath();
         ctx.arc(x, MARKER_LANE, isPress ? 2.8 : 2.3, 0, Math.PI * 2);
         ctx.fill();
@@ -329,7 +362,7 @@ export function WaveformTimeline({
     palette,
     peaks,
     duration,
-    events,
+    markerTimes,
     suggest,
     selection,
     playhead,

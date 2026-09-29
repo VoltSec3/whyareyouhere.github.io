@@ -2,12 +2,15 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { ExportDialog } from "@/components/editor/ExportDialog";
+import { MenuSoundRecorder } from "@/components/editor/MenuSoundRecorder";
+import { useMenuSoundLibrary } from "@/hooks/useMenuSoundLibrary";
 import { LibraryPanel } from "@/components/editor/LibraryPanel";
 import { SelectionHint, SelectionMenu } from "@/components/editor/SelectionMenu";
 import { Stage } from "@/components/editor/Stage";
 import {
   WaveformTimeline,
   type Anchor,
+  type OnsetMarker,
   type Selection,
   type ViewWindow,
 } from "@/components/editor/WaveformTimeline";
@@ -29,6 +32,7 @@ import {
 } from "@/lib/audio/process";
 import { encodeWav, formatSeconds, formatTimestamp, TARGET_SAMPLE_RATE } from "@/lib/audio/wav";
 import type { AutoCutClip } from "@/lib/audio/autocut";
+import { suggestOnsets } from "@/lib/audio/autocut";
 import { CATEGORY_MAP, type CategoryId, type StoredSound } from "@/lib/types";
 import { ZCB_CUT_PRESET } from "@/lib/zcb";
 import { cn } from "@/lib/utils";
@@ -43,6 +47,10 @@ type EditorProps = {
 export function Editor({ onExit }: EditorProps) {
   const { state, take, start, stop, discard, markStopClick } = useSessionRecorder();
   const library = useClickLibrary();
+  // Menu sounds are their own library rather than more rows in the click library:
+  // they are recorded by a different flow, cut by different rules, and exported to
+  // a different part of the pack.
+  const menuLibrary = useMenuSoundLibrary();
 
   const [selection, setSelection] = useState<Selection | null>(null);
   const [anchor, setAnchor] = useState<Anchor | null>(null);
@@ -55,6 +63,7 @@ export function Editor({ onExit }: EditorProps) {
   const [autoAdvance, setAutoAdvance] = useState(true);
   const [hoverTime, setHoverTime] = useState<number | null>(null);
   const [exportOpen, setExportOpen] = useState(false);
+  const [menuSoundsOpen, setMenuSoundsOpen] = useState(false);
   const [activeClip, setActiveClip] = useState<string | null>(null);
   /**
    * What to do to a cut on the way out. All off, so a selection is saved exactly
@@ -90,6 +99,20 @@ export function Editor({ onExit }: EditorProps) {
   );
   const pressCount = useMemo(() => events.filter((event) => event.kind === "press").length, [events]);
   const releaseCount = events.length - pressCount;
+
+  // Where the clicks actually are, measured from the finished take's audio. A
+  // recording's own event list records when Windows reported the input, which can
+  // sit a good few milliseconds away from the transient; the suggestions and the
+  // snapping both use this instead, and fall back to the timestamps when a take
+  // has not been analysed.
+  const onsets = useMemo<OnsetMarker[]>(() => {
+    if (recording || !take || take.samples.length === 0 || take.events.length === 0) return [];
+    return suggestOnsets(take.samples, take.sampleRate, take.events).map((suggestion) => ({
+      time: suggestion.time,
+      kind: suggestion.event.kind,
+      confidence: suggestion.confidence,
+    }));
+  }, [recording, take]);
 
   const savedMarkers = useMemo<Selection[]>(
     () =>
@@ -493,6 +516,7 @@ export function Editor({ onExit }: EditorProps) {
               peaks={peaks}
               duration={duration}
               events={events}
+              onsets={onsets}
               selection={selection}
               playhead={playhead}
               view={view}
@@ -582,6 +606,9 @@ export function Editor({ onExit }: EditorProps) {
         <LibraryPanel
           sounds={library.sounds}
           loading={library.loading}
+          menuCount={menuLibrary.total}
+          menuCounts={menuLibrary.counts}
+          onRecordMenu={() => setMenuSoundsOpen(true)}
           activeId={activeClip}
           onPreview={(sound) => {
             setActiveClip(sound.id);
@@ -602,8 +629,16 @@ export function Editor({ onExit }: EditorProps) {
         counts={library.counts}
         noise={library.noise}
         onNoiseChange={(value) => void library.setNoiseBed(value)}
+        menuSounds={menuLibrary.sounds}
         take={take}
         onAutocutSave={handleAutocutSave}
+      />
+
+      <MenuSoundRecorder
+        open={menuSoundsOpen}
+        onOpenChange={setMenuSoundsOpen}
+        counts={menuLibrary.counts}
+        onRecorded={menuLibrary.replaceCategory}
       />
     </div>
   );

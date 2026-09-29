@@ -8,9 +8,10 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { formatSeconds } from "@/lib/audio/wav";
+import { MENU_CATEGORIES, type MenuSoundId } from "@/lib/menusounds";
 import { CATEGORIES, type CategoryId, type StoredSound } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { ChevronRight, Inbox, TrashIcon } from "lucide-react";
+import { ChevronRight, Inbox, Keyboard, TrashIcon } from "lucide-react";
 
 type LibraryPanelProps = {
   sounds: StoredSound[];
@@ -19,6 +20,15 @@ type LibraryPanelProps = {
   onPreview: (sound: StoredSound) => void;
   onRemove: (id: string) => void;
   onClearAll: () => void;
+  /**
+   * Menu sounds are a separate library, so the panel is a summary with a button
+   * rather than another set of rows. They are recorded through a guided dialog
+   * rather than by dragging over a take, and they are filed by kind rather than
+   * by loudness, so folding them into `CATEGORIES` would be a lie about both.
+   */
+  menuCount: number;
+  menuCounts: Record<MenuSoundId, number>;
+  onRecordMenu: () => void;
 };
 
 export function LibraryPanel({
@@ -28,6 +38,9 @@ export function LibraryPanel({
   onPreview,
   onRemove,
   onClearAll,
+  menuCount,
+  menuCounts,
+  onRecordMenu,
 }: LibraryPanelProps) {
   const [collapsed, setCollapsed] = useState<Set<CategoryId>>(() => new Set());
   const total = sounds.length;
@@ -139,7 +152,27 @@ export function LibraryPanel({
         </div>
       </ScrollArea>
 
-      <div className="border-t border-border px-4 py-2.5">
+      <div className="space-y-2 border-t border-border px-4 py-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 space-y-0.5">
+            <p className="flex items-center gap-1.5 text-sm font-medium">
+              <Keyboard className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+              Menu sounds
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {menuCount === 0 ? (
+                "Optional. Escape, menu clicks and typing."
+              ) : (
+                MENU_CATEGORIES.filter((c) => (menuCounts[c.id] ?? 0) > 0)
+                  .map((c) => `${c.label} ${menuCounts[c.id]}`)
+                  .join(" · ")
+              )}
+            </p>
+          </div>
+          <Button variant="outline" size="sm" onClick={onRecordMenu} className="shrink-0">
+            {menuCount === 0 ? "Record" : "Edit"}
+          </Button>
+        </div>
         <p className="font-mono text-[0.65rem] leading-relaxed text-muted-foreground">
           {CATEGORIES.length} folders · clips export as 1.wav, 2.wav, 3.wav …
         </p>

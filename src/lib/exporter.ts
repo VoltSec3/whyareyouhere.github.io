@@ -2,7 +2,14 @@ import type JSZip from "jszip";
 
 import { buildNoiseShape, denoiseSamples, type DenoiseMethod, type NoiseShape } from "./audio/denoise";
 import { decodeWav, encodeWav } from "./audio/wav";
-import { zcbLayout, zcbRootName, zcbTierFolder, type ZcbLayoutId } from "./zcb";
+import { MENU_CATEGORIES, type MenuSoundId, type StoredMenuSound } from "./menusounds";
+import {
+  zcbLayout,
+  zcbRootName,
+  zcbTierFolder,
+  ZCB_MENU_ROOT,
+  type ZcbLayoutId,
+} from "./zcb";
 import { CATEGORIES, type PackMeta, type StoredSound } from "./types";
 
 export type DenoiseConfig = {
@@ -29,6 +36,12 @@ export type OnExportProgress = (progress: ExportProgress) => void;
 export type PackInput = {
   meta: PackMeta;
   sounds: StoredSound[];
+  /**
+   * Menu sounds, written to their own folder outside the slot tree. Optional, and
+   * independent of `sounds`: a pack can ship menu sounds with no gameplay tiers
+   * and the other way round.
+   */
+  menuSounds?: StoredMenuSound[];
   noise: { wav: ArrayBuffer; duration: number } | null;
   /** Omit or null to export the clips untouched. */
   denoise?: DenoiseConfig | null;
@@ -73,11 +86,16 @@ export function buildReadme(meta: PackMeta): string {
 }
 
 /** The readme a ZCB pack ships with, including how to actually install it. */
-export function buildZcbReadme(meta: PackMeta, layoutId: ZcbLayoutId): string {
+export function buildZcbReadme(
+  meta: PackMeta,
+  layoutId: ZcbLayoutId,
+  menuCounts?: Record<string, number>,
+): string {
   const layout = zcbLayout(layoutId);
   const title = meta.title.trim() || "Untitled Clickpack";
   const description = meta.description.trim();
   const slots = layout.slots.join(", ");
+  const menuTotal = Object.values(menuCounts ?? {}).reduce((sum, n) => sum + n, 0);
 
   return [
     title,
@@ -95,6 +113,20 @@ export function buildZcbReadme(meta: PackMeta, layoutId: ZcbLayoutId): string {
     `Layout: ${layout.label} (${slots})`,
     "Format: 48 kHz, mono, 16-bit PCM WAV. No manifest is needed; ZCB reads the",
     "folder name as the pack name.",
+    menuTotal > 0
+      ? [
+          "",
+          `Menu sounds: ${MENU_CATEGORIES.filter((c) => (menuCounts?.[c.id] ?? 0) > 0)
+            .map((c) => `${c.label} x${menuCounts![c.id]}`)
+            .join(", ")}`,
+          "  In ZCB, open Audio and turn Menu sounds on. The toggle is greyed out",
+          "  when the pack has none, so a missing folder shows up there rather than",
+          "  as silence.",
+          "  Escape plays from anywhere, menu clicks only outside a level, and typing",
+          "  only while you are typing. Typing sounds overlap instead of cutting",
+          "  each other off, so a fast typist hears a chord rather than one click.",
+        ].join("\n")
+      : "",
     "",
   ]
     .filter((line, index, all) => !(line === "" && all[index - 1] === ""))
@@ -201,7 +233,7 @@ export async function buildPack(input: PackInput, options: BuildOptions = {}): P
   zip.file(
     `${prefix}readme.txt`,
     layout
-      ? buildZcbReadme(input.meta, layout.id)
+      ? buildZcbReadme(input.meta, layout.id, menuCounts(input.menuSounds))
       : buildReadme(input.meta),
   );
 
@@ -225,6 +257,31 @@ export async function buildPack(input: PackInput, options: BuildOptions = {}): P
     }
   }
 
+  // Menu sounds are written untouched, even when the gameplay tiers are being
+  // denoised. The denoiser protects a click body in its first 15 ms and then
+  // gates hard against the noise profile, which is tuned for a normalised click
+  // against room tone. A menu sound is normalised as a whole category rather
+  // than per clip, so its level is already relative to its neighbours and the
+  // same gate would either leave it alone or eat its tail. The recorder cuts to
+  // the quiet after the attack already, so there is not much room tone to remove.
+  const menuPath = `${prefix}${ZCB_MENU_ROOT}`;
+  for (const category of MENU_CATEGORIES) {
+    const bucket = (input.menuSounds ?? [])
+      .filter((sound) => sound.category === category.id)
+      .sort((a, b) => a.createdAt - b.createdAt);
+    if (bucket.length === 0) continue;
+    const folder = zip.folder(`${menuPath}/${category.folder}`);
+    if (!folder) continue;
+    bucket.forEach((sound, index) => {
+      const entry = `${index + 1}.wav`;
+      folder.file(entry, new Uint8Array(sound.wav));
+      written.push({
+        path: `${menuPath}/${category.folder}/${entry}`,
+        detail: `adding ${menuPath}/${category.folder}/${entry}`,
+      });
+    });
+  }
+
   for (let i = 0; i < written.length; i++) {
     onProgress?.({
       value: PACK_START + PACK_SPAN * ((i + 1) / Math.max(1, written.length)),
@@ -240,8 +297,11 @@ export async function exportPack(
   input: PackInput,
   options: BuildOptions = {},
 ): Promise<{ fileName: string; size: number }> {
-  if (input.sounds.length === 0) {
-    throw new Error("Save at least one click or release before exporting.");
+  // Either half is enough on its own. A pack of pure menu sounds is a real thing
+  // someone might want, and a gameplay tier with nothing in `menusounds` is the
+  // common case.
+  if (input.sounds.length === 0 && (input.menuSounds?.length ?? 0) === 0) {
+    throw new Error("Save at least one clip, or record some menu sounds, before exporting.");
   }
 
   const { onProgress } = options;
@@ -295,5 +355,17 @@ export function exportSummary(input: PackInput) {
     /** How many copies of the library the zip ends up holding. */
     slotCount: layout?.slots.length ?? 1,
     root: layout ? zcbRootName(input.meta.title) : null,
+    menuSounds: menuCounts(input.menuSounds),
   };
+}
+
+function menuCounts(list?: readonly StoredMenuSound[]): Record<MenuSoundId, number> {
+  const map = Object.fromEntries(MENU_CATEGORIES.map((c) => [c.id, 0])) as Record<
+    MenuSoundId,
+    number
+  >;
+  for (const sound of list ?? []) {
+    if (sound.category in map) map[sound.category as MenuSoundId]++;
+  }
+  return map;
 }
