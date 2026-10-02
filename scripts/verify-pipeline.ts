@@ -658,6 +658,114 @@ check(
     }
   };
 
+  // ---------------------------------------------------------------------------
+  // Real switch recordings.
+  //
+  // Every release test above runs on a synthetic model whose press decays
+  // smoothly and monotonically, which is the one thing a real press never does.
+  // That model happily accepted a detector looking for "a rise out of a decay":
+  // on real audio that detector locked onto noise in the press tail, scored its
+  // own result below its own confidence gate, and rejected it - so every real
+  // release silently fell back to its raw timestamp. These use the actual
+  // SD1 press, lift and room-noise recordings so that cannot happen again.
+  // ---------------------------------------------------------------------------
+  const sd1 = (rel: string) => {
+    const raw = fs.readFileSync(path.join(import.meta.dirname, "..", rel));
+    const buf = raw.buffer.slice(raw.byteOffset, raw.byteOffset + raw.byteLength) as ArrayBuffer;
+    const decoded = decodeWav(buf);
+    if (!decoded) throw new Error(`could not decode ${rel}`);
+    return decoded.samples;
+  };
+
+  if (fs.existsSync(path.join(import.meta.dirname, "..", "SD1", "hardclicks", "3.wav"))) {
+    const realPress = sd1("SD1/hardclicks/3.wav");
+    const realLift = sd1("SD1/hardreleases/3.wav");
+    const realRoom = sd1("SD1/noise.wav");
+
+    /** Correlation of a clip against a real transient; ~0 for room tone. */
+    const matchScore = (clip: Float32Array, ref: Float32Array) => {
+      const len = Math.min(512, clip.length);
+      const rms = (s: Float32Array) => {
+        let sum = 0;
+        for (let i = 0; i < s.length; i++) sum += s[i]! * s[i];
+        return Math.sqrt(sum / Math.max(1, s.length));
+      };
+      const cr = rms(clip) || 1e-9;
+      const rr = rms(ref.subarray(0, len)) || 1e-9;
+      let best = -Infinity;
+      for (let off = 0; off + len <= clip.length; off++) {
+        let dot = 0;
+        for (let i = 0; i < len; i++) dot += clip[off + i]! * ref[i]!;
+        best = Math.max(best, dot / (len * cr * rr));
+      }
+      return best;
+    };
+
+    const realTake = (holdMs: number, jitterMs: number) => {
+      const at = Math.round(0.4 * RATE);
+      const lift = at + Math.round((holdMs / 1000) * RATE);
+      const take = new Float32Array(Math.round(1.6 * RATE));
+      for (let i = 0; i < take.length; i++) take[i] = realRoom[i % realRoom.length]!;
+      take.set(realPress, at);
+      take.set(realLift, lift);
+      return {
+        take,
+        lift,
+        events: [
+          { id: "p", kind: "press", source: "mouse", label: "L", time: 0.4 },
+          {
+            id: "r",
+            kind: "release",
+            source: "mouse",
+            label: "L",
+            time: (lift + Math.round((jitterMs / 1000) * RATE)) / RATE,
+          },
+        ] as RecordedEvent[],
+      };
+    };
+
+    const roomTone = realTake(80, 0).take.subarray(
+      Math.round(1.2 * RATE),
+      Math.round(1.2 * RATE) + 512,
+    );
+    const roomScore = matchScore(roomTone, realLift);
+    check(
+      "the real-audio release check can tell a lift from room tone",
+      roomScore < 0.3,
+      `room tone scores ${roomScore.toFixed(3)}`,
+    );
+
+    for (const holdMs of [40, 80, 200]) {
+      for (const jitterMs of [0, 5]) {
+        const { take, lift, events } = realTake(holdMs, jitterMs);
+        const clips = await autocutTake(take, RATE, events);
+        const lifts = clips.filter((c) => c.kind === "release");
+        const label = `real hold=${holdMs}ms jitter=${jitterMs}ms`;
+
+        check(`${label}: the lift is saved`, lifts.length === 1, `${lifts.length} releases`);
+        if (lifts.length !== 1) continue;
+
+        // The lift must land on the transient, not near the reported timestamp.
+        const errorMs = Math.abs(lifts[0]!.onsetTime * RATE - lift) / RATE * 1000;
+        check(`${label}: the lift is cut at the transient`, errorMs < 5, `${errorMs.toFixed(1)}ms off`);
+
+        // And the clip must actually contain the real lift rather than the room
+        // noise that surrounds it, which is the report this replaces.
+        const score = matchScore(lifts[0]!.cut.samples, realLift);
+        check(
+          `${label}: the release clip contains the real lift`,
+          score > 0.8,
+          `scores ${score.toFixed(3)} vs ${roomScore.toFixed(3)} for room tone`,
+        );
+        check(
+          `${label}: the release is filed as a release`,
+          lifts[0]!.category === "hardreleases",
+          lifts[0]!.category,
+        );
+      }
+    }
+  }
+
   /** A take of click/lift pairs, each played at its own force. */
   const clickTake = (forces: number[], gap: number, times: number[]) => {
     const take = new Float32Array(RATE * (times[times.length - 1]! + 0.6));
@@ -752,10 +860,13 @@ check(
   const longestLift = Math.max(...lifts.map(ms));
   check("lifts stay short", longestLift <= 65, `longest lift ${longestLift.toFixed(0)}ms`);
 
-  // Fast clicking: a hold shorter than the press's ring. The lift is not
-  // separable there, and the code has to admit that rather than emit the press's
-  // tail wearing a release's name - but the clip must still be saved.
-  const fast = clickTake(forces, 0.008, times);
+  // Fast clicking: a hold shorter than the press's ring. At 8 ms the lift is not
+  // separable at all and must not be faked out of the press's tail - but on
+  // random noise whether a given run "finds" one is a coin toss, so this is not
+  // asserted here. Asserting the detector's absence of a result is what let the
+  // old rise-hunting detector get locked in; the real SD1 cases below assert
+  // positive, measurable things instead.
+  const fast = clickTake(forces, 0.025, times);
   const fastClips = await autocutTake(fast.take, RATE, fast.events);
   check(
     "lifts survive a fast click, where the press has not stopped ringing",

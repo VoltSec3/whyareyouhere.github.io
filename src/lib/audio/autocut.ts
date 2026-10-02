@@ -5,9 +5,10 @@ import {
   cutFromOnset,
   DEFAULT_CUT_OPTIONS,
   detectOnset,
-  detectReleaseOnset,
   highPassSlice,
   medianMagnitude,
+  RELEASE_SEARCH_AFTER,
+  RELEASE_SEARCH_BEFORE,
   type Cut,
   type CutOptions,
   type OnsetHit,
@@ -68,14 +69,6 @@ const SEARCH_FLOOR = 0.025;
  * still inside the window.
  */
 const PRESS_SETTLE = 0.005;
-
-/**
- * How far after its own timestamp a lift may be found. A mouse release is a
- * tick whose ring is over in a few milliseconds, so this only has to absorb the
- * jitter between the browser reporting mouseup and the switch actually letting
- * go.
- */
-const RELEASE_LOOKAHEAD = 0.05;
 
 /**
  * The longest a release still counts as the button being lifted. A press may
@@ -311,7 +304,7 @@ export function analyseTake(
     const upperBound = next
       ? next.time * sampleRate - leadInSamples - guardSamples
       : (event.time + settings.searchAfter) * sampleRate;
-    const latest = Math.min((event.time + RELEASE_LOOKAHEAD) * sampleRate, upperBound);
+    const latest = Math.min((event.time + RELEASE_SEARCH_AFTER) * sampleRate, upperBound);
 
     // The press this lift came off, if it is still close enough to be the one.
     let partner = -1;
@@ -337,7 +330,20 @@ export function analyseTake(
 
     const from = Math.max(0, Math.floor(partnerOnset + PRESS_SETTLE * sampleRate));
     if (latest <= from) continue;
-    found[index] = detectReleaseOnset(samples, from, Math.ceil(latest), sampleRate);
+
+    // A lift is looked for in a window centred on its own timestamp, and the
+    // press is only ever a floor on how early that window may start.
+    //
+    // This replaced a detector that hunted for "a rise out of the press's decay".
+    // Against real switch recordings that detector never fired once: a decaying
+    // tail is full of small rises, so it locked onto the first noise wiggle
+    // hundreds of milliseconds before the lift, scored it at about 2x
+    // prominence, and rejected its own result as noise. Every real release
+    // therefore fell back to its raw timestamp, which is where the "no releases"
+    // and "the release is just noise" reports came from.
+    const liftFrom = Math.max(from, (event.time - RELEASE_SEARCH_BEFORE) * sampleRate);
+    if (latest <= liftFrom) continue;
+    found[index] = detectOnset(samples, Math.floor(liftFrom), Math.ceil(latest), sampleRate);
   }
 
   // --- pass three: hand out the boundaries ---

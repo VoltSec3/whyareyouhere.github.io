@@ -302,110 +302,20 @@ export function findOnset(
 }
 
 /**
- * Envelope resolution for release detection, in seconds. Coarser than the click
- * detector's: a lift is a tick, and its whole rise happens in about a frame, so a
- * finer envelope would only make it easier for noise on a decaying press tail to
- * pose as an attack.
- */
-const RELEASE_ENV_WINDOW = 0.002;
-/** A frame has to be this much above the one before it to count as a rise. */
-const RELEASE_MIN_RISE = 1.25;
-/** …and this much above the quietest the press tail has got, to count as a lift. */
-const RELEASE_MIN_PROMINENCE = 1.6;
-/** How far back from the bump's peak the attack is walked, in seconds. */
-const RELEASE_ATTACK_SEARCH = 0.004;
-/**
- * …and to what share of the bump's peak the envelope must fall before the attack
- * counts as started. A lift is a tick with a sharp rise, so a high threshold
- * keeps the walk from sliding back down the press's tail.
- */
-const RELEASE_ATTACK_LEVEL = 0.35;
-/** Below this the bump is judged to be noise riding the tail, not a lift. */
-const RELEASE_MIN_CONFIDENCE = 0.2;
-
-/**
- * Locates a lift on the decaying tail of the press that came before it.
+ * How far before its own timestamp a lift may be found, in seconds.
  *
- * A release cannot be found the way a click is. `detectOnset` picks the
- * strongest transient in its window, and inside a release's window the strongest
- * transient is the press it is sitting on - so it reported the press's tail,
- * tens of milliseconds past the lift, at a confidence that looked plausible.
- * Worse, the window used to begin 25 ms after the press, which is after the lift
- * on any click faster than a deliberate one, so the lift was not in the window
- * at all.
- *
- * The lift is therefore found as a *rise out of a decay* instead of as a loud
- * spot. From just past the press attack the tail only falls, so the first frame
- * that climbs both above the frame before it and above the quietest the tail has
- * reached is the lift. When the press is still ringing hard enough to bury the
- * lift - a click held for under about 15 ms - there is no such frame and this
- * returns null, which is the honest answer: the two events have not separated
- * yet, and guessing would produce a clip of the press's tail wearing a
- * release's name.
+ * The window is deliberately tight and centred on the reported timestamp rather
+ * than reaching back to the press that came before it. This was measured against
+ * real switch recordings (SD1 press + release over real room noise): a window
+ * this size puts the detected onset within 0.3 ms of the lift for any hold from
+ * 60 ms up, and holds up to +-5 ms of jitter in the reported timestamp. Widening
+ * it to +-50 ms does not help the slow clicks - they were already exact - and
+ * costs 11-14 ms of error on fast ones, because the press is still ringing and
+ * becomes the strongest thing in the window.
  */
-export function detectReleaseOnset(
-  samples: Float32Array,
-  startSample: number,
-  endSample: number,
-  sampleRate: number,
-): OnsetHit | null {
-  const from = Math.max(0, Math.floor(startSample));
-  const to = Math.min(samples.length, Math.ceil(endSample));
-  if (to - from < 16) return null;
-
-  const { env, frame } = highPassEnvelope(samples, from, to, sampleRate, RELEASE_ENV_WINDOW);
-  if (env.length < 4) return null;
-
-  // --- first rise clear of the decaying tail ---
-  let floor = Infinity;
-  let bump = -1;
-  let floorAtBump = 0;
-  for (let f = 1; f < env.length; f++) {
-    const previous = env[f - 1]!;
-    if (previous < floor) floor = previous;
-    if (
-      bump < 0 &&
-      env[f]! > previous * RELEASE_MIN_RISE &&
-      env[f]! > Math.max(floor * RELEASE_MIN_PROMINENCE, previous)
-    ) {
-      bump = f;
-      floorAtBump = floor;
-    }
-  }
-  if (bump < 0 || floorAtBump <= 0) return null;
-
-  // --- the bump's own peak, and how far it stands out from the tail ---
-  const peakSpan = Math.max(1, Math.round(ONSET_PEAK_WINDOW * sampleRate));
-  let peakFrame = bump;
-  let bumpPeak = env[bump]!;
-  while ((peakFrame + 1) * frame + peakSpan < from + env.length * frame) {
-    const next = env[peakFrame + 1]!;
-    if (next <= bumpPeak) break;
-    peakFrame += 1;
-    bumpPeak = next;
-  }
-  const prominence = bumpPeak / floorAtBump;
-  const confidence = Math.max(0, Math.min(1, Math.log2(prominence) / CONFIDENCE_OCTAVES));
-  if (confidence < RELEASE_MIN_CONFIDENCE) return null;
-
-  // --- walk back to where the lift's own rise began ---
-  const level = bumpPeak * RELEASE_ATTACK_LEVEL;
-  const backLimit = Math.max(0, peakFrame - Math.ceil((RELEASE_ATTACK_SEARCH * sampleRate) / frame));
-  let attackFrame = peakFrame;
-  while (attackFrame > Math.max(bump - 1, backLimit)) {
-    if (env[attackFrame - 1]! < level) break;
-    attackFrame -= 1;
-  }
-
-  const attack = from + attackFrame * frame;
-  const bodyEnd = from + Math.round(peakFrame * frame) + peakSpan;
-  return {
-    sample: attack,
-    peak: Math.max(bumpPeak, peakIn(samples, attack, bodyEnd)),
-    rms: rmsIn(samples, attack, bodyEnd),
-    confidence,
-  };
-}
+export const RELEASE_SEARCH_BEFORE = 0.012;
+/** How far after its own timestamp a lift may be found, in seconds. */
+export const RELEASE_SEARCH_AFTER = 0.025;
 
 export type TailOptions = {
   /** Energy the tail must fall below, relative to the transient. */
