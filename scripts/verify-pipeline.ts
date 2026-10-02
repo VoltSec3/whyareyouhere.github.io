@@ -1,4 +1,12 @@
-/* Headless verification of the cut + export pipeline against the SD1 reference. */
+/* Headless verification of the cut + export pipeline against the SD1 reference.
+ *
+ * Run: npm run verify
+ *   or: node --import ./scripts/register-ts.mjs scripts/verify-pipeline.ts
+ *
+ * Imports carry explicit .ts extensions because this runs on Node's own type
+ * stripping rather than through a bundler, and Node resolves specifiers literally.
+ * register-ts.mjs adds the extensionless @/ aliases this project uses in app code.
+ */
 import { execSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
@@ -11,21 +19,22 @@ import {
   DEFAULT_CUT_OPTIONS,
   SELECTION_CUT_OPTIONS,
   computePeaks,
-} from "../src/lib/audio/process";
-import { decodeWav, encodeWav, resample, TARGET_SAMPLE_RATE } from "../src/lib/audio/wav";
-import { buildNoiseShape, denoiseSamples, findClickBody } from "../src/lib/audio/denoise";
-import { fft, ifft } from "../src/lib/audio/fft";
-import { buildPack, buildReadme, packFileName, type ExportProgress } from "../src/lib/exporter";
-import { autocutTake } from "../src/lib/audio/autocut";
-import { EventDebouncer, type RecordedEvent } from "../src/lib/events";
-import { CATEGORIES, type PackMeta, type StoredSound } from "../src/lib/types";
+} from "../src/lib/audio/process.ts";
+import { decodeWav, encodeWav, resample, TARGET_SAMPLE_RATE } from "../src/lib/audio/wav.ts";
+import { buildNoiseShape, denoiseSamples, findClickBody } from "../src/lib/audio/denoise.ts";
+import { fft, ifft } from "../src/lib/audio/fft.ts";
+import { buildPack, buildReadme, packFileName, type ExportProgress } from "../src/lib/exporter.ts";
+import { autocutTake } from "../src/lib/audio/autocut.ts";
+import { cutMenuStep, MENU_CATEGORIES, type MenuCaptureEvent } from "../src/lib/menusounds.ts";
+import { EventDebouncer, type RecordedEvent } from "../src/lib/events.ts";
+import { CATEGORIES, INTENSITY_RANK, type PackMeta, type StoredSound } from "../src/lib/types.ts";
 import {
   ZCB_CUT_PRESET,
   validateZcbPack,
   zcbEntryPath,
   zcbLayout,
   zcbRootName,
-} from "../src/lib/zcb";
+} from "../src/lib/zcb.ts";
 
 const RATE = TARGET_SAMPLE_RATE;
 const results: string[] = [];
@@ -176,10 +185,29 @@ check(
   "48 kHz / mono / 16-bit PCM",
   got.sampleRate === 48000 && got.channels === 1 && got.bits === 16 && got.format === 1,
 );
+const clipSeconds = mine.length / (2 * 48000);
 check(
-  "clip length in the same ballpark as SD1 (28988 bytes)",
-  mine.length > 8000 && mine.length < 120000,
-  `${mine.length} bytes, ${(mine.length / (2 * 48000)).toFixed(3)}s`,
+  "clip holds a tail without keeping the whole drag",
+  clipSeconds > 0.04 && clipSeconds < 0.4,
+  `${mine.length} bytes, ${clipSeconds.toFixed(3)}s`,
+);
+// The property that matters is not the length but where it stops. A clip cut mid
+// ring ends abruptly, and the reference pack's ~300 ms clips are mostly room tone
+// rather than a target to match, so what gets asserted is that the tail is
+// allowed to decay instead of being chopped.
+const tailWindow = mine.subarray(Math.max(0, mine.length - 2 * 48000 * 0.005));
+let tailSum = 0;
+for (const sample of tailWindow) tailSum += (sample / 32768) ** 2;
+const tailRms = Math.sqrt(tailSum / Math.max(1, tailWindow.length));
+let clipPeak = 0;
+for (let i = 44; i < mine.length; i += 2) {
+  const value = Math.abs(mine.readInt16LE(i) / 32768);
+  if (value > clipPeak) clipPeak = value;
+}
+check(
+  "clip ends in near-silence rather than mid-ring",
+  clipPeak > 0 && tailRms < clipPeak * 0.1,
+  `last 5ms ${(20 * Math.log10(Math.max(tailRms / clipPeak, 1e-9))).toFixed(1)} dB below the peak`,
 );
 
 /* ---------- resampler sanity ---------- */
@@ -537,13 +565,38 @@ check(
   check("autocut progress climbs to one", reported[reported.length - 1] === 1, String(reported[reported.length - 1]));
 
   const byTime = [...clips].sort((a, b) => a.eventTime - b.eventTime);
-  check("autocut bands loudest to hard", byTime[0]?.intensity === "hard", `${byTime[0]?.intensity} at ${byTime[0]?.relativePeak.toFixed(3)}`);
-  check("autocut bands a mid click to soft", byTime[1]?.intensity === "soft", `${byTime[1]?.intensity} at ${byTime[1]?.relativePeak.toFixed(3)}`);
-  check("autocut bands quiet clicks to micro", byTime[2]?.intensity === "micro" && byTime[3]?.intensity === "micro", `${byTime[2]?.intensity}, ${byTime[3]?.intensity}`);
-  check("autocut uses all three quieter bands distinctly", new Set(clips.map((c) => c.intensity)).size === 3, [...new Set(clips.map((c) => c.intensity))].join(","));
+  const loudness = (clip: (typeof clips)[number] | undefined) =>
+    clip ? `${clip.intensity} at ${clip.relativeLoudness.toFixed(3)}x` : "missing";
+  // Each kind is scored against the loudest click of its own kind, so in this
+  // take the two presses are graded against each other and the two releases
+  // against each other. The loudest release is therefore the hardest lift
+  // recorded, not a mid-tier one, and it is not dragged down by the harder press.
+  check("the hardest press is hard", byTime[0]?.intensity === "hard", loudness(byTime[0]));
+  check("the quietest press is micro", byTime[2]?.intensity === "micro", loudness(byTime[2]));
+  check(
+    "the loudest click of a kind scores one against its own kind",
+    byTime[1]?.relativeLoudness === 1 && byTime[1]?.intensity === "hard",
+    loudness(byTime[1]),
+  );
+  const releases = clips.filter((clip) => clip.kind === "release");
+  check(
+    "a release is not demoted by a louder press",
+    releases.length > 0 && releases.every((clip) => clip.intensity !== "micro"),
+    releases.map(loudness).join(", "),
+  );
+  check(
+    "a quieter release lands below the hardest one",
+    INTENSITY_RANK[byTime[3]!.intensity] < INTENSITY_RANK[byTime[1]!.intensity],
+    `${loudness(byTime[3])} below ${loudness(byTime[1])}`,
+  );
 
   check("presses land in click folders", byTime[0]?.category === "hardclicks" && byTime[2]?.category === "microclicks", `${byTime[0]?.category}, ${byTime[2]?.category}`);
-  check("releases land in release folders", byTime[1]?.category === "softreleases" && byTime[3]?.category === "microreleases", `${byTime[1]?.category}, ${byTime[3]?.category}`);
+  check(
+    "releases land in release folders",
+    byTime[1]?.category === "hardreleases" && byTime[3]?.category === "softreleases",
+    `${byTime[1]?.category}, ${byTime[3]?.category}`,
+  );
+  check("autocut uses three distinct bands on a four click take", new Set(clips.map((c) => c.intensity)).size === 3, [...new Set(clips.map((c) => c.intensity))].join(","));
   check("every autocut category is a real category id", clips.every((c) => CATEGORIES.some((cat) => cat.id === c.category)));
 
   check("autocut clips are non-empty and normalised", clips.every((c) => c.cut.samples.length > 0));
@@ -566,6 +619,327 @@ check(
     "autocut drops events far below the loudest one",
     mixedClips.length === clips.length,
     `${mixedClips.length} kept of ${mixed.length}`,
+  );
+}
+
+/* ---------- autocut: a real press/lift take ----------
+ *
+ * The block above models a release as another full click, which is not what a
+ * release is. Everything that actually went wrong with releases lived in the
+ * paired path - a lift found on the tail of the press it belongs to - and that
+ * path had no coverage at all, so it needs its own take.
+ */
+{
+  // A switch is three things at once: a broadband strike, a damped high ring, and
+  // a low body thump. Only the first two survive the high-pass the detectors
+  // work in, and the body is what a release has to be measured without.
+  const press = [
+    { freq: 2400, amp: 0.45, tau: 0.006, attack: 0.0012 },
+    { freq: 5200, amp: 0.22, tau: 0.003, attack: 0.0008 },
+    { freq: 190, amp: 0.55, tau: 0.025, attack: 0.003 },
+  ];
+  // A lift is only a tick: no body, and it is over in a couple of milliseconds.
+  const lift = [
+    { freq: 4600, amp: 0.07, tau: 0.0035, attack: 0.0008 },
+    { freq: 3100, amp: 0.035, tau: 0.002, attack: 0.0006 },
+  ];
+  const addPart = (take: Float32Array, at: number, scale: number, parts: typeof press) => {
+    const start = Math.round(at * RATE);
+    for (let n = 0; n < RATE * 0.12; n++) {
+      const i = start + n;
+      if (i >= take.length) break;
+      const t = n / RATE;
+      let v = 0;
+      for (const p of parts) {
+        const env = Math.exp(-t / p.tau) * (t < p.attack ? t / p.attack : 1);
+        v += Math.sin(2 * Math.PI * p.freq * t) * env * p.amp;
+      }
+      take[i] += v * scale + (Math.random() * 2 - 1) * 0.002;
+    }
+  };
+
+  /** A take of click/lift pairs, each played at its own force. */
+  const clickTake = (forces: number[], gap: number, times: number[]) => {
+    const take = new Float32Array(RATE * (times[times.length - 1]! + 0.6));
+    for (let i = 0; i < take.length; i++) take[i] = (Math.random() * 2 - 1) * 0.004;
+    const events: RecordedEvent[] = [];
+    forces.forEach((scale, i) => {
+      const at = times[i]!;
+      addPart(take, at, scale, press);
+      addPart(take, at + gap, scale, lift);
+      events.push({ id: `p${i}`, kind: "press", source: "mouse", label: "Left Mouse", time: at });
+      events.push({
+        id: `r${i}`, kind: "release", source: "mouse", label: "Left Mouse", time: at + gap,
+      });
+    });
+    return { take, events };
+  };
+
+  // Forces chosen so each press lands clear of a band boundary once divided by
+  // the loudest: 1.00 hard, 0.60 medium, 0.25 soft, 0.95 hard, 0.10 micro.
+  const forces = [1.0, 0.6, 0.25, 0.95, 0.1];
+  const times = [0.5, 1.1, 1.7, 2.3, 2.9];
+  const gap = 0.03;
+  const { take, events } = clickTake(forces, gap, times);
+  const clips = await autocutTake(take, RATE, events);
+  const paired = clips.filter((clip) => clip.kind === "release");
+  const pairedPresses = clips.filter((clip) => clip.kind === "press");
+  const ms = (clip: (typeof clips)[number]) => (clip.cut.samples.length / RATE) * 1000;
+  const describe = (list: (typeof clips)[number][]) =>
+    list.map((c) => `${c.kind} ${c.category} ${c.intensitySource}`).join(", ");
+
+  check(
+    "every lift in a real take is saved",
+    paired.length === forces.length,
+    `${paired.length} of ${forces.length} lifts kept (${describe(paired)})`,
+  );
+  check("every press in a real take is saved", pairedPresses.length === forces.length, `${pairedPresses.length} of ${forces.length}`);
+
+  // The four tiers the forces were chosen to produce.
+  const expected = ["hard", "medium", "soft", "hard", "micro"];
+  check(
+    "presses are graded across all four bands",
+    pairedPresses.every((clip, i) => clip.intensity === expected[i]),
+    pairedPresses.map((c, i) => `${c.relativeLoudness.toFixed(2)}=>${c.intensity}${c.intensity === expected[i] ? "" : ` want ${expected[i]}`}`).join(", "),
+  );
+
+  // The rule that makes a release usable: it is the end of a press, so it takes
+  // that press's band rather than being graded on its own - quieter - level.
+  const sorted = [...clips].sort((a, b) => a.eventTime - b.eventTime);
+  sorted.forEach((clip, i) => {
+    if (clip.kind !== "release") return;
+    const pressClip = sorted[i - 1]!;
+    check(
+      `a lift inherits the band of the press it came off (#${i})`,
+      clip.intensity === pressClip.intensity && clip.intensitySource === "press",
+      `lift ${clip.intensity} (${clip.intensitySource}) after press ${pressClip.intensity}`,
+    );
+    const expectedFolder = CATEGORIES.find(
+      (cat) => cat.intensity === clip.intensity && cat.kind === "release",
+    )?.id;
+    check(
+      `a lift goes in the release folder for that band (#${i})`,
+      clip.category === expectedFolder,
+      `${clip.category}, want ${expectedFolder}`,
+    );
+  });
+  check(
+    "a lift after the hardest press is filed as a hard release",
+    paired.some((clip) => clip.category === "hardreleases"),
+    describe(paired),
+  );
+  check(
+    "lifts are not all filed as the same kind",
+    new Set(paired.map((clip) => clip.intensity)).size >= 3,
+    [...new Set(paired.map((c) => c.intensity))].join(","),
+  );
+
+  // A lift used to be found tens of milliseconds past the real thing, because the
+  // strongest transient in its window was the press it sits inside.
+  const lifts = [...clips].filter((clip) => clip.kind === "release");
+  const worstError = Math.max(
+    ...lifts.map((clip) => Math.abs(clip.onsetTime - clip.eventTime) * 1000),
+  );
+  check(
+    "every lift is cut at the lift, not at the press's tail",
+    worstError < 5,
+    `worst onset error ${worstError.toFixed(1)}ms`,
+  );
+
+  // Left unbounded a lift ran to the next event and took the press's body thump
+  // with it, which is how a 40 ms tick became a 100 ms clip louder than the
+  // click it followed.
+  const longestLift = Math.max(...lifts.map(ms));
+  check("lifts stay short", longestLift <= 65, `longest lift ${longestLift.toFixed(0)}ms`);
+
+  // Fast clicking: a hold shorter than the press's ring. The lift is not
+  // separable there, and the code has to admit that rather than emit the press's
+  // tail wearing a release's name - but the clip must still be saved.
+  const fast = clickTake(forces, 0.008, times);
+  const fastClips = await autocutTake(fast.take, RATE, fast.events);
+  check(
+    "lifts survive a fast click, where the press has not stopped ringing",
+    fastClips.filter((clip) => clip.kind === "release").length === forces.length,
+    `${fastClips.filter((c) => c.kind === "release").length} of ${forces.length} kept`,
+  );
+  // A press whose release lands on top of it used to be left with no room at all,
+  // and a clip too short to cut was discarded - so a fast click lost both halves.
+  check(
+    "a fast click keeps its press as well as its lift",
+    fastClips.filter((clip) => clip.kind === "press").length === forces.length,
+    `${fastClips.filter((c) => c.kind === "press").length} of ${forces.length} presses kept`,
+  );
+  check(
+    "a fast click's lifts stay short too",
+    Math.max(...fastClips.filter((c) => c.kind === "release").map(ms)) <= 65,
+    `longest ${Math.max(...fastClips.filter((c) => c.kind === "release").map(ms)).toFixed(0)}ms`,
+  );
+
+  // A lift whose press was dropped must not vanish with it, and must fall back to
+  // being graded on its own level rather than inheriting nothing.
+  const solo = new Float32Array(RATE * 1.2);
+  for (let i = 0; i < solo.length; i++) solo[i] = (Math.random() * 2 - 1) * 0.004;
+  addPart(solo, 0.5, 1, lift);
+  const soloClips = await autocutTake(solo, RATE, [
+    { id: "lonely", kind: "release", source: "mouse", label: "Left Mouse", time: 0.5 },
+  ]);
+  check(
+    "a lift with no press to inherit from is still saved",
+    soloClips.length === 1 && soloClips[0]!.kind === "release",
+    `${soloClips.length} kept, ${soloClips[0]?.category ?? "none"}`,
+  );
+  check(
+    "a lift with no press is graded on its own level",
+    soloClips[0]?.intensitySource === "own",
+    soloClips[0]?.intensitySource ?? "missing",
+  );
+}
+
+/* ---------- menu click releases ----------
+ *
+ * Menu clicks are cut by the same onsets and boundaries but saved as two separate
+ * pools, and the release pool is the one that empties out: a lift is quiet, and
+ * the cut used to be dropped both for being under a fixed peak and for the onset
+ * detector not being confident about it. Those are opposite mistakes - one throws
+ * away quiet lifts, the other throws away the lifts that are hardest to find - so
+ * the gate has to be judged against the room the take was recorded in.
+ */
+{
+  const press = [
+    { freq: 2400, amp: 0.45, tau: 0.006, attack: 0.0012 },
+    { freq: 5200, amp: 0.22, tau: 0.003, attack: 0.0008 },
+    { freq: 190, amp: 0.55, tau: 0.025, attack: 0.003 },
+  ];
+  const lift = [
+    { freq: 4600, amp: 0.07, tau: 0.0035, attack: 0.0008 },
+    { freq: 3100, amp: 0.035, tau: 0.002, attack: 0.0006 },
+  ];
+  const addPart = (take: Float32Array, at: number, scale: number, parts: typeof press) => {
+    const start = Math.round(at * RATE);
+    for (let n = 0; n < RATE * 0.12; n++) {
+      const i = start + n;
+      if (i >= take.length) break;
+      const t = n / RATE;
+      let v = 0;
+      for (const p of parts) {
+        const env = Math.exp(-t / p.tau) * (t < p.attack ? t / p.attack : 1);
+        v += Math.sin(2 * Math.PI * p.freq * t) * env * p.amp;
+      }
+      take[i] += v * scale + (Math.random() * 2 - 1) * 0.002;
+    }
+  };
+  const menuclicks = MENU_CATEGORIES.find((c) => c.id === "menuclicks")!;
+
+  const capture = (room: number, gap: number) => {
+    const take = new Float32Array(RATE * 2.2);
+    for (let i = 0; i < take.length; i++) take[i] = (Math.random() * 2 - 1) * room;
+    const events: MenuCaptureEvent[] = [];
+    for (const at of [0.4, 0.9, 1.4]) {
+      addPart(take, at, 1, press);
+      addPart(take, at + gap, 1, lift);
+      events.push({ time: at, label: "Left Mouse", phase: "press" });
+      events.push({ time: at + gap, label: "Left Mouse", phase: "release" });
+    }
+    return cutMenuStep(take, RATE, events, menuclicks);
+  };
+
+  for (const [room, gap] of [
+    [0.004, 0.03],
+    [0.0015, 0.03],
+    [0.004, 0.008],
+  ] as const) {
+    const out = capture(room, gap);
+    const presses = out.filter((r) => r.event.phase === "press").length;
+    const releases = out.filter((r) => r.event.phase === "release").length;
+    check(
+      `menu lifts are saved (room ${room}, hold ${(gap * 1000).toFixed(0)}ms)`,
+      presses === 3 && releases === 3,
+      `${presses} presses, ${releases} releases of 3 each`,
+    );
+  }
+
+  // The gate must not become so loose that an event which landed in silence is
+  // still treated as a sound.
+  const silentTake = new Float32Array(RATE);
+  for (let i = 0; i < silentTake.length; i++) silentTake[i] = (Math.random() * 2 - 1) * 0.004;
+  const silent = cutMenuStep(
+    silentTake,
+    RATE,
+    [{ time: 0.5, label: "Left Mouse", phase: "release" }],
+    menuclicks,
+  );
+  check(
+    "a menu event with nothing at it is still discarded",
+    silent.length === 0,
+    `${silent.length} kept from silence`,
+  );
+}
+
+/* ---------- autocut: one hard click must not delete the take ----------
+ *
+ * The accidental-tap floor used to be measured from the loudest click in the
+ * take. Ordinary clicking sits about 25 dB below a hard slam from the same mouse
+ * and the floor sat at 24 dB, so one deliberate hard click threw away every
+ * other click in the recording and filed the survivors as micro.
+ */
+{
+  const press = [
+    { freq: 2400, amp: 0.45, tau: 0.006, attack: 0.0012 },
+    { freq: 5200, amp: 0.22, tau: 0.003, attack: 0.0008 },
+    { freq: 190, amp: 0.55, tau: 0.025, attack: 0.003 },
+  ];
+  const addPart = (take: Float32Array, at: number, scale: number) => {
+    const start = Math.round(at * RATE);
+    for (let n = 0; n < RATE * 0.12; n++) {
+      const i = start + n;
+      if (i >= take.length) break;
+      const t = n / RATE;
+      let v = 0;
+      for (const p of press) {
+        const env = Math.exp(-t / p.tau) * (t < p.attack ? t / p.attack : 1);
+        v += Math.sin(2 * Math.PI * p.freq * t) * env * p.amp;
+      }
+      take[i] += v * scale;
+    }
+  };
+
+  // Six ordinary clicks and one genuine slam, all deliberate.
+  const forces = [0.05, 0.045, 0.055, 0.9, 0.05, 0.048, 0.052];
+  const times = [0.4, 0.9, 1.4, 1.9, 2.4, 2.9, 3.4];
+  const take = new Float32Array(RATE * 4.2);
+  for (let i = 0; i < take.length; i++) take[i] = (Math.random() * 2 - 1) * 0.003;
+  forces.forEach((scale, i) => addPart(take, times[i]!, scale));
+  const events = times.map((t, i) => ({
+    id: `p${i}`, kind: "press", source: "mouse", label: "Left Mouse", time: t!,
+  })) as RecordedEvent[];
+
+  const clips = await autocutTake(take, RATE, events);
+  check(
+    "one hard click does not delete the rest of the take",
+    clips.length === forces.length,
+    `${clips.length} kept of ${forces.length}`,
+  );
+  check(
+    "the hard click is still filed as hard",
+    clips.some((clip) => clip.category === "hardclicks"),
+    clips.map((c) => c.category).join(", "),
+  );
+
+  // A genuine accidental tap is still discarded: the floor has to survive an
+  // outlier without becoming a blanket "keep everything".
+  const withTap = new Float32Array(RATE * 4.6);
+  for (let i = 0; i < withTap.length; i++) withTap[i] = (Math.random() * 2 - 1) * 0.003;
+  forces.forEach((scale, i) => addPart(withTap, times[i]!, scale));
+  addPart(withTap, 4.0, 0.0004); // a knock on the desk
+  const tapEvents = [
+    ...events,
+    { id: "tap", kind: "press", source: "mouse", label: "Left Mouse", time: 4.0 },
+  ] as RecordedEvent[];
+  const tapClips = await autocutTake(withTap, RATE, tapEvents);
+  check(
+    "an accidental tap beside a full take is still discarded",
+    tapClips.length === forces.length,
+    `${tapClips.length} kept of ${forces.length + 1}`,
   );
 }
 
@@ -606,7 +980,16 @@ check(
     Math.abs(peakBefore - asDrawn.peakBefore) < 1e-6,
     `${peakBefore.toFixed(4)} vs ${asDrawn.peakBefore.toFixed(4)}`,
   );
-  check("a default cut fades nothing", asDrawn.samples[0] !== 0 && Math.abs(asDrawn.samples[0]!) > 0.0005, `first sample ${asDrawn.samples[0]}`);
+  // With the fades off the clip has to begin on the take's own sample. Comparing
+  // against the take is the only stable form of this: the selection starts in
+  // room tone, so checking that the first sample is "big enough" fails whenever
+  // the noise happens to land near zero.
+  const asDrawnStart = Math.round(asDrawn.start * RATE);
+  check(
+    "a default cut fades nothing",
+    asDrawn.samples[0] === take[asDrawnStart] && asDrawn.samples[0] !== 0,
+    `first sample ${asDrawn.samples[0]} vs take ${take[asDrawnStart]} at ${asDrawnStart}`,
+  );
 
   // The region has to be the selection, sample for sample.
   check(

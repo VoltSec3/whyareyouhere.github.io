@@ -1,5 +1,5 @@
 import { analyseTake } from "./audio/autocut";
-import { cutFromOnset, DEFAULT_CUT_OPTIONS, type Cut } from "./audio/process";
+import { cutFromOnset, DEFAULT_CUT_OPTIONS, medianMagnitude, type Cut } from "./audio/process";
 import { encodeWav, TARGET_SAMPLE_RATE } from "./audio/wav";
 import type { RecordedEvent } from "./events";
 
@@ -154,6 +154,12 @@ export type StoredMenuSound = {
 
 /** Level below which a captured event is treated as a stray tap, not a sample. */
 const MIN_SAMPLE_PEAK = 0.002;
+/**
+ * How far above the take's own room a clip has to sit to count as a sound rather
+ * than as silence. Applied on top of `MIN_SAMPLE_PEAK`, which stays as the
+ * absolute backstop for a take recorded in a dead-silent room.
+ */
+const MIN_PEAK_OVER_NOISE = 3;
 
 /** Share of a category's loudest clip the whole category is normalised to. */
 const CATEGORY_PEAK = 0.92;
@@ -265,9 +271,23 @@ export function cutMenuStep(
   });
 
   const analysed = analyseTake(samples, sampleRate, recorded);
+
+  // "There is a sound here" has to be judged against the room this take was
+  // recorded in rather than against a fixed level. A lift is quiet by nature, so
+  // a fixed floor throws away exactly the clips this pool exists to hold, and the
+  // quieter someone's microphone gain the more of them it throws away.
+  //
+  // It also cannot be judged by whether the onset detector was confident. On a
+  // fast click the lift is still buried in the press's ring when it happens, the
+  // detector correctly reports that it could not find it, and skipping on that
+  // basis dropped the release while keeping the press - which is the opposite of
+  // what the recording is for. A clip is kept when it holds audible energy over
+  // the room, wherever its start was decided.
+  const noiseFloor = medianMagnitude(samples);
+  const gate = Math.max(MIN_SAMPLE_PEAK, noiseFloor * MIN_PEAK_OVER_NOISE);
+
   const results: { cut: Cut; event: MenuCaptureEvent }[] = [];
   for (const entry of analysed) {
-    if (entry.hit === null) continue;
     const event = byId.get(entry.event.id);
     if (!event) continue;
     const cut = cutFromOnset(
@@ -277,7 +297,7 @@ export function cutMenuStep(
       entry.endLimit,
       options[event.phase]!,
     );
-    if (!cut || cut.peakBefore < MIN_SAMPLE_PEAK) continue;
+    if (!cut || cut.peakBefore < gate) continue;
     results.push({ cut, event });
   }
 

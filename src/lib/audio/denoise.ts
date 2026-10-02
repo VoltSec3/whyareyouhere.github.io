@@ -92,6 +92,25 @@ const YIELD_EVERY = 16;
  * what produces a click that stops dead a millisecond after it starts.
  */
 const PROTECT_FLOOR = 0.012;
+/**
+ * …but never below this multiple of the clip's own noise floor.
+ *
+ * A fraction of the peak alone is only safe in a silent room. In a normal one the
+ * room sits within a percent or two of the attack - a click peaking at -1 dBFS
+ * over a -39 dBFS room puts the background at roughly 1.1% of the peak - so a
+ * threshold at 1.2% is never crossed at all. The body detector then runs to the
+ * end of the clip, every frame counts as transient, the gate never closes and the
+ * denoiser passes the audio through untouched. Anchoring to the room as well
+ * makes the body end where the decay actually reaches the background.
+ */
+const PROTECT_NOISE_MULTIPLE = 2.5;
+/**
+ * Ceiling on that noise-derived floor, as a share of the peak. Without it a clip
+ * that really is mostly click - a long ring, or a very noisy take - would set its
+ * floor near its own peak and have its body gated a millisecond in, which is the
+ * truncation this whole guard exists to prevent.
+ */
+const PROTECT_CEILING_RATIO = 0.3;
 /** Envelope resolution for body detection, in seconds. */
 const ENV_WINDOW = 0.001;
 /**
@@ -225,7 +244,19 @@ export function findClickBody(
   }
   if (peak <= 0) return { start: 0, end: samples.length };
 
-  const threshold = peak * PROTECT_FLOOR;
+  // The room this clip was recorded in, as the median of its own envelope after
+  // the attack. Everything past the peak is background in a clip that has been
+  // trimmed, so the median is a robust read of it and ignores both the attack
+  // and any single stray bump.
+  const background: number[] = [];
+  for (let i = peakIndex + win; i < samples.length; i += win) background.push(env[i]!);
+  background.sort((a, b) => a - b);
+  const noiseFloor = background.length ? background[background.length >> 1]! : 0;
+
+  const threshold = Math.min(
+    Math.max(peak * PROTECT_FLOOR, noiseFloor * PROTECT_NOISE_MULTIPLE),
+    peak * PROTECT_CEILING_RATIO,
+  );
   const hold = Math.round(PROTECT_HOLD * sampleRate);
   let end = peakIndex;
   let lastLoud = peakIndex;
