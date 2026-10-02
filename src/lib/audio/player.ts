@@ -7,17 +7,7 @@ type Active = {
   offset: number;
   gain: GainNode;
 };
-function softClipCurve(amount: number): Float32Array {
-  const samples = 2048;
-  const curve = new Float32Array(samples);
-  for (let i = 0; i < samples; i++) {
-    const x = (i / (samples - 1)) * 2 - 1;
-    curve[i] = Math.tanh(x * amount) / Math.tanh(amount);
-  }
-  return curve;
-}
-
-/** Single shared output bus: gain → gentle soft clip → destination. */
+/** Single shared output bus. Preview the sample waveform without tonal shaping. */
 class AudioPlayer {
   private context: AudioContext | null = null;
   private bus: AudioNode | null = null;
@@ -27,13 +17,10 @@ class AudioPlayer {
   getContext(): AudioContext {
     if (!this.context || this.context.state === "closed") {
       this.context = new AudioContext();
-      const shaper = this.context.createWaveShaper();
-      shaper.curve = softClipCurve(1.4);
-      shaper.oversample = "2x";
       const gain = this.context.createGain();
       gain.gain.value = 0.9;
-      shaper.connect(gain).connect(this.context.destination);
-      this.bus = shaper;
+      gain.connect(this.context.destination);
+      this.bus = gain;
     }
     return this.context;
   }

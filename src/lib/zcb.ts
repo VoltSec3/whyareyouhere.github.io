@@ -105,8 +105,8 @@ export function zcbMenuFolder(category: string, phase: string | undefined): stri
 /**
  * Clips below this are skipped by the menu loader the same way the gameplay
  * loader skips anything it cannot decode, so a pack can ship a folder of
- * one-sample files and get silence. The gameplay tiers have a different floor -
- * they need 3 files to layer and 8 to sub-tier - but a menu sound is played as a
+ * one-sample files and get silence. Gameplay accepts one intact recording, and
+ * eight files enable loudness sub-tiering. A menu sound is played as a
  * single voice, so the only thing that matters is that it is not empty.
  */
 export const ZCB_MENU_MIN_CLIPS = 1;
@@ -204,11 +204,9 @@ export function zcbMenuEntryPath(
 export const ZCB_NOISE_PREFIXES = ["noise", "whitenoise", "pcnoise", "background"] as const;
 
 /**
- * Cut-behaviour preset for ZCB. ZCB layers three voices per press (click,
- * transient, body) and re-uses the tail as a resonance ring, so it rewards a
- * clip that starts on the attack, ends at the decay, and sits at a consistent
- * level. The four extras stay off by default everywhere else, so this preset is
- * only ever applied by an explicit choice.
+ * Cut-behaviour preset for ZCB's sample-first renderer. Preserve the complete
+ * attack and natural decay in each clip; the runtime plays that recording as a
+ * single event by default instead of replaying slices as extra voices.
  */
 export const ZCB_CUT_PRESET = {
   snapOnset: true,
@@ -225,17 +223,14 @@ export const ZCB_CUT_PRESET = {
  * so, because "it will still play" is not the same as "it will sound right".
  * ------------------------------------------------------------------ */
 
-/** `transient_len_ms` = 3.0, and `scratch_len_ms` = 2.5: both slice frames from 0. */
+/** Leading attack energy is checked in the first 3 ms of each clip. */
 const TRANSIENT_WINDOW_MS = 3;
-
-/** `resonance_min_body_ms` = 40.0: shorter bodies get no ring at all. */
-const MIN_BODY_MS = 40;
 
 /** `tiered()` returns early below this count, disabling loudness sub-tiering. */
 const TIER_SAMPLES = 8;
 
-/** The realism picker needs a click, a transient and a body that all differ. */
-const LAYER_SAMPLES = 3;
+/** Fewer than three samples leave little room for natural sample variation. */
+const VARIETY_SAMPLES = 3;
 
 /** `norm_min_gain` = 0.45, `norm_max_gain` = 2.5. */
 const NORM_MAX_GAIN = 2.5;
@@ -243,8 +238,6 @@ const NORM_MAX_GAIN = 2.5;
 /** Peak in the first 3 ms, relative to the clip peak, below which the attack is lost. */
 const MIN_LEADING_PEAK = 0.05;
 
-/** RMS of the second half, relative to the whole clip, below which the ring is silent. */
-const MIN_TAIL_RMS = 0.02;
 
 export type ZcbSeverity = "error" | "warning";
 
@@ -396,14 +389,14 @@ export function validateZcbPack(
       continue;
     }
 
-    if (tier.count < LAYER_SAMPLES) {
+    if (tier.count < VARIETY_SAMPLES) {
       findings.push({
-        id: `layers-${category}`,
-        severity: "error",
+        id: `variety-${category}`,
+        severity: "warning",
         category,
-        title: `${name} needs at least ${LAYER_SAMPLES} clips`,
+        title: `${name} has little sample variation`,
         detail:
-          "ZCB layers a click, a transient and a body on every press and refuses to pick the same file twice, so a single clip can only be replayed against itself and sounds phasey.",
+          "ZCB plays each recording as one intact click by default, so one or two clips are valid. More takes or cuts give repeated clicks more natural variation.",
       });
     } else if (tier.count < TIER_SAMPLES) {
       findings.push({
@@ -428,32 +421,8 @@ export function validateZcbPack(
       continue;
     }
 
-    // Per-clip problems, reported once per category with the count.
-    const short = tier.metrics.filter((m) => m.durationMs < MIN_BODY_MS);
-    if (short.length > 0) {
-      findings.push({
-        id: `short-${category}`,
-        severity: "warning",
-        category,
-        title: `${short.length} ${name} clip${short.length === 1 ? " is" : "s are"} under ${MIN_BODY_MS} ms`,
-        detail:
-          "ZCB only builds a resonance ring from bodies of 40 ms or more, so anything shorter loses its decay tail entirely and a rapid stream flattens out.",
-      });
-    }
-
-    const late = tier.metrics.filter(
-      (m) => m.durationMs >= MIN_BODY_MS && m.tailRms < MIN_TAIL_RMS,
-    );
-    if (late.length > 0) {
-      findings.push({
-        id: `tail-${category}`,
-        severity: "warning",
-        category,
-        title: `${late.length} ${name} clip${late.length === 1 ? " has" : "s have"} a silent second half`,
-        detail:
-          "The ring is a slice of the body's second half. If that half is silence the clip passes the length check but the ring it produces is inaudible. Keep the natural decay, drop the trailing silence.",
-      });
-    }
+    // A quiet tail is valid: the default renderer plays the clip once and does
+    // not synthesize a resonance from it.
 
     const lateAttack = tier.metrics.filter((m) => m.leadingPeak < MIN_LEADING_PEAK);
     if (lateAttack.length > 0) {
@@ -463,7 +432,7 @@ export function validateZcbPack(
         category,
         title: `${lateAttack.length} ${name} clip${lateAttack.length === 1 ? " starts" : "s start"} on silence`,
         detail:
-          "ZCB slices the first 3 ms of the file for the attack transient and the switch scratch. Leading silence makes both layers silent and the click loses its definition.",
+          "ZCB plays the recording from its first sample. Leading silence delays the click attack, so snap onset before export.",
       });
     }
 
@@ -502,10 +471,9 @@ export function validateZcbPack(
  * layering requirement and no loudness sub-tiering, and a folder with one clip
  * in it is perfectly fine.
  *
- * Note what is *not* checked here, unlike the gameplay tiers. A gameplay click
- * is cut into an attack transient taken from the first `transient_len_ms` of
- * the file, so leading silence really does mute its transient and ZCB warns
- * about it. A menu sound never goes near that engine: `play_menu_sound` hands
+ * Note what is *not* checked here, unlike the gameplay tiers. Gameplay clicks
+ * are played as intact recordings by default, so snapping the onset still
+ * matters. A menu sound never goes near that engine: `play_menu_sound` hands
  * the sample straight to FMOD and it plays from the first sample. A lead-in is
  * therefore good rather than bad for a menu clip - it is what stops the hard
  * sample-accurate start of a switch click from being an audible tick - so

@@ -999,9 +999,8 @@ function CutBehaviorRow({
           </button>
         </TooltipTrigger>
         <TooltipContent side="top" className="max-w-64 text-xs">
-          ZCB layers a click, a transient and a body on every press, and re-uses the tail as a
-          resonance ring. Snapping to the attack, trimming the decay and normalising gives it the
-          clean material it needs.
+          ZCB plays each click recording as a complete event by default. Snap to its natural attack,
+          keep the decay, and normalize only when the source levels need matching.
         </TooltipContent>
       </Tooltip>
     </div>

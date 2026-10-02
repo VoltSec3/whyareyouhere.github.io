@@ -1294,7 +1294,11 @@ const clean = validateZcbPack([...fullTier, ...Array.from({ length: 8 }, (_, i) 
 check("a healthy tier raises nothing", clean.findings.length === 0, clean.findings.map((f) => f.id).join(","));
 
 const sparse = validateZcbPack([clip("only", "clicks", goodClip())], { categories: ["clicks"] });
-check("a one-clip tier is an error", sparse.findings.some((f) => f.id === "layers-clicks"));
+check(
+  "a one-clip tier is only a variety warning",
+  sparse.findings.some((f) => f.id === "variety-clicks" && f.severity === "warning"),
+  sparse.findings.map((f) => `${f.id}:${f.severity}`).join(","),
+);
 check(
   "a one-clip tier reports the blocking problem only",
   sparse.findings.length === 1,
@@ -1313,8 +1317,11 @@ const emptyFinding = empty.findings.find((f) => f.id === "empty-hardclicks");
 check("an empty tier is reported", !!emptyFinding);
 check("an empty tier warns about the release fallback", !!emptyFinding && emptyFinding.detail.includes("release sample"));
 
+// ZCB plays each recording as one intact event by default, so a short clip is
+// valid - it is a short click, not a truncated one - and a quiet tail is simply
+// a quiet tail rather than a resonance that would render as silence.
 const short = validateZcbPack([clip("s", "clicks", goodClip(0.02))], { categories: ["clicks"] });
-check("a clip under 40 ms is reported", short.findings.some((f) => f.id === "short-clicks"));
+check("a clip under 40 ms is not rejected", !short.findings.some((f) => f.id === "short-clicks"));
 const longEnough = validateZcbPack([clip("l", "clicks", goodClip(0.08))], { categories: ["clicks"] });
 check("a clip over 40 ms is not reported as short", !longEnough.findings.some((f) => f.id === "short-clicks"));
 
@@ -1323,8 +1330,10 @@ for (let i = 0; i < RATE * 0.02; i++) {
   late[i] = Math.sin((2 * Math.PI * 2400 * i) / RATE) * Math.exp(-i / (RATE * 0.004)) * 0.5;
 }
 check(
-  "a silent second half is reported separately from length",
-  validateZcbPack([clip("t", "clicks", late)], { categories: ["clicks"] }).findings.some((f) => f.id === "tail-clicks"),
+  "a silent second half is no longer treated as a defect",
+  !validateZcbPack([clip("t", "clicks", late)], { categories: ["clicks"] }).findings.some(
+    (f) => f.id === "tail-clicks",
+  ),
 );
 
 const late2 = new Float32Array(RATE * 0.08);
